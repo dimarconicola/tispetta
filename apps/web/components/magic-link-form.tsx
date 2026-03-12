@@ -6,7 +6,7 @@ import { useState, useTransition } from 'react';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 export function MagicLinkForm() {
-  const [email, setEmail] = useState('demo@benefits.local');
+  const [email, setEmail] = useState('demo@example.com');
   const [message, setMessage] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();

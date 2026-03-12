@@ -378,8 +378,8 @@ def seed_catalog(db: Session) -> None:
 
 
 def seed_demo_users(db: Session) -> None:
-    demo_user = get_or_create_user(db, 'demo@benefits.local')
-    admin_user = get_or_create_user(db, 'admin@benefits.local')
+    demo_user = get_or_create_user(db, 'demo@example.com')
+    admin_user = get_or_create_user(db, 'admin@example.com')
 
     user_profile = get_or_create_profile(db, demo_user)
     admin_profile = get_or_create_profile(db, admin_user)

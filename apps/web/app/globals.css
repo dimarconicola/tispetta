@@ -81,13 +81,20 @@ main {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  align-items: center;
 }
 
-.nav a {
+.nav a,
+.nav-button {
   padding: 0.65rem 1rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.45);
+}
+
+.nav-button {
+  color: inherit;
+  cursor: pointer;
 }
 
 .hero {

@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 
+import { INTERNAL_API_URL, SESSION_COOKIE_NAME } from '@/lib/env';
 import type {
   IngestionRun,
   NotificationPreferences,
@@ -14,17 +15,14 @@ import type {
   Source,
 } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
-const SESSION_COOKIE = 'boe_session';
-
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
   const cookieStore = await cookies();
-  const session = cookieStore.get(SESSION_COOKIE)?.value;
-  const response = await fetch(`${API_URL}${path}`, {
+  const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const response = await fetch(`${INTERNAL_API_URL}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      ...(session ? { Cookie: `${SESSION_COOKIE}=${session}` } : {}),
+      ...(session ? { 'X-Session-Token': session } : {}),
       ...(init?.headers ?? {}),
     },
     cache: 'no-store',

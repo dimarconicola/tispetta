@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import hashlib
-from pathlib import Path
 import re
 
 from bs4 import BeautifulSoup
@@ -20,7 +19,7 @@ from app.models import (
     SourceEndpoint,
     SourceSnapshot,
 )
-from worker.clients.storage import persist_snapshot
+from worker.clients.storage import persist_snapshot, read_snapshot
 
 
 @dataclass
@@ -61,7 +60,7 @@ def upsert_snapshot(db: Session, endpoint: SourceEndpoint, run: IngestionRun) ->
         return None
 
     suffix = f"{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}.{'pdf' if 'pdf' in content_type else 'html'}"
-    storage_path = persist_snapshot(endpoint.id, suffix, content)
+    storage_path = persist_snapshot(endpoint.id, suffix, content, content_type=content_type)
     snapshot = SourceSnapshot(
         source_endpoint_id=endpoint.id,
         checksum=checksum,
@@ -79,7 +78,7 @@ def upsert_snapshot(db: Session, endpoint: SourceEndpoint, run: IngestionRun) ->
 
 
 def normalize_snapshot(db: Session, snapshot: SourceSnapshot) -> NormalizedDocument:
-    raw = Path(snapshot.storage_path).read_bytes() if snapshot.storage_path else b''
+    raw = read_snapshot(snapshot.storage_path) if snapshot.storage_path else b''
     content_type = snapshot.content_type or 'text/html'
     if 'pdf' in content_type:
         clean_text = raw.decode('utf-8', errors='ignore')

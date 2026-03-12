@@ -12,6 +12,15 @@ class MagicLinkResponse(ApiModel):
     preview_url: str | None = None
 
 
+class MagicLinkExchangeRequest(BaseModel):
+    token: str
+
+
+class MagicLinkExchangeResponse(ApiModel):
+    redirect_to: str
+    session_token: str
+
+
 class SessionUser(ApiModel):
     id: str
     email: str

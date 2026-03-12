@@ -8,8 +8,8 @@ export default function SignInPage() {
         <p className="eyebrow">Suggerimento locale</p>
         <h2 style={{ fontSize: '2.4rem' }}>Usa gli account seed per vedere subito il prodotto</h2>
         <ul className="list-reset stack subtle">
-          <li>`demo@benefits.local` per il percorso utente</li>
-          <li>`admin@benefits.local` per il pannello operatore</li>
+          <li>`demo@example.com` per il percorso utente</li>
+          <li>`admin@example.com` per il pannello operatore</li>
           <li>Mailpit: `http://localhost:8025` per controllare le email locali</li>
         </ul>
       </div>

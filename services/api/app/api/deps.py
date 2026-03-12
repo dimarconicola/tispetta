@@ -1,4 +1,4 @@
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,10 +10,27 @@ from app.models import Role, User
 settings = get_settings()
 
 
+def _extract_session_token(
+    cookie_token: str | None,
+    header_token: str | None,
+    authorization: str | None,
+) -> str | None:
+    if header_token:
+        return header_token
+    if cookie_token:
+        return cookie_token
+    if authorization and authorization.lower().startswith('bearer '):
+        return authorization.split(' ', 1)[1].strip()
+    return None
+
+
 def get_optional_current_user(
-    session_token: str | None = Cookie(default=None, alias=settings.session_cookie_name),
+    session_token_cookie: str | None = Cookie(default=None, alias=settings.session_cookie_name),
+    x_session_token: str | None = Header(default=None, alias='X-Session-Token'),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> User | None:
+    session_token = _extract_session_token(session_token_cookie, x_session_token, authorization)
     if not session_token:
         return None
     payload = parse_session_token(session_token)

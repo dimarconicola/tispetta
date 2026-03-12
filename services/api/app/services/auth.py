@@ -6,6 +6,7 @@ from email.message import EmailMessage
 import smtplib
 from urllib.parse import urlencode
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,12 @@ settings = get_settings()
 
 def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+def _is_expired(expires_at: datetime) -> bool:
+    now = datetime.now(UTC)
+    comparable_now = now if expires_at.tzinfo is not None else now.replace(tzinfo=None)
+    return expires_at < comparable_now
 
 
 def get_or_create_user(db: Session, email: str) -> User:
@@ -47,13 +54,53 @@ def request_magic_link(db: Session, email: str) -> str:
     token_record.token_hash = _hash_token(signed)
     db.commit()
     preview_url = f"{settings.app_base_url}/api/auth/callback?{urlencode({'token': signed})}"
-    _send_magic_email(user.email, preview_url)
+    delivered = _send_magic_email(user.email, preview_url)
+    if not delivered and settings.environment == 'production':
+        raise RuntimeError('Magic link email delivery failed')
     return preview_url
 
 
-def _send_magic_email(email: str, preview_url: str) -> None:
+def _send_magic_email(email: str, preview_url: str) -> bool:
+    if settings.resend_api_key:
+        try:
+            _send_magic_email_via_resend(email, preview_url)
+            return True
+        except (httpx.HTTPError, OSError):
+            if not settings.smtp_host:
+                return False
+    try:
+        _send_magic_email_via_smtp(email, preview_url)
+        return True
+    except (OSError, smtplib.SMTPException):
+        # Local development can continue with the preview link when Mailpit/SMTP is unavailable.
+        return False
+
+
+def _send_magic_email_via_resend(email: str, preview_url: str) -> None:
+    response = httpx.post(
+        'https://api.resend.com/emails',
+        headers={
+            'Authorization': f'Bearer {settings.resend_api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'from': settings.resend_from_email,
+            'to': [email],
+            'subject': 'Accedi a Tispetta',
+            'text': (
+                'Clicca sul link per accedere al tuo account e aggiornare il profilo:\n\n'
+                f'{preview_url}\n\n'
+                'Questo link scade tra 30 minuti.'
+            ),
+        },
+        timeout=10.0,
+    )
+    response.raise_for_status()
+
+
+def _send_magic_email_via_smtp(email: str, preview_url: str) -> None:
     message = EmailMessage()
-    message['Subject'] = 'Accedi a Benefits Opportunity Engine'
+    message['Subject'] = 'Accedi a Tispetta'
     message['From'] = settings.resend_from_email
     message['To'] = email
     message.set_content(
@@ -61,14 +108,13 @@ def _send_magic_email(email: str, preview_url: str) -> None:
         f'{preview_url}\n\n'
         'Questo link scade tra 30 minuti.'
     )
-    try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=5) as server:
-            if settings.smtp_username and settings.smtp_password:
-                server.login(settings.smtp_username, settings.smtp_password)
-            server.send_message(message)
-    except OSError:
-        # Mailpit or SMTP may not be running in development; return the preview link to the caller.
-        return
+    client_cls = smtplib.SMTP_SSL if settings.smtp_ssl_enabled() else smtplib.SMTP
+    with client_cls(settings.smtp_host, settings.smtp_port, timeout=10) as server:
+        if settings.smtp_use_starttls and not settings.smtp_ssl_enabled():
+            server.starttls()
+        if settings.smtp_username and settings.smtp_password:
+            server.login(settings.smtp_username, settings.smtp_password)
+        server.send_message(message)
 
 
 def consume_magic_link(db: Session, token: str) -> User | None:
@@ -77,7 +123,7 @@ def consume_magic_link(db: Session, token: str) -> User | None:
         return None
     token_hash = _hash_token(token)
     token_record = db.execute(select(MagicLinkToken).where(MagicLinkToken.token_hash == token_hash)).scalar_one_or_none()
-    if token_record is None or token_record.consumed_at is not None or token_record.expires_at < datetime.now(UTC):
+    if token_record is None or token_record.consumed_at is not None or _is_expired(token_record.expires_at):
         return None
     token_record.consumed_at = datetime.now(UTC)
     user = get_or_create_user(db, payload['email'])
