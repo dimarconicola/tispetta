@@ -4,6 +4,7 @@ node_modules
 .next
 out
 coverage
+*.tsbuildinfo
 
 # Python
 __pycache__/
@@ -15,6 +16,7 @@ venv/
 .dist/
 build/
 *.egg-info/
+*.db
 
 # Env
 .env
