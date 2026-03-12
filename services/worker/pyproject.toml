@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "benefits-opportunity-worker"
+version = "0.1.0"
+description = "Worker service for Benefits Opportunity Engine"
+requires-python = ">=3.11"
+dependencies = [
+  "dramatiq>=1.17.1",
+  "redis>=5.2.1",
+  "httpx>=0.28.1",
+  "boto3>=1.37.11",
+  "pydantic-settings>=2.8.1"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]

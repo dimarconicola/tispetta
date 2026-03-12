@@ -1,0 +1,101 @@
+import { cookies } from 'next/headers';
+
+import type {
+  IngestionRun,
+  NotificationPreferences,
+  OpportunityCard,
+  OpportunityDetail,
+  Profile,
+  ProfileQuestion,
+  ReviewItem,
+  RuleListItem,
+  RuleTestResult,
+  SessionUser,
+  Source,
+} from './types';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const SESSION_COOKIE = 'boe_session';
+
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
+  const cookieStore = await cookies();
+  const session = cookieStore.get(SESSION_COOKIE)?.value;
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(session ? { Cookie: `${SESSION_COOKIE}=${session}` } : {}),
+      ...(init?.headers ?? {}),
+    },
+    cache: 'no-store',
+  });
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+export async function getSessionUser(): Promise<SessionUser | null> {
+  return apiFetch<SessionUser>('/v1/me');
+}
+
+export async function getProfile(): Promise<Profile | null> {
+  return apiFetch<Profile>('/v1/profile');
+}
+
+export async function getProfileQuestions(): Promise<ProfileQuestion[]> {
+  return (await apiFetch<ProfileQuestion[]>('/v1/profile/questions')) ?? [];
+}
+
+export async function getOpportunities(params?: Record<string, string | boolean | undefined>): Promise<OpportunityCard[]> {
+  const search = new URLSearchParams();
+  Object.entries(params ?? {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') {
+      search.set(key, String(value));
+    }
+  });
+  const path = `/v1/opportunities${search.toString() ? `?${search.toString()}` : ''}`;
+  return (await apiFetch<OpportunityCard[]>(path)) ?? [];
+}
+
+export async function getOpportunityDetail(key: string): Promise<OpportunityDetail | null> {
+  return apiFetch<OpportunityDetail>(`/v1/opportunities/${key}`);
+}
+
+export async function searchOpportunities(query: string): Promise<OpportunityCard[]> {
+  return (await apiFetch<OpportunityCard[]>(`/v1/search?query=${encodeURIComponent(query)}`)) ?? [];
+}
+
+export async function getNotificationPreferences(): Promise<NotificationPreferences | null> {
+  return apiFetch<NotificationPreferences>('/v1/notifications/preferences');
+}
+
+export async function getAdminSources(): Promise<Source[]> {
+  return (await apiFetch<Source[]>('/v1/admin/sources')) ?? [];
+}
+
+export async function getAdminIngestionRuns(): Promise<IngestionRun[]> {
+  return (await apiFetch<IngestionRun[]>('/v1/admin/ingestion-runs')) ?? [];
+}
+
+export async function getAdminReviewItems(): Promise<ReviewItem[]> {
+  return (await apiFetch<ReviewItem[]>('/v1/admin/review-items')) ?? [];
+}
+
+export async function getAdminRules(): Promise<RuleListItem[]> {
+  return (await apiFetch<RuleListItem[]>('/v1/admin/rules')) ?? [];
+}
+
+export async function getAdminOpportunityDiff(id: string): Promise<Record<string, unknown> | null> {
+  return apiFetch<Record<string, unknown>>(`/v1/admin/opportunities/${id}/diff`);
+}
+
+export async function runRuleTest(ruleId: string): Promise<RuleTestResult | null> {
+  return apiFetch<RuleTestResult>(`/v1/admin/rules/${ruleId}/test`, { method: 'POST' });
+}

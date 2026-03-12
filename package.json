@@ -1,0 +1,22 @@
+{
+  "name": "benefits-opportunity-engine",
+  "private": true,
+  "packageManager": "pnpm@10.6.3",
+  "scripts": {
+    "dev": "concurrently -n web,api,worker -c blue,green,yellow \"pnpm --filter web dev\" \"pnpm dev:api\" \"pnpm dev:worker\"",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "cd services/api && python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:worker": "cd services/worker && PYTHONPATH=../api python3 -m worker.main",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "lint": "pnpm --filter web lint",
+    "typecheck": "pnpm --filter web typecheck",
+    "test": "pnpm --filter web test && cd services/api && python3 -m pytest",
+    "seed": "cd services/api && PYTHONPATH=. python3 -m app.seeds.cli",
+    "prepare": "husky || true"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "husky": "^9.1.7"
+  }
+}
