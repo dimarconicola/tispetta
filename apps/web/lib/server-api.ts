@@ -2,7 +2,10 @@ import { cookies } from 'next/headers';
 
 import { INTERNAL_API_URL, SESSION_COOKIE_NAME } from '@/lib/env';
 import type {
+  AdminDocument,
+  BootstrapRunResult,
   IngestionRun,
+  MeasureFamily,
   NotificationPreferences,
   OpportunityCard,
   OpportunityDetail,
@@ -13,6 +16,7 @@ import type {
   RuleTestResult,
   SessionUser,
   Source,
+  SurveyCoverageSnapshot,
 } from './types';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
@@ -76,6 +80,29 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 
 export async function getAdminSources(): Promise<Source[]> {
   return (await apiFetch<Source[]>('/v1/admin/sources')) ?? [];
+}
+
+export async function getAdminMeasureFamilies(): Promise<MeasureFamily[]> {
+  return (await apiFetch<MeasureFamily[]>('/v1/admin/measure-families')) ?? [];
+}
+
+export async function getAdminDocuments(params?: Record<string, string | undefined>): Promise<AdminDocument[]> {
+  const search = new URLSearchParams();
+  Object.entries(params ?? {}).forEach(([key, value]) => {
+    if (value) {
+      search.set(key, value);
+    }
+  });
+  const path = `/v1/admin/documents${search.toString() ? `?${search.toString()}` : ''}`;
+  return (await apiFetch<AdminDocument[]>(path)) ?? [];
+}
+
+export async function getAdminSurveyCoverage(): Promise<SurveyCoverageSnapshot | null> {
+  return apiFetch<SurveyCoverageSnapshot>('/v1/admin/survey/coverage');
+}
+
+export async function runBootstrapRefresh(): Promise<BootstrapRunResult | null> {
+  return apiFetch<BootstrapRunResult>('/v1/admin/bootstrap/run', { method: 'POST' });
 }
 
 export async function getAdminIngestionRuns(): Promise<IngestionRun[]> {

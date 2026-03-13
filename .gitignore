@@ -33,6 +33,7 @@ build/
 
 # Local infra data
 infra/data/
+tmp/
 
 # Playwright
 playwright-report/

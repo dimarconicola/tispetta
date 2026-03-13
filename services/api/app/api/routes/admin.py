@@ -6,9 +6,23 @@ from app.api.deps import get_admin_user
 from app.db.session import get_db
 from app.models import IngestionRun, ReviewItem, Source
 from app.schemas.common import ApiMessage
+from app.schemas.corpus import AdminDocumentRead, BootstrapRunResult, MeasureFamilyRead, SurveyCoverageSnapshotRead
 from app.schemas.review import ReviewItemRead, ReviewResolve, RuleTestResult
 from app.schemas.source import IngestionRunRead, SourceCreate, SourceRead
-from app.services.admin import create_source, diff_opportunity, list_rules, publish_opportunity, resolve_review_item, test_rule, trigger_ingestion_run, unpublish_opportunity
+from app.services.admin import (
+    create_source,
+    diff_opportunity,
+    get_survey_coverage,
+    list_document_payloads,
+    list_measure_family_payloads,
+    list_rules,
+    publish_opportunity,
+    resolve_review_item,
+    run_bootstrap,
+    test_rule,
+    trigger_ingestion_run,
+    unpublish_opportunity,
+)
 
 router = APIRouter(prefix='/v1/admin', tags=['admin'])
 
@@ -17,6 +31,40 @@ router = APIRouter(prefix='/v1/admin', tags=['admin'])
 def get_sources(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> list[SourceRead]:
     items = db.execute(select(Source).order_by(Source.created_at.desc())).scalars().all()
     return [SourceRead.model_validate(item) for item in items]
+
+
+@router.get('/measure-families', response_model=list[MeasureFamilyRead])
+def get_measure_families(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> list[MeasureFamilyRead]:
+    return [MeasureFamilyRead.model_validate(item) for item in list_measure_family_payloads(db)]
+
+
+@router.get('/documents', response_model=list[AdminDocumentRead])
+def get_documents(
+    source_domain: str | None = None,
+    role: str | None = None,
+    lifecycle_status: str | None = None,
+    family_slug: str | None = None,
+    db: Session = Depends(get_db),
+    _=Depends(get_admin_user),
+) -> list[AdminDocumentRead]:
+    items = list_document_payloads(
+        db,
+        source_domain=source_domain,
+        role=role,
+        lifecycle_status=lifecycle_status,
+        family_slug=family_slug,
+    )
+    return [AdminDocumentRead.model_validate(item) for item in items]
+
+
+@router.get('/survey/coverage', response_model=SurveyCoverageSnapshotRead)
+def get_admin_survey_coverage(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> SurveyCoverageSnapshotRead:
+    return SurveyCoverageSnapshotRead.model_validate(get_survey_coverage(db))
+
+
+@router.post('/bootstrap/run', response_model=BootstrapRunResult)
+def post_bootstrap_run(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> BootstrapRunResult:
+    return BootstrapRunResult.model_validate(run_bootstrap(db))
 
 
 @router.post('/sources', response_model=SourceRead)

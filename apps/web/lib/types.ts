@@ -27,6 +27,7 @@ export type Profile = {
   incorporation_status: string | null;
   startup_stage: string | null;
   goals: string[] | null;
+  fact_values?: Record<string, unknown> | null;
   profile_completeness_score: number;
   updated_at: string;
 };
@@ -40,6 +41,13 @@ export type ProfileQuestion = {
   options?: string[];
   helper_text?: string | null;
   audience?: string[] | null;
+  module?: string | null;
+  sensitive?: boolean;
+  depends_on?: Record<string, unknown> | null;
+  ask_when_measure_families?: string[] | null;
+  why_needed?: string | null;
+  coverage_weight?: number;
+  ambiguity_reduction_score?: number;
 };
 
 export type OpportunityCard = {
@@ -138,4 +146,74 @@ export type RuleTestResult = {
     passed: boolean;
     missing_fields: string[];
   }[];
+};
+
+export type MeasureFamily = {
+  id: string;
+  slug: string;
+  title: string;
+  operator_name: string;
+  source_domain: string;
+  is_regime_only: boolean;
+  is_actionable: boolean;
+  current_lifecycle_status: string;
+  benefit_kind: string | null;
+  benefit_magnitude_model: string | null;
+  geography: string;
+  legal_basis_references: string[];
+  beneficiary_entity_types: string[];
+  requirements_count: number;
+  documents_count: number;
+  primary_legal_basis_count: number;
+  primary_operational_count: number;
+  verification_timestamp: string;
+};
+
+export type AdminDocument = {
+  id: string;
+  family_slug: string;
+  family_title: string;
+  source_domain: string;
+  document_title: string | null;
+  canonical_url: string | null;
+  document_role: string;
+  lifecycle_status: string;
+  relationship_type: string;
+  is_primary_legal_basis: boolean;
+  is_primary_operational_doc: boolean;
+  created_at: string;
+};
+
+export type SurveyCoverageRow = {
+  fact_key: string;
+  label: string;
+  module: string;
+  sensitive: boolean;
+  stable: boolean;
+  coverage_weight: number;
+  ambiguity_reduction_score: number;
+  active_measure_family_count: number;
+  hard_requirement_count: number;
+  project_requirement_count: number;
+  person_requirement_count: number;
+  ranking_requirement_count: number;
+  ask_when_measure_families: string[];
+  depends_on?: Record<string, unknown> | null;
+};
+
+export type SurveyCoverageSnapshot = {
+  id: string;
+  snapshot_key: string;
+  created_at: string;
+  total_measure_families: number;
+  total_active_measure_families: number;
+  rows: SurveyCoverageRow[];
+};
+
+export type BootstrapRunResult = {
+  measure_families_seeded: number;
+  documents_seeded: number;
+  facts_seeded: number;
+  coverage_rows: number;
+  review_message: string;
 };

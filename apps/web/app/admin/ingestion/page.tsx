@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { AdminConsoleNav } from '@/components/admin-console-nav';
 import { getAdminIngestionRuns, getSessionUser } from '@/lib/server-api';
 import { formatDate } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ export default async function AdminIngestionPage() {
         <p className="eyebrow">Admin</p>
         <h1 style={{ fontSize: '3rem' }}>Pipeline di ingestion</h1>
         <p className="subtle">Stato dei job fetch/normalize/extract/verify e diagnostica di esecuzione.</p>
+        <AdminConsoleNav />
       </section>
       <div className="card table-wrap">
         <table className="table">

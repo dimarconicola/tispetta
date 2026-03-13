@@ -27,6 +27,14 @@ class MatchComputation:
 
 PROFILE_FIELD_LABELS: dict[str, str] = {
     'user_type': 'Tipo utente',
+    'profile_type': 'Profilo',
+    'activity_stage': 'Stato attivita',
+    'main_operating_region': 'Regione operativa',
+    'legal_form_bucket': 'Forma giuridica principale',
+    'company_age_or_formation_window': 'Anzianita o finestra di costituzione',
+    'size_band': 'Dimensione struttura',
+    'sector_macro_category': 'Settore macro',
+    'innovation_regime_status': 'Status innovazione',
     'region': 'Regione',
     'province': 'Provincia',
     'business_exists': 'Esistenza attivita',
@@ -41,6 +49,21 @@ PROFILE_FIELD_LABELS: dict[str, str] = {
     'export_intent': 'Intenzione di export',
     'startup_stage': 'Fase startup',
     'incorporation_status': 'Stato costituzione',
+    'hiring_interest': 'Progetto di assunzione',
+    'export_investment_intent': 'Progetto export',
+    'digital_transition_project': 'Progetto di transizione digitale',
+    'energy_transition_project': 'Progetto di transizione energetica',
+    'energy_reduction_goal': 'Obiettivo di riduzione energetica',
+    'patent_ip_intent': 'Interesse per brevetti o IP',
+    'founder_age_band': 'Eta founder',
+    'women_led_majority': 'Maggioranza femminile',
+    'unemployment_status_at_start': 'Disoccupazione alla partenza',
+    'no_prior_permanent_employment': 'Nessun precedente contratto stabile',
+    'target_hire_age_band': 'Eta target assunzione',
+    'target_hire_gender_priority': 'Priorita genere assunzione',
+    'target_hire_disadvantaged_status': 'Target assunzione svantaggiato',
+    'target_market_scope': 'Mercato target',
+    'filed_balance_sheets_count': 'Bilanci depositati',
 }
 
 

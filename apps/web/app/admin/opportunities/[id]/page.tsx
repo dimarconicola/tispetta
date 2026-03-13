@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { AdminConsoleNav } from '@/components/admin-console-nav';
 import { getAdminOpportunityDiff, getSessionUser } from '@/lib/server-api';
 
 export default async function AdminOpportunityDiffPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,6 +17,7 @@ export default async function AdminOpportunityDiffPage({ params }: { params: Pro
         <p className="eyebrow">Admin</p>
         <h1 style={{ fontSize: '3rem' }}>Diff opportunita</h1>
         <p className="subtle">Confronto rapido tra versione corrente e versione precedente.</p>
+        <AdminConsoleNav />
       </section>
       <div className="grid cards-2">
         <article className="card stack">

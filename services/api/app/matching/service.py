@@ -59,23 +59,27 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
         if active_rule is None:
             continue
         payload = {
-            'user_type': profile.user_type,
+            'user_type': normalize_match_value(profile.user_type),
             'region': profile.region,
             'province': profile.province,
             'age_range': profile.age_range,
             'business_exists': profile.business_exists,
-            'legal_entity_type': profile.legal_entity_type,
-            'company_age_band': profile.company_age_band,
-            'company_size_band': profile.company_size_band,
-            'revenue_band': profile.revenue_band,
-            'sector_code_or_category': profile.sector_code_or_category,
+            'legal_entity_type': normalize_match_value(profile.legal_entity_type),
+            'company_age_band': normalize_match_value(profile.company_age_band),
+            'company_size_band': normalize_match_value(profile.company_size_band),
+            'revenue_band': normalize_match_value(profile.revenue_band),
+            'sector_code_or_category': normalize_match_value(profile.sector_code_or_category),
             'hiring_intent': profile.hiring_intent,
             'innovation_intent': profile.innovation_intent,
             'sustainability_intent': profile.sustainability_intent,
             'export_intent': profile.export_intent,
-            'startup_stage': profile.startup_stage,
-            'incorporation_status': profile.incorporation_status,
+            'startup_stage': normalize_match_value(profile.startup_stage),
+            'incorporation_status': normalize_match_value(profile.incorporation_status),
         }
+        for item in profile.fact_values:
+            if item.fact is None:
+                continue
+            payload[item.fact.key] = normalize_match_value(item.value_json.get('value'))
         computed = compute_match(active_rule.rule_json, payload)
         summary, full = build_explanation(opportunity, computed.status, computed.matched_conditions, computed.missing_fields)
 
@@ -122,6 +126,17 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
         results.append(match)
     db.commit()
     return results
+
+
+def normalize_match_value(value):
+    if isinstance(value, str):
+        if value in {'not_sure', 'mixed', ''}:
+            return None
+        if value == 'true':
+            return True
+        if value == 'false':
+            return False
+    return value
 
 
 def run_rule_tests(rule: OpportunityRule) -> list[dict[str, Any]]:

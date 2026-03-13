@@ -14,7 +14,7 @@ export function Topbar({ user }: { user: SessionUser | null }) {
         <Link href="/onboarding">Profilo</Link>
         <Link href="/saved">Salvate</Link>
         <Link href="/settings">Notifiche</Link>
-        {user?.role === 'admin' ? <Link href="/admin/sources">Admin</Link> : null}
+        {user?.role === 'admin' ? <Link href="/admin/measure-families">Admin</Link> : null}
         {user ? (
           <>
             <Link href="/onboarding">Area personale</Link>

@@ -14,6 +14,13 @@ class ProfileQuestion(ApiModel):
     options: list[str] | None = None
     helper_text: str | None = None
     audience: list[str] | None = None
+    module: str | None = None
+    sensitive: bool = False
+    depends_on: dict | None = None
+    ask_when_measure_families: list[str] | None = None
+    why_needed: str | None = None
+    coverage_weight: float = 0
+    ambiguity_reduction_score: float = 0
 
 
 class ProfilePayload(BaseModel):
@@ -35,6 +42,7 @@ class ProfilePayload(BaseModel):
     incorporation_status: str | None = None
     startup_stage: str | None = None
     goals: list[str] | None = None
+    fact_values: dict | None = None
 
 
 class ProfileResponse(ProfilePayload, ApiModel):

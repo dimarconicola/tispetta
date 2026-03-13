@@ -118,6 +118,48 @@ class IngestionStage(StrEnum):
     FAILED = 'failed'
 
 
+class DocumentRole(StrEnum):
+    LEGAL_BASIS = 'legal_basis'
+    IMPLEMENTING_DECREE = 'implementing_decree'
+    MINISTERIAL_CIRCULAR = 'ministerial_circular'
+    OPERATOR_MEASURE_PAGE = 'operator_measure_page'
+    FAQ_OR_OPERATIONAL_GUIDE = 'faq_or_operational_guide'
+    APPLICATION_PORTAL = 'application_portal'
+    FORMS_AND_TEMPLATES = 'forms_and_templates'
+    NEWS_OR_STATUS_UPDATE = 'news_or_status_update'
+    IRRELEVANT = 'irrelevant'
+
+
+class MeasureLifecycleStatus(StrEnum):
+    EVERGREEN_REGIME = 'evergreen_regime'
+    OPEN_APPLICATION = 'open_application'
+    SCHEDULED = 'scheduled'
+    PAUSED = 'paused'
+    EXHAUSTED = 'exhausted'
+    CLOSED = 'closed'
+    HISTORICAL_REFERENCE = 'historical_reference'
+
+
+class SurveyModule(StrEnum):
+    CORE_ENTITY = 'core_entity'
+    STRATEGIC_INTENT = 'strategic_intent'
+    CONDITIONAL_ACCURACY = 'conditional_accuracy'
+
+
+class RequirementMode(StrEnum):
+    ENTITY_HARD_REQUIREMENT = 'entity_hard_requirement'
+    PROJECT_HARD_REQUIREMENT = 'project_hard_requirement'
+    PERSON_SPECIFIC_REQUIREMENT = 'person_specific_requirement'
+    RANKING_OR_BOOSTER = 'ranking_or_booster'
+
+
+class FactValueKind(StrEnum):
+    SELECT = 'select'
+    BOOLEAN = 'boolean'
+    TEXT = 'text'
+    NUMBER = 'number'
+
+
 class User(Base):
     __tablename__ = 'users'
 
@@ -174,6 +216,7 @@ class Profile(Base):
 
     user: Mapped['User'] = relationship(back_populates='profile')
     revisions: Mapped[list['ProfileRevision']] = relationship(back_populates='profile')
+    fact_values: Mapped[list['ProfileFactValue']] = relationship(back_populates='profile')
 
 
 class ProfileRevision(Base):
@@ -239,10 +282,155 @@ class NormalizedDocument(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     source_snapshot_id: Mapped[str] = mapped_column(ForeignKey('source_snapshots.id'), index=True)
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    canonical_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     clean_text: Mapped[str] = mapped_column(Text)
     metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     structural_sections: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
     document_type: Mapped[str] = mapped_column(String(64), default='opportunity_page')
+    document_role: Mapped[str] = mapped_column(String(64), default=DocumentRole.IRRELEVANT.value)
+    lifecycle_status: Mapped[str] = mapped_column(String(64), default=MeasureLifecycleStatus.HISTORICAL_REFERENCE.value)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    family_links: Mapped[list['MeasureFamilyDocument']] = relationship(back_populates='document')
+
+
+class MeasureFamily(Base):
+    __tablename__ = 'measure_families'
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    operator_name: Mapped[str] = mapped_column(String(255))
+    source_domain: Mapped[str] = mapped_column(String(255))
+    is_regime_only: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_actionable: Mapped[bool] = mapped_column(Boolean, default=True)
+    current_version_id: Mapped[str | None] = mapped_column(ForeignKey('measure_family_versions.id'), nullable=True)
+    current_lifecycle_status: Mapped[str] = mapped_column(String(64), default=MeasureLifecycleStatus.HISTORICAL_REFERENCE.value)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    versions: Mapped[list['MeasureFamilyVersion']] = relationship(
+        back_populates='family',
+        foreign_keys='MeasureFamilyVersion.measure_family_id',
+    )
+    current_version: Mapped['MeasureFamilyVersion | None'] = relationship(
+        foreign_keys=[current_version_id],
+        post_update=True,
+    )
+    documents: Mapped[list['MeasureFamilyDocument']] = relationship(back_populates='family')
+
+
+class MeasureFamilyVersion(Base):
+    __tablename__ = 'measure_family_versions'
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    measure_family_id: Mapped[str] = mapped_column(ForeignKey('measure_families.id'), index=True)
+    version_number: Mapped[int] = mapped_column(Integer, default=1)
+    title: Mapped[str] = mapped_column(String(255))
+    operator_name: Mapped[str] = mapped_column(String(255))
+    benefit_kind: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    benefit_magnitude_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    lifecycle_status: Mapped[str] = mapped_column(String(64), default=MeasureLifecycleStatus.HISTORICAL_REFERENCE.value)
+    geography: Mapped[str] = mapped_column(String(128), default='Italy')
+    legal_basis_references: Mapped[list[str]] = mapped_column(JSON)
+    beneficiary_entity_types: Mapped[list[str]] = mapped_column(JSON)
+    size_constraints: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    sector_constraints: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    legal_form_constraints: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    regime_status_constraints: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    age_or_time_constraints: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    person_specific_constraints: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    project_specific_constraints: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    application_mechanics: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    required_documents: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    evidence_snippets: Mapped[list[dict]] = mapped_column(JSON)
+    entrypoint_urls: Mapped[list[str]] = mapped_column(JSON)
+    allowed_path_keywords: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    verification_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    changed_fields: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    family: Mapped['MeasureFamily'] = relationship(
+        back_populates='versions',
+        foreign_keys=[measure_family_id],
+    )
+    requirements: Mapped[list['MeasureFamilyRequirement']] = relationship(back_populates='family_version')
+
+
+class MeasureFamilyDocument(Base):
+    __tablename__ = 'measure_family_documents'
+    __table_args__ = (UniqueConstraint('measure_family_id', 'normalized_document_id', name='uq_family_document'),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    measure_family_id: Mapped[str] = mapped_column(ForeignKey('measure_families.id'), index=True)
+    normalized_document_id: Mapped[str] = mapped_column(ForeignKey('normalized_documents.id'), index=True)
+    relationship_type: Mapped[str] = mapped_column(String(64), default='supporting_document')
+    is_primary_legal_basis: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_primary_operational_doc: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    family: Mapped['MeasureFamily'] = relationship(back_populates='documents')
+    document: Mapped['NormalizedDocument'] = relationship(back_populates='family_links')
+
+
+class ProfileFactCatalog(Base):
+    __tablename__ = 'profile_fact_catalog'
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    key: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    label: Mapped[str] = mapped_column(String(255))
+    module: Mapped[str] = mapped_column(String(64), default=SurveyModule.CORE_ENTITY.value)
+    value_kind: Mapped[str] = mapped_column(String(32), default=FactValueKind.SELECT.value)
+    options: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    helper_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    why_needed: Mapped[str | None] = mapped_column(Text, nullable=True)
+    stable: Mapped[bool] = mapped_column(Boolean, default=True)
+    sensitive: Mapped[bool] = mapped_column(Boolean, default=False)
+    required_in_core: Mapped[bool] = mapped_column(Boolean, default=False)
+    depends_on: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    values: Mapped[list['ProfileFactValue']] = relationship(back_populates='fact')
+    requirements: Mapped[list['MeasureFamilyRequirement']] = relationship(back_populates='fact')
+
+
+class ProfileFactValue(Base):
+    __tablename__ = 'profile_fact_values'
+    __table_args__ = (UniqueConstraint('profile_id', 'fact_catalog_id', name='uq_profile_fact'),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    profile_id: Mapped[str] = mapped_column(ForeignKey('profiles.id'), index=True)
+    fact_catalog_id: Mapped[str] = mapped_column(ForeignKey('profile_fact_catalog.id'), index=True)
+    value_json: Mapped[dict] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    profile: Mapped['Profile'] = relationship(back_populates='fact_values')
+    fact: Mapped['ProfileFactCatalog'] = relationship(back_populates='values')
+
+
+class MeasureFamilyRequirement(Base):
+    __tablename__ = 'measure_family_requirements'
+    __table_args__ = (UniqueConstraint('measure_family_version_id', 'fact_catalog_id', name='uq_family_fact_requirement'),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    measure_family_version_id: Mapped[str] = mapped_column(ForeignKey('measure_family_versions.id'), index=True)
+    fact_catalog_id: Mapped[str] = mapped_column(ForeignKey('profile_fact_catalog.id'), index=True)
+    requirement_mode: Mapped[str] = mapped_column(String(64), default=RequirementMode.ENTITY_HARD_REQUIREMENT.value)
+    expected_values: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    family_version: Mapped['MeasureFamilyVersion'] = relationship(back_populates='requirements')
+    fact: Mapped['ProfileFactCatalog'] = relationship(back_populates='requirements')
+
+
+class SurveyCoverageSnapshot(Base):
+    __tablename__ = 'survey_coverage_snapshots'
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    snapshot_key: Mapped[str] = mapped_column(String(128), index=True, default='latest')
+    payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 

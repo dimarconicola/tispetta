@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { AdminConsoleNav } from '@/components/admin-console-nav';
 import { RuleTestRunner } from '@/components/rule-test-runner';
 import { getAdminRules, getSessionUser } from '@/lib/server-api';
 
@@ -16,6 +17,7 @@ export default async function AdminRulesPage() {
         <p className="eyebrow">Admin</p>
         <h1 style={{ fontSize: '3rem' }}>Regole e fixture</h1>
         <p className="subtle">Ogni opportunita pubblica deve avere almeno una regola attiva e fixture passanti.</p>
+        <AdminConsoleNav />
       </section>
       <div className="grid cards-2">
         {rules.map((rule) => (

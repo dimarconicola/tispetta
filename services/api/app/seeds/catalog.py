@@ -25,6 +25,7 @@ from app.models import (
     VerificationStatus,
 )
 from app.services.auth import get_or_create_user
+from app.services.corpus import ensure_bootstrap_corpus
 from app.services.profile import get_or_create_profile, update_profile
 from app.schemas.profile import ProfilePayload
 
@@ -427,5 +428,6 @@ def seed_demo_users(db: Session) -> None:
 
 
 def seed_all(db: Session) -> None:
+    ensure_bootstrap_corpus(db)
     seed_catalog(db)
     seed_demo_users(db)

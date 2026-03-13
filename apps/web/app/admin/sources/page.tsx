@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { AdminConsoleNav } from '@/components/admin-console-nav';
 import { getAdminSources, getSessionUser } from '@/lib/server-api';
 
 export default async function AdminSourcesPage() {
@@ -15,6 +16,7 @@ export default async function AdminSourcesPage() {
         <p className="eyebrow">Admin</p>
         <h1 style={{ fontSize: '3rem' }}>Registro fonti</h1>
         <p className="subtle">Set controllato di fonti Tier 1 con priorita operative e frequenze di refresh.</p>
+        <AdminConsoleNav />
       </section>
       <div className="card table-wrap">
         <table className="table">

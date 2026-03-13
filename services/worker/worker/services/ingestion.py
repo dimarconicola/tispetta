@@ -3,10 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import hashlib
+import io
 import re
 
 from bs4 import BeautifulSoup
 import httpx
+from pypdf import PdfReader
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -33,10 +35,14 @@ class ExtractionCandidate:
 
 
 DEADLINE_RE = re.compile(r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})')
+REQUEST_HEADERS = {
+    'User-Agent': 'TispettaBot/0.1 (+https://tispetta.vercel.app)',
+    'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8',
+}
 
 
 def fetch_endpoint(endpoint: SourceEndpoint) -> tuple[bytes, str, str]:
-    response = httpx.get(endpoint.url, timeout=15.0, follow_redirects=True)
+    response = httpx.get(endpoint.url, timeout=20.0, follow_redirects=True, headers=REQUEST_HEADERS)
     response.raise_for_status()
     content = response.content
     checksum = hashlib.sha256(content).hexdigest()
@@ -81,7 +87,7 @@ def normalize_snapshot(db: Session, snapshot: SourceSnapshot) -> NormalizedDocum
     raw = read_snapshot(snapshot.storage_path) if snapshot.storage_path else b''
     content_type = snapshot.content_type or 'text/html'
     if 'pdf' in content_type:
-        clean_text = raw.decode('utf-8', errors='ignore')
+        clean_text = extract_pdf_text(raw)
         title = snapshot.storage_path.rsplit('/', 1)[-1] if snapshot.storage_path else 'document.pdf'
         sections = [{'heading': 'PDF import', 'text': clean_text[:2000]}]
     else:
@@ -108,6 +114,18 @@ def normalize_snapshot(db: Session, snapshot: SourceSnapshot) -> NormalizedDocum
     db.commit()
     db.refresh(document)
     return document
+
+
+def extract_pdf_text(raw: bytes) -> str:
+    try:
+        reader = PdfReader(io.BytesIO(raw))
+        pages = [page.extract_text() or '' for page in reader.pages]
+        text = '\n'.join(page.strip() for page in pages if page.strip())
+        if text:
+            return text
+    except Exception:
+        pass
+    return raw.decode('utf-8', errors='ignore')
 
 
 def classify_document(title: str, clean_text: str) -> str:

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { AdminConsoleNav } from '@/components/admin-console-nav';
 import { ReviewResolveForm } from '@/components/review-resolve-form';
 import { getAdminReviewItems, getSessionUser } from '@/lib/server-api';
 
@@ -17,6 +18,7 @@ export default async function AdminReviewPage() {
         <p className="eyebrow">Admin</p>
         <h1 style={{ fontSize: '3rem' }}>Review queue</h1>
         <p className="subtle">Eccezioni, publish pending e conflitti da risolvere senza accesso diretto al database.</p>
+        <AdminConsoleNav />
       </section>
       <div className="grid cards-2">
         {items.map((item) => (

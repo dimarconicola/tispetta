@@ -17,6 +17,8 @@ from app.models import (
     ReviewStatus,
     Source,
 )
+from app.services.corpus import ensure_bootstrap_corpus, get_survey_coverage_payload, list_family_documents, list_measure_families
+from app.services.family_opportunities import sync_measure_family_opportunities
 
 
 def create_source(db: Session, payload) -> Source:
@@ -138,3 +140,37 @@ def list_rules(db: Session) -> list[dict]:
             }
         )
     return payloads
+
+
+def list_measure_family_payloads(db: Session) -> list[dict]:
+    return list_measure_families(db)
+
+
+def list_document_payloads(
+    db: Session,
+    *,
+    source_domain: str | None = None,
+    role: str | None = None,
+    lifecycle_status: str | None = None,
+    family_slug: str | None = None,
+) -> list[dict]:
+    return list_family_documents(
+        db,
+        source_domain=source_domain,
+        role=role,
+        lifecycle_status=lifecycle_status,
+        family_slug=family_slug,
+    )
+
+
+def get_survey_coverage(db: Session) -> dict:
+    return get_survey_coverage_payload(db)
+
+
+def run_bootstrap(db: Session) -> dict:
+    result = ensure_bootstrap_corpus(db)
+    sync = sync_measure_family_opportunities(db)
+    return {
+        **result,
+        'review_message': f"Bootstrap corpus aggiornato con famiglie di misura, documenti e copertura survey. Sync opportunita: create {sync['created']}, aggiornate {sync['updated']}, nascoste {sync['unpublished']}.",
+    }
