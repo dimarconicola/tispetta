@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_URL = '/api/proxy';
 
 export function ReviewResolveForm({ reviewItemId }: { reviewItemId: string }) {
   const [message, setMessage] = useState<string | null>(null);

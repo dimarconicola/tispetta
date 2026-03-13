@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_URL = '/api/proxy';
 
 export function SaveToggle({ opportunityId, initialSaved }: { opportunityId: string; initialSaved: boolean }) {
   const [saved, setSaved] = useState(initialSaved);

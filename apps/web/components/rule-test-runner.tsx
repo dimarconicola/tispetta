@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 
 import type { RuleTestResult } from '@/lib/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_URL = '/api/proxy';
 
 export function RuleTestRunner({ ruleId }: { ruleId: string }) {
   const [result, setResult] = useState<RuleTestResult | null>(null);

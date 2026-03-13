@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 
 import type { NotificationPreferences } from '@/lib/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_URL = '/api/proxy';
 
 export function PreferencesForm({ preferences }: { preferences: NotificationPreferences | null }) {
   const [message, setMessage] = useState<string | null>(null);
