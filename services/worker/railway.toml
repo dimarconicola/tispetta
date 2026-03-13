@@ -1,7 +1,7 @@
 [build]
 builder = "RAILPACK"
 buildCommand = "pip install -e services/api -e services/worker"
-watchPatterns = ["services/api/**", "services/worker/**", ".env.example", "README.md"]
+watchPatterns = ["services/api/**", "services/worker/**", "apps/web/package.json", "pnpm-lock.yaml", ".env.example", "README.md"]
 
 [deploy]
 startCommand = "python -m worker.main"

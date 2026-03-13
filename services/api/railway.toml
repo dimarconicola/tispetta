@@ -1,7 +1,7 @@
 [build]
 builder = "RAILPACK"
 buildCommand = "pip install -e services/api"
-watchPatterns = ["services/api/**", ".env.example", "README.md"]
+watchPatterns = ["services/api/**", "apps/web/package.json", "pnpm-lock.yaml", ".env.example", "README.md"]
 
 [deploy]
 preDeployCommand = "cd services/api && python -m app.predeploy"
