@@ -16,6 +16,7 @@ export default async function HomePage() {
     .filter((item) => item.deadline_date)
     .sort((a, b) => new Date(a.deadline_date ?? '').getTime() - new Date(b.deadline_date ?? '').getTime())
     .slice(0, 3);
+  const catalogCountLabel = opportunities.length ? `${opportunities.length}` : '40+';
 
   if (!user) {
     return (
@@ -40,16 +41,16 @@ export default async function HomePage() {
             </div>
             <div className="grid metrics">
               <div className="metric">
-                <strong>25+</strong>
-                <span>opportunita seed con regole e fixture</span>
+                <strong>{catalogCountLabel}</strong>
+                <span>opportunita pubbliche derivate da fonti ufficiali</span>
               </div>
               <div className="metric">
                 <strong>4</strong>
                 <span>stati di eleggibilita spiegati con evidenze</span>
               </div>
               <div className="metric">
-                <strong>1</strong>
-                <span>catalogo focalizzato su freelance, startup e PMI</span>
+                <strong>8</strong>
+                <span>domini istituzionali monitorati per il bootstrap nazionale</span>
               </div>
             </div>
           </div>
