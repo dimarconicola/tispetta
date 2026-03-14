@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Tispetta</title>
+  <desc id="desc">Monogramma Tispetta su sfondo carta caldo.</desc>
+  <rect width="128" height="128" rx="28" fill="#f5efe2"/>
+  <path d="M24 38h80v12H70v42c0 10-6 18-16 18H40V98h10c5 0 8-3 8-8V50H24V38Z" fill="#12211c"/>
+  <circle cx="96" cy="94" r="10" fill="#c75c2f" opacity="0.92"/>
+</svg>

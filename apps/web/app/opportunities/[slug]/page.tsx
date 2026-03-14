@@ -1,10 +1,47 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { SaveToggle } from '@/components/save-toggle';
 import { StatusPill } from '@/components/status-pill';
+import { PUBLIC_APP_URL } from '@/lib/env';
 import { getOpportunityDetail } from '@/lib/server-api';
 import { categoryLabel, formatCurrency, formatDate } from '@/lib/utils';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const opportunity = await getOpportunityDetail(slug).catch(() => null);
+
+  if (!opportunity) {
+    return {
+      title: 'Opportunita non trovata',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const description = opportunity.short_description;
+  const canonical = `${PUBLIC_APP_URL}/opportunities/${opportunity.slug}`;
+
+  return {
+    title: opportunity.title,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      title: opportunity.title,
+      description,
+      url: canonical,
+    },
+    twitter: {
+      title: opportunity.title,
+      description,
+    },
+  };
+}
 
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

@@ -35,6 +35,15 @@ a {
   text-decoration: none;
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 74%, white);
+  outline-offset: 3px;
+}
+
 button,
 input,
 select,
@@ -86,10 +95,18 @@ main {
 
 .nav a,
 .nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.65rem 1rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.45);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .nav-button {
@@ -167,6 +184,14 @@ main {
 .button {
   background: var(--ink);
   color: #fff;
+}
+
+.button:hover,
+.button-secondary:hover,
+.nav a:hover,
+.nav-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(18, 33, 28, 0.08);
 }
 
 .button-secondary {
@@ -335,6 +360,12 @@ main {
 }
 
 @media (max-width: 960px) {
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding-bottom: 1.4rem;
+  }
+
   .hero,
   .split,
   .cards-3,
@@ -345,7 +376,11 @@ main {
   }
 
   .nav {
-    display: none;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+    scrollbar-width: thin;
   }
 
   main {
