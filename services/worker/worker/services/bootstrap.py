@@ -69,12 +69,15 @@ def link_document_to_family(
     *,
     relationship_type: str,
 ) -> None:
-    existing = db.execute(
+    existing_links = db.execute(
         select(MeasureFamilyDocument).where(
             MeasureFamilyDocument.measure_family_id == family.id,
             MeasureFamilyDocument.normalized_document_id == document.id,
         )
-    ).scalar_one_or_none()
+    ).scalars().all()
+    existing = existing_links[0] if existing_links else None
+    for duplicate in existing_links[1:]:
+        db.delete(duplicate)
     if existing is None:
         existing = MeasureFamilyDocument(
             measure_family_id=family.id,
@@ -215,7 +218,7 @@ def crawl_curated_links(db: Session, family: MeasureFamily) -> list[NormalizedDo
                     MeasureFamilyDocument.measure_family_id == family.id,
                     MeasureFamilyDocument.relationship_type == 'primary_operational',
                 )
-            ).scalar_one_or_none() is not None
+            ).scalars().first() is not None
             discovered_relationship = choose_relationship_type(
                 db,
                 family,
@@ -341,5 +344,5 @@ def choose_relationship_type(
                 MeasureFamilyDocument.measure_family_id == family.id,
                 MeasureFamilyDocument.relationship_type == 'primary_operational',
             )
-        ).scalar_one_or_none() is not None
+        ).scalars().first() is not None
     return 'supporting_document' if has_primary_operational else 'primary_operational'
