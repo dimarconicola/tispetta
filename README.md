@@ -52,6 +52,24 @@ Set these on the web app:
 - `NEXT_PUBLIC_APP_URL=https://app.yourdomain.com`
 - `NEXT_PUBLIC_API_URL=https://api.yourdomain.com`
 - `INTERNAL_API_URL=https://api.yourdomain.com`
+- `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=<google-search-console-token>`
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX`
+
+### Search Console and analytics
+The web app supports Google Search Console ownership and GA4 without further code changes.
+
+Set these on Vercel:
+- `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=<google-search-console-token>`
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX`
+
+That will:
+- emit the Google verification meta tag from the app shell
+- load the GA4 client script globally on the production app host
+
+Recommended production setup:
+- add both `https://tispetta.eu` and `https://app.tispetta.eu` as Google Search Console properties
+- keep `tispetta.eu` as a domain property because it owns the redirects and future marketing landing
+- keep `app.tispetta.eu` as a URL-prefix property for app-specific indexing checks
 
 ### Database bootstrap
 The API includes a bootstrap command for Railway predeploy:
