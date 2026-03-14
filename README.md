@@ -71,6 +71,27 @@ For Resend SMTP, use:
 - `SMTP_PASSWORD=<resend-api-key>`
 - `SMTP_USE_SSL=true`
 
+Minimum live email setup on Railway:
+- `ENVIRONMENT=production`
+- `RESEND_API_KEY=<resend-api-key>`
+- `RESEND_FROM_EMAIL=login@updates.yourdomain.com`
+
+Without those values, the API falls back to preview-link behavior or SMTP fallback depending on the environment.
+
+### Recurring corpus refresh
+The Railway worker runs an internal scheduler and no longer relies on one-shot startup dispatch.
+
+Set these on the worker:
+- `WORKER_POLL_INTERVAL_SECONDS=5`
+- `WORKER_ENDPOINT_REFRESH_INTERVAL_SECONDS=21600`
+- `WORKER_FAMILY_REFRESH_INTERVAL_SECONDS=21600`
+- `WORKER_SURVEY_REFRESH_INTERVAL_SECONDS=86400`
+
+That gives you:
+- source endpoint refresh every 6 hours
+- measure-family bootstrap refresh every 6 hours
+- survey coverage recomputation every 24 hours
+
 ## Main scripts
 - `pnpm dev`
 - `pnpm infra:up`
