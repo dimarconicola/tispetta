@@ -21,7 +21,7 @@ settings = get_settings()
 @router.post('/request-magic-link', response_model=MagicLinkResponse)
 def request_magic_link_endpoint(payload: MagicLinkRequest, db: Session = Depends(get_db)) -> MagicLinkResponse:
     try:
-        preview_url = request_magic_link(db, payload.email)
+        preview_url = request_magic_link(db, payload.email, payload.redirect_to)
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail='Unable to deliver magic link email') from exc
     return MagicLinkResponse(message='Magic link generated', preview_url=preview_url if settings.environment != 'production' else None)
@@ -29,23 +29,23 @@ def request_magic_link_endpoint(payload: MagicLinkRequest, db: Session = Depends
 
 @router.post('/exchange-magic-link', response_model=MagicLinkExchangeResponse)
 def exchange_magic_link(payload: MagicLinkExchangeRequest, db: Session = Depends(get_db)) -> MagicLinkExchangeResponse:
-    user = consume_magic_link(db, payload.token)
+    user, redirect_to = consume_magic_link(db, payload.token)
     if user is None:
         raise HTTPException(status_code=400, detail='Magic link invalid or expired')
     return MagicLinkExchangeResponse(
-        redirect_to='/onboarding',
+        redirect_to=redirect_to or '/onboarding',
         session_token=create_session_for_user(user),
     )
 
 
 @router.get('/verify-magic-link')
 def verify_magic_link(token: str = Query(...), db: Session = Depends(get_db)) -> Response:
-    user = consume_magic_link(db, token)
+    user, redirect_to = consume_magic_link(db, token)
     if user is None:
         raise HTTPException(status_code=400, detail='Magic link invalid or expired')
     session_token = create_session_for_user(user)
     response = Response(status_code=302)
-    response.headers['Location'] = f'{settings.app_base_url}/onboarding'
+    response.headers['Location'] = f'{settings.app_base_url}{redirect_to or "/onboarding"}'
     response.headers['Cache-Control'] = 'no-store'
     response.set_cookie(
         key=settings.session_cookie_name,

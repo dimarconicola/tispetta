@@ -35,6 +35,10 @@ export default function SignInPage() {
             <div className="stack subtle">
               <p>Ogni accesso crea una sessione nuova sul dominio sicuro di Tispetta.</p>
               <p>Se non trovi il messaggio, controlla spam e promozioni prima di richiedere un secondo invio.</p>
+              <p>
+                Se arrivi dal sito principale e vuoi un percorso piu guidato, usa{' '}
+                <a href="/start">l&apos;ingresso dedicato</a>.
+              </p>
             </div>
           </>
         )}

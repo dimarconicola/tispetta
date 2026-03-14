@@ -54,6 +54,10 @@ Set these on the web app:
 - `INTERNAL_API_URL=https://api.yourdomain.com`
 - `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=<google-search-console-token>`
 - `NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX`
+- `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION_APP=<optional app-host token>`
+- `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION_APEX=<optional apex-host token>`
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID_APP=<optional app-host GA4 stream>`
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID_APEX=<optional apex-host GA4 stream>`
 
 ### Search Console and analytics
 The web app supports Google Search Console ownership and GA4 without further code changes.
@@ -61,10 +65,15 @@ The web app supports Google Search Console ownership and GA4 without further cod
 Set these on Vercel:
 - `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=<google-search-console-token>`
 - `NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX`
+- optionally split them by host with:
+  - `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION_APP=<app token>`
+  - `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION_APEX=<apex token>`
+  - `NEXT_PUBLIC_GA_MEASUREMENT_ID_APP=<app GA4 stream>`
+  - `NEXT_PUBLIC_GA_MEASUREMENT_ID_APEX=<apex GA4 stream>`
 
 That will:
-- emit the Google verification meta tag from the app shell
-- load the GA4 client script globally on the production app host
+- emit the Google verification meta tag from the correct host shell
+- load the GA4 client script with host-specific stream IDs when provided
 
 Recommended production setup:
 - add both `https://tispetta.eu` and `https://app.tispetta.eu` as Google Search Console properties

@@ -52,7 +52,10 @@ def test_public_catalog_endpoints() -> None:
 
 
 def test_magic_link_exchange_creates_authenticated_session() -> None:
-    request = client.post('/v1/auth/request-magic-link', json={'email': 'demo@example.com'})
+    request = client.post(
+        '/v1/auth/request-magic-link',
+        json={'email': 'demo@example.com', 'redirect_to': '/onboarding?entry=apex'},
+    )
     assert request.status_code == 200
     preview_url = request.json()['preview_url']
     assert preview_url
@@ -60,6 +63,7 @@ def test_magic_link_exchange_creates_authenticated_session() -> None:
     token = parse_qs(urlparse(preview_url).query)['token'][0]
     exchange = client.post('/v1/auth/exchange-magic-link', json={'token': token})
     assert exchange.status_code == 200
+    assert exchange.json()['redirect_to'] == '/onboarding?entry=apex'
 
     session_token = exchange.json()['session_token']
     me = client.get('/v1/me', headers={'X-Session-Token': session_token})

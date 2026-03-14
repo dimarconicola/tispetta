@@ -16,12 +16,13 @@ export function Topbar({ user, variant = 'app' }: TopbarProps) {
           <span className="brand-name">Tispetta</span>
         </Link>
         <nav className="nav">
+          <Link href="/#accesso">Ingresso</Link>
           <Link href="/#metodo">Metodo</Link>
           <Link href="/#copertura">Copertura</Link>
           <Link href="/#per-chi">Per chi</Link>
           <Link href="https://app.tispetta.eu/search">Catalogo live</Link>
-          <Link href="https://app.tispetta.eu/auth/sign-in" className="button-secondary">
-            Apri l&apos;app
+          <Link href="https://app.tispetta.eu/start" className="button-secondary">
+            Inizia guidato
           </Link>
         </nav>
       </header>

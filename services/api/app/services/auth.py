@@ -41,11 +41,25 @@ def get_or_create_user(db: Session, email: str) -> User:
     return user
 
 
-def request_magic_link(db: Session, email: str) -> str:
+def _normalize_redirect_to(redirect_to: str | None) -> str | None:
+    if redirect_to is None:
+        return None
+
+    candidate = redirect_to.strip()
+    if not candidate or len(candidate) > 255:
+        return None
+    if not candidate.startswith('/') or candidate.startswith('//'):
+        return None
+    return candidate
+
+
+def request_magic_link(db: Session, email: str, redirect_to: str | None = None) -> str:
     user = get_or_create_user(db, email)
+    normalized_redirect_to = _normalize_redirect_to(redirect_to)
     token_record = MagicLinkToken(
         email=user.email,
         token_hash='',
+        redirect_to=normalized_redirect_to,
         expires_at=datetime.now(UTC) + timedelta(minutes=30),
     )
     db.add(token_record)
@@ -117,19 +131,19 @@ def _send_magic_email_via_smtp(email: str, preview_url: str) -> None:
         server.send_message(message)
 
 
-def consume_magic_link(db: Session, token: str) -> User | None:
+def consume_magic_link(db: Session, token: str) -> tuple[User | None, str | None]:
     payload = parse_magic_token(token)
     if payload is None:
-        return None
+        return None, None
     token_hash = _hash_token(token)
     token_record = db.execute(select(MagicLinkToken).where(MagicLinkToken.token_hash == token_hash)).scalar_one_or_none()
     if token_record is None or token_record.consumed_at is not None or _is_expired(token_record.expires_at):
-        return None
+        return None, None
     token_record.consumed_at = datetime.now(UTC)
     user = get_or_create_user(db, payload['email'])
     user.email_verified_at = datetime.now(UTC)
     db.commit()
-    return user
+    return user, _normalize_redirect_to(token_record.redirect_to)
 
 
 def create_session_for_user(user: User) -> str:

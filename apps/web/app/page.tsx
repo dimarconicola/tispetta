@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 
 import { OpportunityCard } from '@/components/opportunity-card';
 import { getOpportunities, getProfile, getSessionUser } from '@/lib/server-api';
-import { APP_HOST, APEX_HOST, isApexLikeHost } from '@/lib/hosts';
+import { APP_HOST, isApexLikeHost } from '@/lib/hosts';
 
 async function isMarketingRequest() {
   const headerStore = await headers();
@@ -84,6 +84,7 @@ function MarketingPreviewCard({ opportunity }: { opportunity: HomeOpportunity })
 function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunity[] }) {
   const catalogCountLabel = opportunities.length ? `${opportunities.length}` : '42';
   const preview = opportunities.slice(0, 3);
+  const appStartUrl = `https://${APP_HOST}/start`;
 
   return (
     <div className="stack marketing-shell">
@@ -96,9 +97,9 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
             opportunita strutturate, criteri espliciti, campi mancanti dichiarati e priorita concrete.
           </p>
           <div className="actions">
-            <Link href={`https://${APP_HOST}/auth/sign-in`} className="button">
-              Apri l&apos;app
-            </Link>
+            <a href={appStartUrl} className="button">
+              Inizia dal profilo guidato
+            </a>
             <Link href={`https://${APP_HOST}/search`} className="button-secondary">
               Vedi il catalogo live
             </Link>
@@ -109,12 +110,12 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
               <span>opportunita pubbliche gia strutturate</span>
             </div>
             <div className="marketing-proof-card">
-              <strong>8</strong>
-              <span>domini istituzionali monitorati nel bootstrap nazionale</span>
+              <strong>&lt;=8</strong>
+              <span>domande core prima di mostrare match seri</span>
             </div>
             <div className="marketing-proof-card">
-              <strong>3</strong>
-              <span>livelli distinti: base legale, operativita, opportunita utente</span>
+              <strong>8</strong>
+              <span>domini istituzionali monitorati nel bootstrap nazionale</span>
             </div>
           </div>
         </div>
@@ -128,6 +129,41 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
               cosa dipende da un progetto, cosa e ancora ambiguo.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="panel marketing-entry" id="accesso">
+        <div className="marketing-entry-copy stack">
+          <p className="eyebrow">Ingresso</p>
+          <h2 className="section-title">Dal sito entri in un percorso guidato, non in un form generico.</h2>
+          <p className="lead">
+            Il primo passaggio non prova a sapere tutto. Ti porta dentro con una sequenza corta: email, nucleo stabile del profilo, primo shortlist. Solo dopo si aprono i moduli che servono davvero.
+          </p>
+          <div className="actions">
+            <a href={appStartUrl} className="button">
+              Apri l&apos;ingresso guidato
+            </a>
+            <Link href={`https://${APP_HOST}/auth/sign-in`} className="button-secondary">
+              Vai al login diretto
+            </Link>
+          </div>
+        </div>
+        <div className="grid cards-3 marketing-entry-grid">
+          <article className="card stack marketing-entry-card">
+            <span className="marketing-step-index">01</span>
+            <h3>Email e sessione</h3>
+            <p className="subtle">Niente password. Il link ti riporta nel flusso giusto senza ripartire da zero.</p>
+          </article>
+          <article className="card stack marketing-entry-card">
+            <span className="marketing-step-index">02</span>
+            <h3>8 dati stabili</h3>
+            <p className="subtle">Forma, fase attivita, regione, dimensione, settore e regime innovativo prima delle domande specialistiche.</p>
+          </article>
+          <article className="card stack marketing-entry-card">
+            <span className="marketing-step-index">03</span>
+            <h3>Profondita condizionale</h3>
+            <p className="subtle">Assunzioni, export e investimenti si aprono solo se una famiglia di misure dipende davvero da quei dati.</p>
+          </article>
         </div>
       </section>
 
@@ -213,15 +249,15 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
       <section className="panel marketing-cta">
         <div className="stack">
           <p className="eyebrow">Entrata nell&apos;app</p>
-          <h2>Se vuoi usare il motore, l&apos;indirizzo giusto resta `app.tispetta.eu`.</h2>
+          <h2>Il dominio principale racconta il prodotto. L&apos;uso vero parte da `app.tispetta.eu/start`.</h2>
           <p className="subtle">
-            Il dominio principale ora racconta il prodotto. L&apos;app resta separata, con login, profilo, notifiche e catalogo filtrabile.
+            L&apos;app resta separata, con login, profilo, notifiche e catalogo filtrabile. L&apos;ingresso guidato conserva il contesto del sito e ti manda al profilo senza passare da una schermata neutra.
           </p>
         </div>
         <div className="actions">
-          <Link href={`https://${APP_HOST}/auth/sign-in`} className="button">
-            Accedi all&apos;app
-          </Link>
+          <a href={appStartUrl} className="button">
+            Inizia guidato
+          </a>
           <Link href={`https://${APP_HOST}/onboarding`} className="button-secondary">
             Inizia dal profilo
           </Link>

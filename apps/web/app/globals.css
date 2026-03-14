@@ -450,6 +450,27 @@ main {
   gap: 1.2rem;
 }
 
+.marketing-entry {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 1.4rem;
+  align-items: start;
+}
+
+.marketing-entry-copy {
+  min-width: 0;
+}
+
+.marketing-entry-grid {
+  align-items: stretch;
+}
+
+.marketing-entry-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 248, 240, 0.62)),
+    radial-gradient(circle at top right, rgba(211, 163, 74, 0.16), transparent 36%);
+}
+
 .marketing-steps {
   align-items: stretch;
 }
@@ -512,6 +533,25 @@ main {
   align-items: center;
 }
 
+.entry-shell {
+  align-items: start;
+}
+
+.entry-track {
+  grid-template-columns: 1fr;
+}
+
+.entry-track-card {
+  min-height: 0;
+}
+
+.entry-inline-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
 @media (max-width: 960px) {
   .topbar {
     flex-direction: column;
@@ -527,7 +567,8 @@ main {
   .form-grid,
   .metrics,
   .marketing-proof-grid,
-  .marketing-cta {
+  .marketing-cta,
+  .marketing-entry {
     grid-template-columns: 1fr;
   }
 
@@ -561,5 +602,10 @@ main {
     min-height: 260px;
     position: relative;
     inset: auto;
+  }
+
+  .entry-inline-actions {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

@@ -5,12 +5,33 @@ import { useState, useTransition } from 'react';
 
 const API_URL = '/api/proxy';
 
-export function MagicLinkForm() {
-  const [email, setEmail] = useState('demo@example.com');
+type MagicLinkFormProps = {
+  eyebrow?: string;
+  title?: string;
+  lead?: string;
+  submitLabel?: string;
+  redirectTo?: string | null;
+  initialEmail?: string;
+};
+
+export function MagicLinkForm({
+  eyebrow = 'Accesso magic link',
+  title = 'Accedi senza password',
+  lead,
+  submitLabel = 'Invia magic link',
+  redirectTo,
+  initialEmail,
+}: MagicLinkFormProps) {
+  const isLocalEnvironment = process.env.NODE_ENV !== 'production';
+  const [email, setEmail] = useState(initialEmail ?? (isLocalEnvironment ? 'demo@example.com' : ''));
   const [message, setMessage] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const isLocalEnvironment = process.env.NODE_ENV !== 'production';
+  const resolvedLead =
+    lead ??
+    `Inserisci la tua email. ${
+      isLocalEnvironment ? 'Se disponibile, vedrai anche un link di anteprima locale.' : 'Riceverai un link di accesso valido per 30 minuti.'
+    }`;
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,7 +42,7 @@ export function MagicLinkForm() {
         const response = await fetch(`${API_URL}/v1/auth/request-magic-link`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, redirect_to: redirectTo ?? undefined }),
         });
         const data = (await response.json()) as { detail?: string; message?: string; preview_url?: string | null };
         if (!response.ok) {
@@ -39,19 +60,22 @@ export function MagicLinkForm() {
   return (
     <form className="panel stack" onSubmit={onSubmit}>
       <div>
-        <p className="eyebrow">Accesso magic link</p>
-        <h1 style={{ fontSize: '2.4rem' }}>Accedi senza password</h1>
+        <p className="eyebrow">{eyebrow}</p>
+        <h1 style={{ fontSize: '2.4rem' }}>{title}</h1>
       </div>
-      <p className="lead">
-        Inserisci la tua email. {isLocalEnvironment ? 'Se disponibile, vedrai anche un link di anteprima locale.' : 'Riceverai un link di accesso valido per 30 minuti.'}
-      </p>
+      <p className="lead">{resolvedLead}</p>
       <label className="field">
         <span>Email</span>
         <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
       </label>
       <button className="button" type="submit" disabled={isPending}>
-        {isPending ? 'Invio in corso...' : 'Invia magic link'}
+        {isPending ? 'Invio in corso...' : submitLabel}
       </button>
+      {redirectTo ? (
+        <p className="subtle">
+          Dopo il click entrerai direttamente nel percorso guidato e non nella schermata di accesso generica.
+        </p>
+      ) : null}
       {message ? <div className="banner">{message}</div> : null}
       {previewUrl ? (
         <a className="button-secondary" href={previewUrl}>

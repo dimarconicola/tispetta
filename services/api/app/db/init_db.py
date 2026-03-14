@@ -43,9 +43,16 @@ def _ensure_normalized_document_columns() -> None:
         )
 
 
+def _ensure_magic_link_columns() -> None:
+    if not _table_exists('magic_link_tokens'):
+        return
+    _add_missing_column('magic_link_tokens', 'redirect_to', 'VARCHAR(255)')
+
+
 def upgrade_db() -> None:
     Base.metadata.create_all(bind=engine)
     _ensure_normalized_document_columns()
+    _ensure_magic_link_columns()
 
 
 def init_db() -> None:

@@ -182,6 +182,7 @@ class MagicLinkToken(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     email: Mapped[str] = mapped_column(String(255), index=True)
     token_hash: Mapped[str] = mapped_column(String(255), unique=True)
+    redirect_to: Mapped[str | None] = mapped_column(String(255), nullable=True)
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -5,6 +5,7 @@ from app.schemas.common import ApiModel
 
 class MagicLinkRequest(BaseModel):
     email: EmailStr
+    redirect_to: str | None = None
 
 
 class MagicLinkResponse(ApiModel):
