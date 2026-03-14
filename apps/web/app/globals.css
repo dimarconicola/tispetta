@@ -359,6 +359,159 @@ main {
   gap: 0.8rem;
 }
 
+.topbar-marketing .nav {
+  justify-content: flex-end;
+}
+
+.marketing-shell {
+  gap: 2rem;
+}
+
+.marketing-hero {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.marketing-hero-copy,
+.marketing-hero-rail {
+  position: relative;
+}
+
+.marketing-hero-copy {
+  padding: 2.5rem 2.6rem;
+  border-radius: 36px;
+  border: 1px solid rgba(18, 33, 28, 0.08);
+  background:
+    linear-gradient(140deg, rgba(255, 250, 243, 0.96), rgba(245, 235, 220, 0.82)),
+    radial-gradient(circle at top left, rgba(211, 163, 74, 0.28), transparent 38%);
+  box-shadow: var(--shadow);
+}
+
+.marketing-hero-copy h1 {
+  margin: 0;
+  font-size: clamp(3.6rem, 7vw, 6.2rem);
+  line-height: 0.92;
+  max-width: 9ch;
+}
+
+.marketing-hero-rail {
+  min-height: 100%;
+}
+
+.marketing-orbit {
+  position: absolute;
+  inset: 0.75rem 0 0 0;
+  border-radius: 36px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(211, 163, 74, 0.32), transparent 22%),
+    radial-gradient(circle at 72% 22%, rgba(199, 92, 47, 0.26), transparent 18%),
+    linear-gradient(180deg, #10241e 0%, #153127 100%);
+  box-shadow: 0 28px 70px rgba(16, 36, 30, 0.22);
+}
+
+.marketing-orbit::after {
+  content: '';
+  position: absolute;
+  inset: 10% 14%;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  transform: rotate(-18deg);
+}
+
+.marketing-note {
+  position: relative;
+  width: min(420px, calc(100% - 2rem));
+  margin: 2rem 0 0 auto;
+}
+
+.marketing-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.marketing-proof-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(18, 33, 28, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.marketing-proof-card strong {
+  font-size: 1.9rem;
+}
+
+.marketing-band {
+  gap: 1.2rem;
+}
+
+.marketing-steps {
+  align-items: stretch;
+}
+
+.marketing-step-card {
+  background: rgba(255, 252, 245, 0.72);
+}
+
+.marketing-step-index {
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.marketing-split {
+  align-items: stretch;
+}
+
+.marketing-editorial {
+  padding: 2.2rem;
+}
+
+.marketing-fact-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.marketing-fact-strip span {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.48);
+  color: var(--muted);
+}
+
+.marketing-audience-grid {
+  grid-template-columns: 1fr;
+  align-content: start;
+}
+
+.marketing-audience-card {
+  min-height: 0;
+}
+
+.marketing-preview-card h3,
+.marketing-audience-card h3,
+.marketing-step-card h3,
+.marketing-cta h2 {
+  line-height: 1.02;
+}
+
+.marketing-cta {
+  display: grid;
+  grid-template-columns: 1.1fr auto;
+  gap: 1.5rem;
+  align-items: center;
+}
+
 @media (max-width: 960px) {
   .topbar {
     flex-direction: column;
@@ -367,11 +520,14 @@ main {
   }
 
   .hero,
+  .marketing-hero,
   .split,
   .cards-3,
   .cards-2,
   .form-grid,
-  .metrics {
+  .metrics,
+  .marketing-proof-grid,
+  .marketing-cta {
     grid-template-columns: 1fr;
   }
 
@@ -390,5 +546,20 @@ main {
   .panel,
   .card {
     border-radius: 24px;
+  }
+
+  .marketing-hero-copy {
+    padding: 2rem 1.4rem;
+  }
+
+  .marketing-note {
+    width: 100%;
+    margin: 1rem 0 0;
+  }
+
+  .marketing-orbit {
+    min-height: 260px;
+    position: relative;
+    inset: auto;
   }
 }

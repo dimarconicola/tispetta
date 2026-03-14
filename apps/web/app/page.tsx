@@ -1,88 +1,249 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
+import type { Metadata } from 'next';
 
 import { OpportunityCard } from '@/components/opportunity-card';
 import { getOpportunities, getProfile, getSessionUser } from '@/lib/server-api';
+import { APP_HOST, APEX_HOST, isApexLikeHost } from '@/lib/hosts';
 
-export default async function HomePage() {
-  const [user, profile, opportunities] = await Promise.all([
-    getSessionUser().catch(() => null),
-    getProfile().catch(() => null),
-    getOpportunities().catch(() => []),
-  ]);
+async function isMarketingRequest() {
+  const headerStore = await headers();
+  return isApexLikeHost(headerStore.get('host'));
+}
 
+export async function generateMetadata(): Promise<Metadata> {
+  const marketingHost = await isMarketingRequest();
+
+  if (marketingHost) {
+    return {
+      title: 'Tispetta | Incentivi italiani letti come un prodotto',
+      description:
+        'Tispetta trasforma norme, decreti, pagine operative e FAQ istituzionali in una superficie leggibile per startup, freelance e PMI.',
+      alternates: {
+        canonical: 'https://tispetta.eu/',
+      },
+      openGraph: {
+        title: 'Tispetta | Incentivi italiani letti come un prodotto',
+        description:
+          'Una superficie chiara per capire incentivi, crediti e agevolazioni italiane senza perdersi tra fonti sparse.',
+        url: 'https://tispetta.eu/',
+      },
+      twitter: {
+        title: 'Tispetta | Incentivi italiani letti come un prodotto',
+        description:
+          'Norme e pagine operative trasformate in opportunita strutturate, spiegate e filtrabili.',
+      },
+    };
+  }
+
+  return {
+    title: 'Tispetta',
+    alternates: {
+      canonical: 'https://app.tispetta.eu/',
+    },
+  };
+}
+
+type HomeOpportunity = Awaited<ReturnType<typeof getOpportunities>>[number];
+
+const matchStatusLabels: Record<string, string> = {
+  confirmed: 'Confermato',
+  likely: 'Probabile',
+  unclear: 'Da chiarire',
+  not_eligible: 'Non idoneo',
+};
+
+function getMarketingMatchLabel(matchStatus: string | null) {
+  if (!matchStatus) {
+    return 'Da valutare';
+  }
+
+  return matchStatusLabels[matchStatus] ?? 'Da valutare';
+}
+
+function MarketingPreviewCard({ opportunity }: { opportunity: HomeOpportunity }) {
+  return (
+    <article className="card marketing-preview-card stack">
+      <div className="stack" style={{ gap: '0.4rem' }}>
+        <span className="eyebrow">{opportunity.category.replace(/_/g, ' ')}</span>
+        <h3>{opportunity.title}</h3>
+      </div>
+      <p className="subtle">{opportunity.short_description}</p>
+      <div className="meta-list">
+        <span>Stato: {getMarketingMatchLabel(opportunity.match_status)}</span>
+        <span>Perimetro: {opportunity.geography_scope}</span>
+        <span>Fonte verificata: {new Date(opportunity.last_checked_at).toLocaleDateString('it-IT')}</span>
+      </div>
+      <Link href={`https://${APP_HOST}/opportunities/${opportunity.slug}`} className="button-secondary">
+        Apri scheda completa
+      </Link>
+    </article>
+  );
+}
+
+function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunity[] }) {
+  const catalogCountLabel = opportunities.length ? `${opportunities.length}` : '42';
+  const preview = opportunities.slice(0, 3);
+
+  return (
+    <div className="stack marketing-shell">
+      <section className="marketing-hero">
+        <div className="marketing-hero-copy stack">
+          <p className="eyebrow">Mercato reale, fonti ufficiali, lettura operativa</p>
+          <h1>Gli incentivi italiani, finalmente leggibili come un prodotto.</h1>
+          <p className="lead">
+            Tispetta prende norme, decreti, circolari e pagine operative sparse e le ricompone in un sistema unico:
+            opportunita strutturate, criteri espliciti, campi mancanti dichiarati e priorita concrete.
+          </p>
+          <div className="actions">
+            <Link href={`https://${APP_HOST}/auth/sign-in`} className="button">
+              Apri l&apos;app
+            </Link>
+            <Link href={`https://${APP_HOST}/search`} className="button-secondary">
+              Vedi il catalogo live
+            </Link>
+          </div>
+          <div className="marketing-proof-grid">
+            <div className="marketing-proof-card">
+              <strong>{catalogCountLabel}</strong>
+              <span>opportunita pubbliche gia strutturate</span>
+            </div>
+            <div className="marketing-proof-card">
+              <strong>8</strong>
+              <span>domini istituzionali monitorati nel bootstrap nazionale</span>
+            </div>
+            <div className="marketing-proof-card">
+              <strong>3</strong>
+              <span>livelli distinti: base legale, operativita, opportunita utente</span>
+            </div>
+          </div>
+        </div>
+        <div className="marketing-hero-rail">
+          <div className="marketing-orbit" aria-hidden="true" />
+          <div className="panel marketing-note stack">
+            <p className="eyebrow">Posizionamento</p>
+            <h2>Non un motore di ricerca di bandi. Un layer decisionale sopra le fonti.</h2>
+            <p className="subtle">
+              Il punto non e trovare piu pagine. Il punto e capire prima: cosa e vivo, cosa richiede stato societario,
+              cosa dipende da un progetto, cosa e ancora ambiguo.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="marketing-band panel" id="metodo">
+        <div>
+          <p className="eyebrow">Metodo</p>
+          <h2 className="section-title">Una pipeline progettata per ridurre rumore e falsi positivi.</h2>
+        </div>
+        <div className="grid cards-3 marketing-steps">
+          <article className="card stack marketing-step-card">
+            <span className="marketing-step-index">01</span>
+            <h3>Base legale</h3>
+            <p className="subtle">Normattiva, Gazzetta, decreti attuativi, circolari e documenti collegati salvati come evidenza.</p>
+          </article>
+          <article className="card stack marketing-step-card">
+            <span className="marketing-step-index">02</span>
+            <h3>Surface operativa</h3>
+            <p className="subtle">Pagine ministeriali, operatori, FAQ e guide applicative classificate per ruolo e stato della misura.</p>
+          </article>
+          <article className="card stack marketing-step-card">
+            <span className="marketing-step-index">03</span>
+            <h3>Match spiegabile</h3>
+            <p className="subtle">Regole deterministiche, campi mancanti espliciti, ranking leggibile e nessuna eleggibilita inventata.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="split marketing-split" id="copertura">
+        <div className="panel stack marketing-editorial">
+          <p className="eyebrow">Copertura</p>
+          <h2>Startup, freelance e PMI nello stesso impianto, senza schiacciare tutto in un questionario generico.</h2>
+          <p className="lead">
+            Le misure italiane hanno assi diversi: stato innovativo, fase societaria, intenti di investimento, assunzioni,
+            export, transizione energetica. Il profilo viene costruito in moduli: prima i fatti stabili, poi gli intenti,
+            poi i dati sensibili o specifici solo quando servono davvero.
+          </p>
+          <div className="marketing-fact-strip">
+            <span>stato societario</span>
+            <span>regime innovativo</span>
+            <span>dimensione</span>
+            <span>settore</span>
+            <span>assunzioni</span>
+            <span>transizione 5.0</span>
+            <span>export</span>
+          </div>
+        </div>
+        <div className="grid marketing-audience-grid" id="per-chi">
+          <article className="card stack marketing-audience-card">
+            <p className="eyebrow">Founder</p>
+            <h3>Per chi apre o struttura una startup</h3>
+            <p className="subtle">Stato innovativo, finestra di costituzione, ammissibilita Invitalia, crediti e percorsi di crescita.</p>
+          </article>
+          <article className="card stack marketing-audience-card">
+            <p className="eyebrow">Freelance</p>
+            <h3>Per chi lavora in proprio</h3>
+            <p className="subtle">Partita IVA, autoimpiego, agevolazioni leggere, bonus mirati e misure che non richiedono una PMI strutturata.</p>
+          </article>
+          <article className="card stack marketing-audience-card">
+            <p className="eyebrow">PMI</p>
+            <h3>Per chi gestisce una macchina gia operativa</h3>
+            <p className="subtle">Assunzioni, export, crediti d&apos;imposta, investimenti digitali ed efficienza energetica con vincoli espliciti.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">Preview live</p>
+            <h2 className="section-title">Tre schede tratte dal catalogo attuale</h2>
+          </div>
+          <Link href={`https://${APP_HOST}/search`} className="button-secondary">
+            Esplora tutte le opportunita
+          </Link>
+        </div>
+        <div className="grid cards-3">
+          {preview.map((opportunity) => (
+            <MarketingPreviewCard key={opportunity.id} opportunity={opportunity} />
+          ))}
+        </div>
+      </section>
+
+      <section className="panel marketing-cta">
+        <div className="stack">
+          <p className="eyebrow">Entrata nell&apos;app</p>
+          <h2>Se vuoi usare il motore, l&apos;indirizzo giusto resta `app.tispetta.eu`.</h2>
+          <p className="subtle">
+            Il dominio principale ora racconta il prodotto. L&apos;app resta separata, con login, profilo, notifiche e catalogo filtrabile.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href={`https://${APP_HOST}/auth/sign-in`} className="button">
+            Accedi all&apos;app
+          </Link>
+          <Link href={`https://${APP_HOST}/onboarding`} className="button-secondary">
+            Inizia dal profilo
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ProductHomePage({
+  profile,
+  opportunities,
+}: {
+  profile: Awaited<ReturnType<typeof getProfile>>;
+  opportunities: HomeOpportunity[];
+}) {
   const confirmed = opportunities.filter((item) => item.match_status === 'confirmed').slice(0, 3);
   const likely = opportunities.filter((item) => item.match_status === 'likely').slice(0, 3);
   const expiring = [...opportunities]
     .filter((item) => item.deadline_date)
     .sort((a, b) => new Date(a.deadline_date ?? '').getTime() - new Date(b.deadline_date ?? '').getTime())
     .slice(0, 3);
-  const catalogCountLabel = opportunities.length ? `${opportunities.length}` : '40+';
-
-  if (!user) {
-    return (
-      <div className="stack">
-        <section className="hero">
-          <div className="panel stack">
-            <div>
-              <p className="eyebrow">Opportunity intelligence per l&apos;Italia produttiva</p>
-              <h1>Scopri bandi, incentivi e crediti che ti possono riguardare.</h1>
-            </div>
-            <p className="lead">
-              Tispetta trasforma fonti ufficiali in opportunita strutturate, spiegate e abbinate al tuo profilo.
-              Niente ricerca dispersiva, niente linguaggio opaco, niente promesse non verificabili.
-            </p>
-            <div className="actions">
-              <Link href="/auth/sign-in" className="button">
-                Accedi con magic link
-              </Link>
-              <Link href="/search" className="button-secondary">
-                Esplora il catalogo demo
-              </Link>
-            </div>
-            <div className="grid metrics">
-              <div className="metric">
-                <strong>{catalogCountLabel}</strong>
-                <span>opportunita pubbliche derivate da fonti ufficiali</span>
-              </div>
-              <div className="metric">
-                <strong>4</strong>
-                <span>stati di eleggibilita spiegati con evidenze</span>
-              </div>
-              <div className="metric">
-                <strong>8</strong>
-                <span>domini istituzionali monitorati per il bootstrap nazionale</span>
-              </div>
-            </div>
-          </div>
-          <div className="panel stack">
-            <p className="eyebrow">Perche funziona</p>
-            <h2 style={{ fontSize: '2.4rem' }}>Deterministico dove conta, AI solo dove il testo e disordinato.</h2>
-            <div className="stack subtle">
-              <p>Snapshot delle fonti, record versionati, regole testate e spiegazioni leggibili.</p>
-              <p>Il primo onboarding sblocca risultati subito. I dati mancanti diventano richieste mirate, non un questionario infinito.</p>
-              <p>Operatori e admin vedono differenze, review queue e test di regola nello stesso prodotto.</p>
-            </div>
-          </div>
-        </section>
-        <section className="section">
-          <div className="section-header">
-            <div>
-              <p className="eyebrow">Catalogo dimostrativo</p>
-              <h2 className="section-title">Opportunita gia strutturate</h2>
-            </div>
-            <Link href="/search" className="button-secondary">
-              Vai alla ricerca
-            </Link>
-          </div>
-          <div className="grid cards-3">
-            {opportunities.slice(0, 6).map((opportunity) => (
-              <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-            ))}
-          </div>
-        </section>
-      </div>
-    );
-  }
 
   return (
     <div className="stack">
@@ -167,4 +328,87 @@ export default async function HomePage() {
       </section>
     </div>
   );
+}
+
+export default async function HomePage() {
+  const marketingHost = await isMarketingRequest();
+  const opportunities = await getOpportunities().catch(() => []);
+
+  if (marketingHost) {
+    return <MarketingLandingPage opportunities={opportunities} />;
+  }
+
+  const [user, profile] = await Promise.all([
+    getSessionUser().catch(() => null),
+    getProfile().catch(() => null),
+  ]);
+  const catalogCountLabel = opportunities.length ? `${opportunities.length}` : '40+';
+
+  if (!user) {
+    return (
+      <div className="stack">
+        <section className="hero">
+          <div className="panel stack">
+            <div>
+              <p className="eyebrow">Opportunity intelligence per l&apos;Italia produttiva</p>
+              <h1>Scopri bandi, incentivi e crediti che ti possono riguardare.</h1>
+            </div>
+            <p className="lead">
+              Tispetta trasforma fonti ufficiali in opportunita strutturate, spiegate e abbinate al tuo profilo.
+              Niente ricerca dispersiva, niente linguaggio opaco, niente promesse non verificabili.
+            </p>
+            <div className="actions">
+              <Link href="/auth/sign-in" className="button">
+                Accedi con magic link
+              </Link>
+              <Link href="/search" className="button-secondary">
+                Esplora il catalogo demo
+              </Link>
+            </div>
+            <div className="grid metrics">
+              <div className="metric">
+                <strong>{catalogCountLabel}</strong>
+                <span>opportunita pubbliche derivate da fonti ufficiali</span>
+              </div>
+              <div className="metric">
+                <strong>4</strong>
+                <span>stati di eleggibilita spiegati con evidenze</span>
+              </div>
+              <div className="metric">
+                <strong>8</strong>
+                <span>domini istituzionali monitorati per il bootstrap nazionale</span>
+              </div>
+            </div>
+          </div>
+          <div className="panel stack">
+            <p className="eyebrow">Perche funziona</p>
+            <h2 style={{ fontSize: '2.4rem' }}>Deterministico dove conta, AI solo dove il testo e disordinato.</h2>
+            <div className="stack subtle">
+              <p>Snapshot delle fonti, record versionati, regole testate e spiegazioni leggibili.</p>
+              <p>Il primo onboarding sblocca risultati subito. I dati mancanti diventano richieste mirate, non un questionario infinito.</p>
+              <p>Operatori e admin vedono differenze, review queue e test di regola nello stesso prodotto.</p>
+            </div>
+          </div>
+        </section>
+        <section className="section">
+          <div className="section-header">
+            <div>
+              <p className="eyebrow">Catalogo dimostrativo</p>
+              <h2 className="section-title">Opportunita gia strutturate</h2>
+            </div>
+            <Link href="/search" className="button-secondary">
+              Vai alla ricerca
+            </Link>
+          </div>
+          <div className="grid cards-3">
+            {opportunities.slice(0, 6).map((opportunity) => (
+              <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  return <ProductHomePage profile={profile} opportunities={opportunities} />;
 }

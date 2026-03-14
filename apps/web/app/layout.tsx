@@ -2,9 +2,11 @@ import './globals.css';
 
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import { headers } from 'next/headers';
 
 import { Topbar } from '@/components/topbar';
 import { GA_MEASUREMENT_ID, GOOGLE_SITE_VERIFICATION, PUBLIC_APP_URL } from '@/lib/env';
+import { isApexLikeHost } from '@/lib/hosts';
 import { getSessionUser } from '@/lib/server-api';
 
 const siteUrl = new URL(PUBLIC_APP_URL);
@@ -60,13 +62,16 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const user = await getSessionUser().catch(() => null);
+  const headerStore = await headers();
+  const host = headerStore.get('host');
+  const marketingHost = isApexLikeHost(host);
+  const user = marketingHost ? null : await getSessionUser().catch(() => null);
 
   return (
     <html lang="it">
       <body>
         <main className="page-shell">
-          <Topbar user={user} />
+          <Topbar user={user} variant={marketingHost ? 'marketing' : 'app'} />
           {children}
         </main>
         {GA_MEASUREMENT_ID ? (

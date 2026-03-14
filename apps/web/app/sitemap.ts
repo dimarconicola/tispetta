@@ -1,11 +1,27 @@
 import type { MetadataRoute } from 'next';
+import { headers } from 'next/headers';
 
-import { INTERNAL_API_URL, PUBLIC_APP_URL } from '@/lib/env';
+import { INTERNAL_API_URL } from '@/lib/env';
+import { APEX_HOST, APP_HOST, isApexLikeHost } from '@/lib/hosts';
 import type { OpportunityCard } from '@/lib/types';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = PUBLIC_APP_URL.replace(/\/$/, '');
+  const host = (await headers()).get('host');
+  const marketingHost = isApexLikeHost(host);
+  const baseUrl = `https://${marketingHost ? APEX_HOST : APP_HOST}`;
   const now = new Date();
+
+  if (marketingHost) {
+    return [
+      {
+        url: `${baseUrl}/`,
+        lastModified: now,
+        changeFrequency: 'weekly',
+        priority: 1,
+      },
+    ];
+  }
+
   const opportunities = await fetch(`${INTERNAL_API_URL}/v1/opportunities`, {
     next: { revalidate: 3600 },
   })
