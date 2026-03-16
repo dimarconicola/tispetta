@@ -9,6 +9,7 @@ const LINKS = [
   { href: '/admin/ingestion', label: 'Ingestion' },
   { href: '/admin/review', label: 'Review' },
   { href: '/admin/rules', label: 'Regole' },
+  { href: '/admin/notifications', label: 'Notifiche' },
 ] as const satisfies ReadonlyArray<{ href: Route; label: string }>;
 
 export function AdminConsoleNav() {

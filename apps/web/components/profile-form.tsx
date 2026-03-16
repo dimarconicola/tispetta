@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 
 import type { Profile, ProfileQuestion } from '@/lib/types';
@@ -26,16 +27,18 @@ const MODULE_COPY: Record<string, { eyebrow: string; title: string; body: string
 };
 
 export function ProfileForm({ profile, questions }: { profile: Profile | null; questions: ProfileQuestion[] }) {
+  const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [gatePassed, setGatePassed] = useState(Boolean(profile?.user_type));
   const initialValues = useMemo(() => buildInitialValues(profile), [profile]);
-  const { register, handleSubmit, watch } = useForm<Record<string, string | boolean | null>>({
+  const { register, handleSubmit, watch, setValue } = useForm<Record<string, string | boolean | null>>({
     defaultValues: initialValues,
   });
 
-  const userType = (watch('profile_type') as string | undefined) ?? (profile?.fact_values?.profile_type as string | undefined) ?? profile?.user_type ?? 'startup';
+  const userType = (watch('profile_type') as string | undefined) || (profile?.fact_values?.profile_type as string | undefined) || profile?.user_type || 'startup';
   const visibleQuestions = useMemo(
-    () => questions.filter((question) => !question.audience || question.audience.includes(userType ?? 'startup')),
+    () => questions.filter((question) => !question.audience || question.audience.includes(userType)),
     [questions, userType]
   );
 
@@ -65,55 +68,98 @@ export function ProfileForm({ profile, questions }: { profile: Profile | null; q
             body: JSON.stringify(normalized),
           });
           setMessage(response.ok ? 'Profilo aggiornato e matching ricalcolato.' : 'Aggiornamento non riuscito.');
+          if (response.ok) {
+            router.push('/');
+          }
         });
       })}
     >
-      {Object.entries(grouped).map(([module, items]) => (
-        <section className="panel stack" key={module}>
-          <div>
-            <p className="eyebrow">{MODULE_COPY[module]?.eyebrow ?? 'Profilo'}</p>
-            <h2 style={{ fontSize: '2rem' }}>{MODULE_COPY[module]?.title ?? 'Profilo'}</h2>
-            <p className="subtle">{MODULE_COPY[module]?.body}</p>
+      {!gatePassed ? (
+        <div className="stack">
+          <div className="panel stack">
+            <p className="eyebrow">Come vuoi usare Tispetta?</p>
+            <h2 style={{ fontSize: '2rem' }}>Stai cercando qualcosa per te o per un'attivita?</h2>
+            <p className="subtle">La risposta cambia le domande che ti facciamo: poche e mirate.</p>
           </div>
-          <div className="form-grid">
-            {items.map((question) => (
-              <label className="field" key={question.key}>
-                <span>{question.label}</span>
-                {question.kind === 'boolean' ? (
-                  <select {...register(question.key)}>
-                    <option value="">Seleziona</option>
-                    <option value="true">Si</option>
-                    <option value="false">No</option>
-                  </select>
-                ) : question.options ? (
-                  <select {...register(question.key)}>
-                    <option value="">Seleziona</option>
-                    {question.options.map((option) => (
-                      <option key={option} value={option}>
-                        {formatOptionLabel(option)}
-                      </option>
-                    ))}
-                  </select>
-                ) : question.kind === 'text' ? (
-                  <textarea {...register(question.key)} />
-                ) : (
-                  <input {...register(question.key)} />
-                )}
-                {question.helper_text ? <small className="subtle">{question.helper_text}</small> : null}
-                {question.why_needed ? <small className="subtle">Perche lo chiediamo: {question.why_needed}</small> : null}
-                {question.ask_when_measure_families?.length ? (
-                  <small className="subtle">Famiglie collegate: {question.ask_when_measure_families.join(', ')}</small>
-                ) : null}
-                {question.sensitive ? <small className="subtle">Dato sensibile: mostrato solo quando serve davvero.</small> : null}
-              </label>
-            ))}
+          <div className="grid cards-2">
+            <button
+              type="button"
+              className="card stack"
+              style={{ textAlign: 'left', cursor: 'pointer', border: '1px solid var(--line)' }}
+              onClick={() => {
+                setValue('profile_type', 'persona_fisica');
+                setGatePassed(true);
+              }}
+            >
+              <span className="eyebrow">Persona fisica</span>
+              <h3>Per me — bonus, detrazioni e benefici personali</h3>
+              <p className="subtle">Assegno Unico, bonus nido, detrazione figli, NASpI, regime forfettario, bonus casa. Tutto quello che ti spetta come privato, dipendente o freelance che inizia.</p>
+            </button>
+            <button
+              type="button"
+              className="card stack"
+              style={{ textAlign: 'left', cursor: 'pointer', border: '1px solid var(--line)' }}
+              onClick={() => {
+                setValue('profile_type', 'startup');
+                setGatePassed(true);
+              }}
+            >
+              <span className="eyebrow">Attivita o impresa</span>
+              <h3>Per la mia attivita — incentivi, crediti e misure imprenditoriali</h3>
+              <p className="subtle">Crediti R&S, Transizione 5.0, Smart & Start, voucher digitale, incentivi assunzioni, export. Misure per freelance strutturati, startup e PMI.</p>
+            </button>
           </div>
-        </section>
-      ))}
-      <button className="button" type="submit" disabled={isPending}>
-        {isPending ? 'Salvataggio...' : 'Salva profilo'}
-      </button>
-      {message ? <div className="banner">{message}</div> : null}
+        </div>
+      ) : (
+        <>
+          {Object.entries(grouped).map(([module, items]) => (
+            <section className="panel stack" key={module}>
+              <div>
+                <p className="eyebrow">{MODULE_COPY[module]?.eyebrow ?? 'Profilo'}</p>
+                <h2 style={{ fontSize: '2rem' }}>{MODULE_COPY[module]?.title ?? 'Profilo'}</h2>
+                <p className="subtle">{MODULE_COPY[module]?.body}</p>
+              </div>
+              <div className="form-grid">
+                {items.map((question) => (
+                  <label className="field" key={question.key}>
+                    <span>{question.label}</span>
+                    {question.kind === 'boolean' ? (
+                      <select {...register(question.key)}>
+                        <option value="">Seleziona</option>
+                        <option value="true">Si</option>
+                        <option value="false">No</option>
+                      </select>
+                    ) : question.options ? (
+                      <select {...register(question.key)}>
+                        <option value="">Seleziona</option>
+                        {question.options.map((option) => (
+                          <option key={option} value={option}>
+                            {formatOptionLabel(option)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : question.kind === 'text' ? (
+                      <textarea {...register(question.key)} />
+                    ) : (
+                      <input {...register(question.key)} />
+                    )}
+                    {question.helper_text ? <small className="subtle">{question.helper_text}</small> : null}
+                    {question.why_needed ? <small className="subtle">Perche lo chiediamo: {question.why_needed}</small> : null}
+                    {question.ask_when_measure_families?.length ? (
+                      <small className="subtle">Famiglie collegate: {question.ask_when_measure_families.join(', ')}</small>
+                    ) : null}
+                    {question.sensitive ? <small className="subtle">Dato sensibile: mostrato solo quando serve davvero.</small> : null}
+                  </label>
+                ))}
+              </div>
+            </section>
+          ))}
+          <button className="button" type="submit" disabled={isPending}>
+            {isPending ? 'Salvataggio...' : 'Salva profilo'}
+          </button>
+          {message ? <div className="banner">{message}</div> : null}
+        </>
+      )}
     </form>
   );
 }

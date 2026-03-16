@@ -23,6 +23,7 @@ from app.services.admin import (
     trigger_ingestion_run,
     unpublish_opportunity,
 )
+from app.services.notifications import run_deadline_reminders, run_weekly_digest
 
 router = APIRouter(prefix='/v1/admin', tags=['admin'])
 
@@ -136,3 +137,15 @@ def post_rule_test(rule_id: str, db: Session = Depends(get_db), _=Depends(get_ad
 @router.get('/rules')
 def get_rules(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> list[dict]:
     return list_rules(db)
+
+
+@router.post('/notifications/run-reminders', response_model=ApiMessage)
+def post_run_deadline_reminders(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> ApiMessage:
+    count = run_deadline_reminders(db)
+    return ApiMessage(message=f'Deadline reminder emails dispatched: {count}')
+
+
+@router.post('/notifications/run-digest', response_model=ApiMessage)
+def post_run_weekly_digest(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> ApiMessage:
+    count = run_weekly_digest(db)
+    return ApiMessage(message=f'Weekly digest emails dispatched: {count}')

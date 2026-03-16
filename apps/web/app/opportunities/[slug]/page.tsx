@@ -82,8 +82,19 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
               <p>Accedi e completa il profilo per vedere il ragionamento completo.</p>
             )}
           </div>
-          {opportunity.what_is_missing.length ? (
-            <div className="banner">Mancano informazioni su: {opportunity.what_is_missing.join(', ')}</div>
+          {opportunity.missing_fields.length ? (
+            <div className="panel stack" style={{ borderLeft: '3px solid var(--warning, #e8a000)' }}>
+              <p className="eyebrow">Dati mancanti</p>
+              <p>Per confermare questa opportunita ti mancano informazioni su:</p>
+              <ul className="list-reset stack" style={{ fontSize: '0.9rem' }}>
+                {opportunity.what_is_missing.map((label) => (
+                  <li key={label}>— {label}</li>
+                ))}
+              </ul>
+              <Link href="/onboarding" className="button-secondary">
+                Completa il profilo
+              </Link>
+            </div>
           ) : null}
         </div>
       </section>

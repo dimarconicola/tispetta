@@ -90,7 +90,59 @@ def _send_magic_email(email: str, preview_url: str) -> bool:
         return False
 
 
+def send_transactional_email(to: str, subject: str, body: str) -> bool:
+    if settings.resend_api_key:
+        try:
+            response = httpx.post(
+                'https://api.resend.com/emails',
+                headers={
+                    'Authorization': f'Bearer {settings.resend_api_key}',
+                    'Content-Type': 'application/json',
+                },
+                json={'from': settings.resend_from_email, 'to': [to], 'subject': subject, 'text': body},
+                timeout=10.0,
+            )
+            response.raise_for_status()
+            return True
+        except (httpx.HTTPError, OSError):
+            if not settings.smtp_host:
+                return False
+    try:
+        message = EmailMessage()
+        message['Subject'] = subject
+        message['From'] = settings.resend_from_email
+        message['To'] = to
+        message.set_content(body)
+        client_cls = smtplib.SMTP_SSL if settings.smtp_ssl_enabled() else smtplib.SMTP
+        with client_cls(settings.smtp_host, settings.smtp_port, timeout=10) as server:
+            if settings.smtp_use_starttls and not settings.smtp_ssl_enabled():
+                server.starttls()
+            if settings.smtp_username and settings.smtp_password:
+                server.login(settings.smtp_username, settings.smtp_password)
+            server.send_message(message)
+        return True
+    except (OSError, smtplib.SMTPException):
+        return False
+
+
+def _magic_link_html(url: str) -> str:
+    return (
+        '<!DOCTYPE html><html lang="it"><body style="font-family:sans-serif;max-width:480px;margin:40px auto;color:#1a1a1a">'
+        '<h2 style="margin-bottom:0.5rem">Accedi a Tispetta</h2>'
+        '<p style="color:#555">Clicca sul pulsante per accedere al tuo account e aggiornare il profilo.</p>'
+        f'<a href="{url}" style="display:inline-block;margin:1.5rem 0;padding:0.75rem 1.5rem;background:#1a1a1a;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Accedi ora</a>'
+        '<p style="font-size:0.85rem;color:#888">Questo link scade tra 30 minuti. Se non hai richiesto l\'accesso, ignora questa email.</p>'
+        f'<p style="font-size:0.8rem;color:#aaa;word-break:break-all">Oppure copia: {url}</p>'
+        '</body></html>'
+    )
+
+
 def _send_magic_email_via_resend(email: str, preview_url: str) -> None:
+    plain = (
+        'Clicca sul link per accedere al tuo account e aggiornare il profilo:\n\n'
+        f'{preview_url}\n\n'
+        'Questo link scade tra 30 minuti.'
+    )
     response = httpx.post(
         'https://api.resend.com/emails',
         headers={
@@ -101,11 +153,8 @@ def _send_magic_email_via_resend(email: str, preview_url: str) -> None:
             'from': settings.resend_from_email,
             'to': [email],
             'subject': 'Accedi a Tispetta',
-            'text': (
-                'Clicca sul link per accedere al tuo account e aggiornare il profilo:\n\n'
-                f'{preview_url}\n\n'
-                'Questo link scade tra 30 minuti.'
-            ),
+            'text': plain,
+            'html': _magic_link_html(preview_url),
         },
         timeout=10.0,
     )
@@ -122,6 +171,7 @@ def _send_magic_email_via_smtp(email: str, preview_url: str) -> None:
         f'{preview_url}\n\n'
         'Questo link scade tra 30 minuti.'
     )
+    message.add_alternative(_magic_link_html(preview_url), subtype='html')
     client_cls = smtplib.SMTP_SSL if settings.smtp_ssl_enabled() else smtplib.SMTP
     with client_cls(settings.smtp_host, settings.smtp_port, timeout=10) as server:
         if settings.smtp_use_starttls and not settings.smtp_ssl_enabled():
