@@ -169,7 +169,12 @@ def extract_candidate(endpoint: SourceEndpoint, document: NormalizedDocument) ->
     )
 
 
-def route_candidate_for_review(db: Session, endpoint: SourceEndpoint, candidate: ExtractionCandidate) -> ReviewItem | None:
+def route_candidate_for_review(
+    db: Session,
+    endpoint: SourceEndpoint,
+    document: NormalizedDocument,
+    candidate: ExtractionCandidate,
+) -> ReviewItem | None:
     if candidate.document_type == 'irrelevant':
         return None
     item_type = ReviewItemType.PUBLISH_PENDING.value if candidate.confidence >= 0.9 else ReviewItemType.LOW_CONFIDENCE.value
@@ -180,6 +185,9 @@ def route_candidate_for_review(db: Session, endpoint: SourceEndpoint, candidate:
         title=candidate.title or f'Nuovo documento da {endpoint.name}',
         description='Candidate opportunity estratta dal worker e pronta per revisione.',
         payload={
+            'normalized_document_id': document.id,
+            'source_snapshot_id': document.source_snapshot_id,
+            'source_endpoint_id': endpoint.id,
             'short_description': candidate.short_description,
             'official_links': candidate.official_links,
             'evidence_snippets': candidate.evidence_snippets,

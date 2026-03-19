@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { AdminConsoleNav } from '@/components/admin-console-nav';
+import { DocumentReviewForm } from '@/components/document-review-form';
 import { getAdminDocuments, getSessionUser } from '@/lib/server-api';
 import { formatDate } from '@/lib/utils';
 
@@ -9,6 +10,7 @@ type SearchParams = Promise<{
   role?: string;
   lifecycle_status?: string;
   family_slug?: string;
+  document_id?: string;
 }>;
 
 export default async function AdminDocumentsPage({ searchParams }: { searchParams: SearchParams }) {
@@ -45,6 +47,10 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
             <span>Famiglia</span>
             <input defaultValue={filters.family_slug ?? ''} name="family_slug" placeholder="smart_start_italia" />
           </label>
+          <label className="field">
+            <span>Documento</span>
+            <input defaultValue={filters.document_id ?? ''} name="document_id" placeholder="uuid documento" />
+          </label>
           <div style={{ display: 'flex', alignItems: 'end', gap: '0.8rem' }}>
             <button className="button" type="submit">
               Filtra
@@ -63,6 +69,7 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
               <th>Lifecycle</th>
               <th>Relazione</th>
               <th>Data</th>
+              <th>Azioni</th>
             </tr>
           </thead>
           <tbody>
@@ -83,6 +90,9 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
                 <td>{document.lifecycle_status}</td>
                 <td>{document.relationship_type}</td>
                 <td>{formatDate(document.created_at)}</td>
+                <td>
+                  <DocumentReviewForm document={document} />
+                </td>
               </tr>
             ))}
           </tbody>

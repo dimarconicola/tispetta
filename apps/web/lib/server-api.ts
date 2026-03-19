@@ -6,6 +6,7 @@ import type {
   AdminIntegritySnapshot,
   BootstrapRunResult,
   IngestionRun,
+  IngestionRunDetail,
   MeasureFamily,
   NotificationHistoryItem,
   NotificationPreferences,
@@ -101,6 +102,10 @@ export async function getAdminDocuments(params?: Record<string, string | undefin
   });
   const path = `/v1/admin/documents${search.toString() ? `?${search.toString()}` : ''}`;
   return (await apiFetch<AdminDocument[]>(path)) ?? [];
+}
+
+export async function getAdminIngestionRun(id: string): Promise<IngestionRunDetail | null> {
+  return apiFetch<IngestionRunDetail>(`/v1/admin/ingestion-runs/${id}`);
 }
 
 export async function getAdminSurveyCoverage(): Promise<SurveyCoverageSnapshot | null> {

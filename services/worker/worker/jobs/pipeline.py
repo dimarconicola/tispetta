@@ -49,7 +49,7 @@ def ingest_source_endpoint(source_endpoint_id: str) -> None:
             run.stage = IngestionStage.EXTRACT.value
             db.commit()
             candidate = extract_candidate(endpoint, document)
-            route_candidate_for_review(db, endpoint, candidate)
+            review_item = route_candidate_for_review(db, endpoint, document, candidate)
             run.stage = IngestionStage.COMPLETE.value
             run.status = 'success'
             run.finished_at = datetime.now(UTC)
@@ -57,6 +57,10 @@ def ingest_source_endpoint(source_endpoint_id: str) -> None:
                 'document_type': document.document_type,
                 'confidence': candidate.confidence,
                 'storage_path': snapshot.storage_path,
+                'snapshot_id': snapshot.id,
+                'normalized_document_id': document.id,
+                'review_item_id': review_item.id if review_item is not None else None,
+                'candidate_title': candidate.title,
             }
             db.commit()
         except Exception as exc:  # pragma: no cover - defensive worker logging

@@ -37,3 +37,11 @@ class IngestionRunRead(ApiModel):
     started_at: datetime
     finished_at: datetime | None = None
     diagnostics: dict | None = None
+
+
+class IngestionRunDetailRead(IngestionRunRead):
+    endpoint_name: str
+    endpoint_url: str
+    source_name: str
+    review_item_id: str | None = None
+    normalized_document_id: str | None = None

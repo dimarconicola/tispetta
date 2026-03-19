@@ -574,6 +574,7 @@ def list_family_documents(
     role: str | None = None,
     lifecycle_status: str | None = None,
     family_slug: str | None = None,
+    document_id: str | None = None,
 ) -> list[dict]:
     ensure_bootstrap_corpus(db)
     links = db.execute(
@@ -599,6 +600,8 @@ def list_family_documents(
             continue
         if family_slug and family.slug != family_slug:
             continue
+        if document_id and document.id != document_id:
+            continue
         payloads.append(
             {
                 'id': document.id,
@@ -613,6 +616,7 @@ def list_family_documents(
                 'is_primary_legal_basis': link.is_primary_legal_basis,
                 'is_primary_operational_doc': link.is_primary_operational_doc,
                 'created_at': document.created_at,
+                'metadata_json': document.metadata_json,
             }
         )
     return payloads

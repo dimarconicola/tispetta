@@ -124,6 +124,14 @@ export type IngestionRun = {
   diagnostics?: Record<string, unknown> | null;
 };
 
+export type IngestionRunDetail = IngestionRun & {
+  endpoint_name: string;
+  endpoint_url: string;
+  source_name: string;
+  review_item_id: string | null;
+  normalized_document_id: string | null;
+};
+
 export type ReviewItem = {
   id: string;
   item_type: string;
@@ -194,6 +202,7 @@ export type AdminDocument = {
   is_primary_legal_basis: boolean;
   is_primary_operational_doc: boolean;
   created_at: string;
+  metadata_json?: Record<string, unknown> | null;
 };
 
 export type SurveyCoverageRow = {

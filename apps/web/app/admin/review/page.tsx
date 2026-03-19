@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { AdminConsoleNav } from '@/components/admin-console-nav';
@@ -11,6 +10,18 @@ export default async function AdminReviewPage() {
   if (user.role !== 'admin') redirect('/');
 
   const items = await getAdminReviewItems().catch(() => []);
+
+  const hrefForItem = (item: (typeof items)[number]) => {
+    const payload = item.payload ?? {};
+    const documentId = typeof payload.normalized_document_id === 'string' ? payload.normalized_document_id : null;
+    if (documentId) {
+      return `/admin/documents?document_id=${documentId}`;
+    }
+    if (item.related_entity_type === 'opportunity') {
+      return `/admin/opportunities/${item.related_entity_id}`;
+    }
+    return '/admin/ingestion';
+  };
 
   return (
     <div className="stack">
@@ -33,9 +44,9 @@ export default async function AdminReviewPage() {
               <span>Status: {item.status}</span>
             </div>
             <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
-              <Link className="button-secondary" href={`/admin/opportunities/${item.related_entity_id}`}>
-                Apri diff
-              </Link>
+              <a className="button-secondary" href={hrefForItem(item)}>
+                Apri contesto
+              </a>
               <ReviewResolveForm reviewItemId={item.id} />
             </div>
           </article>

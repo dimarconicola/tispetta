@@ -89,9 +89,30 @@ def test_admin_bootstrap_endpoints() -> None:
     assert families.status_code == 200
     assert len(families.json()) >= 18
 
+    sources = client.get('/v1/admin/sources', headers=headers)
+    assert sources.status_code == 200
+    source_payload = sources.json()
+    assert len(source_payload) >= 1
+
+    trigger_run = client.post(f"/v1/admin/sources/{source_payload[0]['id']}/run", headers=headers)
+    assert trigger_run.status_code == 200
+    run_payload = trigger_run.json()
+
+    run_detail = client.get(f"/v1/admin/ingestion-runs/{run_payload['id']}", headers=headers)
+    assert run_detail.status_code == 200
+    assert run_detail.json()['endpoint_url']
+
     documents = client.get('/v1/admin/documents', headers=headers)
     assert documents.status_code == 200
     assert len(documents.json()) >= 36
+    first_document = documents.json()[0]
+
+    review_document = client.post(
+        f"/v1/admin/documents/{first_document['id']}/review",
+        headers=headers,
+        json={'document_role': first_document['document_role'], 'lifecycle_status': first_document['lifecycle_status']},
+    )
+    assert review_document.status_code == 200
 
     coverage = client.get('/v1/admin/survey/coverage', headers=headers)
     assert coverage.status_code == 200

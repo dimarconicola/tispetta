@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from pydantic import BaseModel
+
 from app.schemas.common import ApiModel
 
 
@@ -37,6 +39,18 @@ class AdminDocumentRead(ApiModel):
     is_primary_legal_basis: bool
     is_primary_operational_doc: bool
     created_at: datetime
+    metadata_json: dict | None = None
+
+
+class AdminDocumentReviewPayload(BaseModel):
+    document_role: str | None = None
+    lifecycle_status: str | None = None
+    family_slug: str | None = None
+    relationship_type: str | None = None
+    is_primary_legal_basis: bool = False
+    is_primary_operational_doc: bool = False
+    mark_irrelevant: bool = False
+    unlink_family: bool = False
 
 
 class SurveyCoverageRow(ApiModel):
