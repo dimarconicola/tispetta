@@ -286,7 +286,7 @@ def ensure_document_seed(db: Session, doc_spec: dict) -> NormalizedDocument:
     url = doc_spec['url']
     domain = urlparse(url).netloc.replace('www.', '')
     source = get_source_by_domain(db, domain)
-    endpoint = db.execute(select(SourceEndpoint).where(SourceEndpoint.url == url)).scalar_one_or_none()
+    endpoint = db.execute(select(SourceEndpoint).where(SourceEndpoint.url == url)).scalars().first()
     if endpoint is None:
         endpoint = SourceEndpoint(
             source_id=source.id,

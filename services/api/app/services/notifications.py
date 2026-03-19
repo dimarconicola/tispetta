@@ -1,26 +1,33 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 import logging
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Match, NotificationPreference, Opportunity, Profile, User
+from app.models import (
+    Match,
+    Notification,
+    NotificationEvent,
+    NotificationPreference,
+    NotificationStatus,
+    Opportunity,
+    Profile,
+    User,
+)
 from app.services.auth import send_transactional_email
 
 logger = logging.getLogger(__name__)
 
 
 def run_deadline_reminders(db: Session) -> int:
-    """Send deadline alerts for confirmed/likely matches expiring within 30 days.
+    """Send one deduped deadline reminder per user per UTC day."""
 
-    Returns the number of emails dispatched.
-    """
     now = datetime.now(UTC)
     near = now + timedelta(days=30)
     rows = db.execute(
-        select(User.email, Match, Opportunity)
+        select(User.id, User.email, Match, Opportunity)
         .join(Match, Match.user_id == User.id)
         .join(Opportunity, Opportunity.id == Match.opportunity_id)
         .join(NotificationPreference, NotificationPreference.user_id == User.id)
@@ -32,31 +39,38 @@ def run_deadline_reminders(db: Session) -> int:
             Opportunity.deadline_date >= now,
         )
     ).all()
-    by_user: dict[str, list[tuple[str, object]]] = {}
-    for email, _match, opp in rows:
-        by_user.setdefault(email, []).append((opp.title, opp.deadline_date))
+    by_user: dict[tuple[str, str], list[tuple[str, object]]] = {}
+    for user_id, email, _match, opp in rows:
+        by_user.setdefault((user_id, email), []).append((opp.title, opp.deadline_date))
+
     dispatched = 0
-    for email, items in by_user.items():
-        sorted_items = sorted(items, key=lambda x: str(x[1] or '9999-12-31'))
+    for (user_id, email), items in by_user.items():
+        sorted_items = sorted(items, key=lambda item: str(item[1] or '9999-12-31'))
         lines = '\n'.join(
             f"- {title}: scadenza {dl.strftime('%d/%m/%Y') if hasattr(dl, 'strftime') else str(dl) if dl else 'N/D'}"
             for title, dl in sorted_items
         )
-        send_transactional_email(
-            email,
-            'Scadenze in arrivo - Tispetta',
-            f"Ciao,\n\nHai {len(items)} opportunita con scadenza nei prossimi 30 giorni:\n\n{lines}\n\nAccedi per vedere i dettagli: https://app.tispetta.eu\n",
+        delivered = _deliver_scheduled_email(
+            db,
+            user_id=user_id,
+            recipient=email,
+            event_type='deadline_reminder',
+            dedupe_key=f'deadline-reminder:{user_id}:{now.date().isoformat()}',
+            subject='Scadenze in arrivo - Tispetta',
+            body=(
+                f"Ciao,\n\nHai {len(items)} opportunita con scadenza nei prossimi 30 giorni:\n\n"
+                f"{lines}\n\nAccedi per vedere i dettagli: https://app.tispetta.eu\n"
+            ),
         )
-        dispatched += 1
-        logger.info('Deadline reminder sent to %s (%d items)', email, len(items))
+        if delivered:
+            dispatched += 1
+            logger.info('Deadline reminder sent to %s (%d items)', email, len(items))
     return dispatched
 
 
 def run_weekly_digest(db: Session) -> int:
-    """Send weekly top-matches digest to users with weekly_profile_nudges enabled.
+    """Send one deduped weekly digest per user and ISO week."""
 
-    Returns the number of emails dispatched.
-    """
     user_rows = db.execute(
         select(NotificationPreference.user_id, User.email)
         .join(User, User.id == NotificationPreference.user_id)
@@ -66,6 +80,7 @@ def run_weekly_digest(db: Session) -> int:
         )
     ).all()
     dispatched = 0
+    year, week, _ = datetime.now(UTC).isocalendar()
     for user_id, email in user_rows:
         match_rows = db.execute(
             select(Match, Opportunity)
@@ -81,16 +96,83 @@ def run_weekly_digest(db: Session) -> int:
             continue
         profile = db.execute(select(Profile).where(Profile.user_id == user_id)).scalar_one_or_none()
         score = int(profile.profile_completeness_score) if profile else 0
-        lines = '\n'.join(f"- {opp.title} ({m.match_status})" for m, opp in match_rows)
+        lines = '\n'.join(f"- {opp.title} ({match.match_status})" for match, opp in match_rows)
         nudge = (
             "\nIl tuo profilo non e ancora completo. Aggiungi piu informazioni per sbloccare match:\nhttps://app.tispetta.eu/onboarding\n"
-            if score < 60 else ""
+            if score < 60
+            else ''
         )
-        send_transactional_email(
-            email,
-            'Le tue opportunita della settimana - Tispetta',
-            f"Ciao,\n\nEcco le tue opportunita piu rilevanti (profilo al {score}%):\n\n{lines}\n{nudge}\nAccedi per i dettagli: https://app.tispetta.eu\n",
+        delivered = _deliver_scheduled_email(
+            db,
+            user_id=user_id,
+            recipient=email,
+            event_type='weekly_digest',
+            dedupe_key=f'weekly-digest:{user_id}:{year}-W{week:02d}',
+            subject='Le tue opportunita della settimana - Tispetta',
+            body=(
+                f"Ciao,\n\nEcco le tue opportunita piu rilevanti (profilo al {score}%):\n\n"
+                f"{lines}\n{nudge}\nAccedi per i dettagli: https://app.tispetta.eu\n"
+            ),
         )
-        dispatched += 1
-        logger.info('Weekly digest sent to user %s', user_id)
+        if delivered:
+            dispatched += 1
+            logger.info('Weekly digest sent to user %s', user_id)
     return dispatched
+
+
+def _deliver_scheduled_email(
+    db: Session,
+    *,
+    user_id: str,
+    recipient: str,
+    event_type: str,
+    dedupe_key: str,
+    subject: str,
+    body: str,
+) -> bool:
+    event = db.execute(select(NotificationEvent).where(NotificationEvent.dedupe_key == dedupe_key)).scalar_one_or_none()
+    if event is None:
+        event = NotificationEvent(
+            user_id=user_id,
+            event_type=event_type,
+            opportunity_id=None,
+            dedupe_key=dedupe_key,
+            payload={'email': recipient, 'subject': subject, 'body': body},
+        )
+        db.add(event)
+        db.flush()
+
+    notification = db.execute(
+        select(Notification).where(Notification.notification_event_id == event.id)
+    ).scalar_one_or_none()
+    if notification is not None and notification.status in {
+        NotificationStatus.SENT.value,
+        NotificationStatus.PENDING.value,
+    }:
+        logger.info('Skipping duplicate scheduled notification %s for %s', dedupe_key, recipient)
+        return False
+
+    if notification is None:
+        notification = Notification(
+            notification_event_id=event.id,
+            recipient=recipient,
+            subject=subject,
+            body=body,
+            status=NotificationStatus.PENDING.value,
+        )
+        db.add(notification)
+    else:
+        notification.recipient = recipient
+        notification.subject = subject
+        notification.body = body
+        notification.status = NotificationStatus.PENDING.value
+        notification.sent_at = None
+        notification.error_message = None
+
+    delivered = send_transactional_email(recipient, subject, body)
+    notification.status = NotificationStatus.SENT.value if delivered else NotificationStatus.FAILED.value
+    notification.sent_at = datetime.now(UTC) if delivered else None
+    if not delivered:
+        notification.error_message = 'Delivery failed'
+    db.commit()
+    return delivered

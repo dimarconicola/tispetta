@@ -33,10 +33,10 @@ export default async function SavedPage() {
   const grouped = STATUS_ORDER.reduce<Record<string, OpportunityCardType[]>>((acc, status) => {
     acc[status] = sortByDeadline(items.filter((item) => item.match_status === status));
     return acc;
-  }, {});
+  }, {} as Record<string, OpportunityCardType[]>);
   const unmatched = items.filter((item) => !item.match_status);
 
-  const confirmedCount = grouped['confirmed'].length;
+  const confirmedCount = (grouped.confirmed ?? []).length;
   const hasItems = items.length > 0;
 
   return (
@@ -66,22 +66,25 @@ export default async function SavedPage() {
         <div className="banner">Nessuna opportunita salvata per ora. Usa il catalogo per trovarne di rilevanti.</div>
       ) : (
         <>
-          {STATUS_ORDER.filter((status) => grouped[status].length > 0).map((status) => (
-            <section className="section" key={status}>
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">{STATUS_LABELS[status].eyebrow}</p>
-                  <h2 className="section-title">{STATUS_LABELS[status].title}</h2>
+          {STATUS_ORDER.filter((status) => (grouped[status] ?? []).length > 0).map((status) => {
+            const statusMeta = STATUS_LABELS[status] ?? { eyebrow: status, title: status };
+            return (
+              <section className="section" key={status}>
+                <div className="section-header">
+                  <div>
+                    <p className="eyebrow">{statusMeta.eyebrow}</p>
+                    <h2 className="section-title">{statusMeta.title}</h2>
+                  </div>
+                  <span className="subtle" style={{ fontSize: '0.9rem' }}>{(grouped[status] ?? []).length}</span>
                 </div>
-                <span className="subtle" style={{ fontSize: '0.9rem' }}>{grouped[status].length}</span>
-              </div>
-              <div className="grid cards-3">
-                {grouped[status].map((opportunity) => (
-                  <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-                ))}
-              </div>
-            </section>
-          ))}
+                <div className="grid cards-3">
+                  {(grouped[status] ?? []).map((opportunity) => (
+                    <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
           {unmatched.length > 0 ? (
             <section className="section">
               <div className="section-header">

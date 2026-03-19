@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 
 import type { Profile, ProfileQuestion } from '@/lib/types';
@@ -27,7 +26,6 @@ const MODULE_COPY: Record<string, { eyebrow: string; title: string; body: string
 };
 
 export function ProfileForm({ profile, questions }: { profile: Profile | null; questions: ProfileQuestion[] }) {
-  const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [gatePassed, setGatePassed] = useState(Boolean(profile?.user_type));
@@ -68,9 +66,6 @@ export function ProfileForm({ profile, questions }: { profile: Profile | null; q
             body: JSON.stringify(normalized),
           });
           setMessage(response.ok ? 'Profilo aggiornato e matching ricalcolato.' : 'Aggiornamento non riuscito.');
-          if (response.ok) {
-            router.push('/');
-          }
         });
       })}
     >
@@ -78,7 +73,7 @@ export function ProfileForm({ profile, questions }: { profile: Profile | null; q
         <div className="stack">
           <div className="panel stack">
             <p className="eyebrow">Come vuoi usare Tispetta?</p>
-            <h2 style={{ fontSize: '2rem' }}>Stai cercando qualcosa per te o per un'attivita?</h2>
+            <h2 style={{ fontSize: '2rem' }}>Stai cercando qualcosa per te o per un&apos;attivita?</h2>
             <p className="subtle">La risposta cambia le domande che ti facciamo: poche e mirate.</p>
           </div>
           <div className="grid cards-2">
