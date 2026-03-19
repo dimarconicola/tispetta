@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.matching.rules import compute_match
 from app.models import Match, MatchEvaluation, Opportunity, OpportunityRule, OpportunityVersion, Profile, RecordStatus
+from app.services.notifications import emit_match_transition_events
 
 
 def shortlist_candidates(profile: Profile, opportunities: list[Opportunity]) -> list[Opportunity]:
@@ -50,7 +51,6 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
     ).unique().scalars().all()
     shortlisted = shortlist_candidates(profile, opportunities)
     results: list[Match] = []
-
     for opportunity in shortlisted:
         version = opportunity.current_version
         if version is None:
@@ -86,6 +86,7 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
         match = db.execute(
             select(Match).where(Match.user_id == profile.user_id, Match.opportunity_id == opportunity.id)
         ).scalar_one_or_none()
+        previous_status = match.match_status if match is not None else None
         if match is None:
             match = Match(
                 user_id=profile.user_id,
@@ -124,6 +125,15 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
         )
         db.add(evaluation)
         results.append(match)
+        emit_match_transition_events(
+            db,
+            profile=profile,
+            opportunity=opportunity,
+            previous_status=previous_status,
+            current_status=computed.status,
+            summary=summary,
+            missing_fields=computed.missing_fields,
+        )
     db.commit()
     return results
 

@@ -70,6 +70,10 @@ def test_magic_link_exchange_creates_authenticated_session() -> None:
     assert me.status_code == 200
     assert me.json()['email'] == 'demo@example.com'
 
+    history = client.get('/v1/notifications/history', headers={'X-Session-Token': session_token})
+    assert history.status_code == 200
+    assert isinstance(history.json(), list)
+
 
 def test_admin_bootstrap_endpoints() -> None:
     request = client.post('/v1/auth/request-magic-link', json={'email': 'admin@example.com'})
@@ -100,6 +104,10 @@ def test_admin_bootstrap_endpoints() -> None:
     integrity_payload = integrity.json()
     assert integrity_payload['head_revision'] == '20260312_0001'
     assert isinstance(integrity_payload['checks'], list)
+
+    notification_history = client.get('/v1/admin/notifications/history', headers=headers)
+    assert notification_history.status_code == 200
+    assert isinstance(notification_history.json(), list)
 
     bootstrap = client.post('/v1/admin/bootstrap/run', headers=headers)
     assert bootstrap.status_code == 200

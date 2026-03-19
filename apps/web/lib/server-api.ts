@@ -7,6 +7,7 @@ import type {
   BootstrapRunResult,
   IngestionRun,
   MeasureFamily,
+  NotificationHistoryItem,
   NotificationPreferences,
   OpportunityCard,
   OpportunityDetail,
@@ -79,6 +80,10 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   return apiFetch<NotificationPreferences>('/v1/notifications/preferences');
 }
 
+export async function getNotificationHistory(): Promise<NotificationHistoryItem[]> {
+  return (await apiFetch<NotificationHistoryItem[]>('/v1/notifications/history')) ?? [];
+}
+
 export async function getAdminSources(): Promise<Source[]> {
   return (await apiFetch<Source[]>('/v1/admin/sources')) ?? [];
 }
@@ -112,6 +117,10 @@ export async function runBootstrapRefresh(): Promise<BootstrapRunResult | null> 
 
 export async function getAdminIngestionRuns(): Promise<IngestionRun[]> {
   return (await apiFetch<IngestionRun[]>('/v1/admin/ingestion-runs')) ?? [];
+}
+
+export async function getAdminNotificationHistory(): Promise<NotificationHistoryItem[]> {
+  return (await apiFetch<NotificationHistoryItem[]>('/v1/admin/notifications/history')) ?? [];
 }
 
 export async function getAdminReviewItems(): Promise<ReviewItem[]> {

@@ -7,12 +7,14 @@ from app.db.session import get_db
 from app.models import IngestionRun, ReviewItem, Source
 from app.schemas.common import ApiMessage
 from app.schemas.corpus import AdminDocumentRead, AdminIntegrityRead, BootstrapRunResult, MeasureFamilyRead, SurveyCoverageSnapshotRead
+from app.schemas.notification import NotificationHistoryItem
 from app.schemas.review import ReviewItemRead, ReviewResolve, RuleTestResult
 from app.schemas.source import IngestionRunRead, SourceCreate, SourceRead
 from app.services.admin import (
     create_source,
     diff_opportunity,
     get_integrity_payload,
+    get_notification_history_payload,
     get_survey_coverage,
     list_document_payloads,
     list_measure_family_payloads,
@@ -155,3 +157,8 @@ def post_run_deadline_reminders(db: Session = Depends(get_db), _=Depends(get_adm
 def post_run_weekly_digest(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> ApiMessage:
     count = run_weekly_digest(db)
     return ApiMessage(message=f'Weekly digest emails dispatched: {count}')
+
+
+@router.get('/notifications/history', response_model=list[NotificationHistoryItem])
+def get_notification_history(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> list[NotificationHistoryItem]:
+    return [NotificationHistoryItem.model_validate(item) for item in get_notification_history_payload(db)]

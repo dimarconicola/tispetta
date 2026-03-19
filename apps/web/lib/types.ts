@@ -89,6 +89,18 @@ export type NotificationPreferences = {
   source_change_digests: boolean;
 };
 
+export type NotificationHistoryItem = {
+  id: string;
+  event_type: string;
+  opportunity_id: string | null;
+  status: string;
+  recipient: string;
+  subject: string;
+  created_at: string;
+  sent_at: string | null;
+  error_message: string | null;
+};
+
 export type Source = {
   id: string;
   source_name: string;

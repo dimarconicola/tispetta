@@ -24,6 +24,7 @@ from app.models import (
 )
 from app.services.corpus import ensure_bootstrap_corpus, get_survey_coverage_payload, list_family_documents, list_measure_families
 from app.services.family_opportunities import sync_measure_family_opportunities
+from app.services.notifications import emit_opportunity_change_events, list_notification_history
 
 
 def create_source(db: Session, payload) -> Source:
@@ -70,6 +71,7 @@ def publish_opportunity(db: Session, opportunity_id: str, actor_user_id: str) ->
     db.add(AuditEvent(actor_user_id=actor_user_id, action='opportunity.publish', entity_type='opportunity', entity_id=opportunity.id))
     db.commit()
     db.refresh(opportunity)
+    emit_opportunity_change_events(db, opportunity)
     return opportunity
 
 
@@ -231,6 +233,10 @@ def get_integrity_payload(db: Session) -> dict:
         'schema_current': current == head,
         'checks': checks,
     }
+
+
+def get_notification_history_payload(db: Session, *, limit: int = 100) -> list[dict]:
+    return list_notification_history(db, limit=limit)
 
 
 def _duplicate_check(db: Session, *, name: str, stmt) -> dict:

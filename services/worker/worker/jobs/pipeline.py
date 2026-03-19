@@ -13,15 +13,11 @@ from app.models import (
     IngestionStage,
     MeasureFamily,
     NormalizedDocument,
-    Notification,
     NotificationEvent,
-    NotificationPreference,
-    NotificationStatus,
     Profile,
     SourceEndpoint,
 )
-from app.services.auth import send_transactional_email
-from app.services.notifications import run_deadline_reminders, run_weekly_digest
+from app.services.notifications import deliver_notification_event, run_deadline_reminders, run_weekly_digest
 from worker.services.bootstrap import (
     classify_document_role as classify_document_role_impl,
     extract_measure_requirements as extract_measure_requirements_impl,
@@ -89,32 +85,8 @@ def enqueue_notifications(event_id: str) -> None:
         event = db.execute(select(NotificationEvent).where(NotificationEvent.id == event_id)).scalar_one_or_none()
         if event is None:
             return
-        pref = db.execute(
-            select(NotificationPreference).where(NotificationPreference.user_id == event.user_id)
-        ).scalar_one_or_none()
-        if pref is not None and not pref.email_enabled:
-            logger.info('Email notifications disabled for user %s, skipping event %s', event.user_id, event_id)
-            return
-        notification = Notification(
-            notification_event_id=event.id,
-            recipient=event.payload.get('email', 'unknown@example.com') if event.payload else 'unknown@example.com',
-            subject=event.payload.get('subject', 'Aggiornamento opportunita') if event.payload else 'Aggiornamento opportunita',
-            body=event.payload.get('body', '') if event.payload else '',
-            status=NotificationStatus.PENDING.value,
-        )
-        db.add(notification)
-        db.commit()
-        db.refresh(notification)
-        try:
-            delivered = send_transactional_email(notification.recipient, notification.subject, notification.body)
-            notification.status = NotificationStatus.SENT.value if delivered else NotificationStatus.FAILED.value
-            if delivered:
-                notification.sent_at = datetime.now(UTC)
-        except Exception:
-            logger.exception('Failed to dispatch notification for event %s', event_id)
-            notification.status = NotificationStatus.FAILED.value
-        db.commit()
-        logger.info('Notification %s for event %s', notification.status, event_id)
+        delivered = deliver_notification_event(db, event.id)
+        logger.info('Notification dispatch for event %s delivered=%s', event_id, delivered)
 
 
 @dramatiq.actor
