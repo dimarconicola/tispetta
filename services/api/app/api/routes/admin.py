@@ -6,23 +6,36 @@ from app.api.deps import get_admin_user
 from app.db.session import get_db
 from app.models import IngestionRun, ReviewItem, Source
 from app.schemas.common import ApiMessage
-from app.schemas.corpus import AdminDocumentRead, BootstrapRunResult, MeasureFamilyRead, SurveyCoverageSnapshotRead
+from app.schemas.corpus import (
+    AdminDocumentRead,
+    AdminDocumentReviewPayload,
+    AdminIntegrityRead,
+    BootstrapRunResult,
+    MeasureFamilyRead,
+    SurveyCoverageSnapshotRead,
+)
+from app.schemas.notification import NotificationHistoryItem
 from app.schemas.review import ReviewItemRead, ReviewResolve, RuleTestResult
-from app.schemas.source import IngestionRunRead, SourceCreate, SourceRead
+from app.schemas.source import IngestionRunDetailRead, IngestionRunRead, SourceCreate, SourceRead
 from app.services.admin import (
     create_source,
     diff_opportunity,
+    get_ingestion_run_detail,
+    get_integrity_payload,
+    get_notification_history_payload,
     get_survey_coverage,
     list_document_payloads,
     list_measure_family_payloads,
     list_rules,
     publish_opportunity,
+    review_document,
     resolve_review_item,
     run_bootstrap,
     test_rule,
     trigger_ingestion_run,
     unpublish_opportunity,
 )
+from app.services.notifications import run_deadline_reminders, run_weekly_digest
 
 router = APIRouter(prefix='/v1/admin', tags=['admin'])
 
@@ -44,6 +57,7 @@ def get_documents(
     role: str | None = None,
     lifecycle_status: str | None = None,
     family_slug: str | None = None,
+    document_id: str | None = None,
     db: Session = Depends(get_db),
     _=Depends(get_admin_user),
 ) -> list[AdminDocumentRead]:
@@ -53,13 +67,32 @@ def get_documents(
         role=role,
         lifecycle_status=lifecycle_status,
         family_slug=family_slug,
+        document_id=document_id,
     )
     return [AdminDocumentRead.model_validate(item) for item in items]
+
+
+@router.post('/documents/{document_id}/review', response_model=AdminDocumentRead)
+def post_document_review(
+    document_id: str,
+    payload: AdminDocumentReviewPayload,
+    db: Session = Depends(get_db),
+    user=Depends(get_admin_user),
+) -> AdminDocumentRead:
+    item = review_document(db, document_id, payload, user.id)
+    if item is None:
+        raise HTTPException(status_code=404, detail='Document or family not found')
+    return AdminDocumentRead.model_validate(item)
 
 
 @router.get('/survey/coverage', response_model=SurveyCoverageSnapshotRead)
 def get_admin_survey_coverage(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> SurveyCoverageSnapshotRead:
     return SurveyCoverageSnapshotRead.model_validate(get_survey_coverage(db))
+
+
+@router.get('/integrity', response_model=AdminIntegrityRead)
+def get_admin_integrity(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> AdminIntegrityRead:
+    return AdminIntegrityRead.model_validate(get_integrity_payload(db))
 
 
 @router.post('/bootstrap/run', response_model=BootstrapRunResult)
@@ -85,6 +118,14 @@ def post_source_run(source_id: str, db: Session = Depends(get_db), _=Depends(get
 def get_ingestion_runs(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> list[IngestionRunRead]:
     items = db.execute(select(IngestionRun).order_by(IngestionRun.started_at.desc())).scalars().all()
     return [IngestionRunRead.model_validate(item) for item in items]
+
+
+@router.get('/ingestion-runs/{run_id}', response_model=IngestionRunDetailRead)
+def get_ingestion_run(run_id: str, db: Session = Depends(get_db), _=Depends(get_admin_user)) -> IngestionRunDetailRead:
+    item = get_ingestion_run_detail(db, run_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail='Ingestion run not found')
+    return IngestionRunDetailRead.model_validate(item)
 
 
 @router.get('/review-items', response_model=list[ReviewItemRead])
@@ -136,3 +177,20 @@ def post_rule_test(rule_id: str, db: Session = Depends(get_db), _=Depends(get_ad
 @router.get('/rules')
 def get_rules(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> list[dict]:
     return list_rules(db)
+
+
+@router.post('/notifications/run-reminders', response_model=ApiMessage)
+def post_run_deadline_reminders(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> ApiMessage:
+    count = run_deadline_reminders(db)
+    return ApiMessage(message=f'Deadline reminder emails dispatched: {count}')
+
+
+@router.post('/notifications/run-digest', response_model=ApiMessage)
+def post_run_weekly_digest(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> ApiMessage:
+    count = run_weekly_digest(db)
+    return ApiMessage(message=f'Weekly digest emails dispatched: {count}')
+
+
+@router.get('/notifications/history', response_model=list[NotificationHistoryItem])
+def get_notification_history(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> list[NotificationHistoryItem]:
+    return [NotificationHistoryItem.model_validate(item) for item in get_notification_history_payload(db)]

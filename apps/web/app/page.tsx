@@ -91,10 +91,10 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
       <section className="marketing-hero">
         <div className="marketing-hero-copy stack">
           <p className="eyebrow">Mercato reale, fonti ufficiali, lettura operativa</p>
-          <h1>Gli incentivi italiani, finalmente leggibili come un prodotto.</h1>
+          <h1>Ogni bonus, detrazione e incentivo che ti riguarda — in un posto solo.</h1>
           <p className="lead">
-            Tispetta prende norme, decreti, circolari e pagine operative sparse e le ricompone in un sistema unico:
-            opportunita strutturate, criteri espliciti, campi mancanti dichiarati e priorita concrete.
+            Tispetta legge norme, decreti, circolari e pagine operative INPS e Agenzia delle Entrate e le trasforma in
+            opportunita strutturate, criteri espliciti e match spiegabili. Per privati, famiglie, freelance e PMI.
           </p>
           <div className="actions">
             <a href={appStartUrl} className="button">
@@ -194,11 +194,11 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
       <section className="split marketing-split" id="copertura">
         <div className="panel stack marketing-editorial">
           <p className="eyebrow">Copertura</p>
-          <h2>Startup, freelance e PMI nello stesso impianto, senza schiacciare tutto in un questionario generico.</h2>
+          <h2>Privati, freelance e PMI nello stesso impianto, senza schiacciare tutto in un questionario generico.</h2>
           <p className="lead">
-            Le misure italiane hanno assi diversi: stato innovativo, fase societaria, intenti di investimento, assunzioni,
-            export, transizione energetica. Il profilo viene costruito in moduli: prima i fatti stabili, poi gli intenti,
-            poi i dati sensibili o specifici solo quando servono davvero.
+            Le misure italiane coprono assi diversi: ISEE e composizione familiare per i benefici personali, stato
+            innovativo e intenti di investimento per le imprese. Il profilo viene costruito in moduli: poche domande
+            stabili per il tuo tipo, poi i dati specifici solo quando cambiano davvero i risultati.
           </p>
           <div className="marketing-fact-strip">
             <span>stato societario</span>
@@ -208,9 +208,17 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
             <span>assunzioni</span>
             <span>transizione 5.0</span>
             <span>export</span>
+            <span>ISEE</span>
+            <span>figli a carico</span>
+            <span>regime forfettario</span>
           </div>
         </div>
         <div className="grid marketing-audience-grid" id="per-chi">
+          <article className="card stack marketing-audience-card">
+            <p className="eyebrow">Dipendente e Famiglia</p>
+            <h3>Per chi ha diritti ma non li conosce</h3>
+            <p className="subtle">Assegno Unico, bonus nido, ANF, detrazioni figli, NASpI, detrazione mutuo, bonus prima casa. Benefici INPS e fiscali che milioni di italiani lasciano sul tavolo.</p>
+          </article>
           <article className="card stack marketing-audience-card">
             <p className="eyebrow">Founder</p>
             <h3>Per chi apre o struttura una startup</h3>
@@ -219,7 +227,7 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
           <article className="card stack marketing-audience-card">
             <p className="eyebrow">Freelance</p>
             <h3>Per chi lavora in proprio</h3>
-            <p className="subtle">Partita IVA, autoimpiego, agevolazioni leggere, bonus mirati e misure che non richiedono una PMI strutturata.</p>
+            <p className="subtle">Partita IVA, regime forfettario, autoimpiego, agevolazioni leggere, bonus mirati e misure che non richiedono una PMI strutturata.</p>
           </article>
           <article className="card stack marketing-audience-card">
             <p className="eyebrow">PMI</p>
@@ -321,12 +329,26 @@ function ProductHomePage({
         </div>
       </section>
 
+      {profile && profile.profile_completeness_score < 70 ? (
+        <div className="banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+          <span>
+            Profilo al {profile.profile_completeness_score.toFixed(0)}% — completa le domande mancanti per sbloccare piu match.
+          </span>
+          <Link href="/onboarding" className="button-secondary" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+            Completa profilo
+          </Link>
+        </div>
+      ) : null}
+
       <section className="section">
         <div className="section-header">
           <div>
             <p className="eyebrow">Top opportunita</p>
             <h2 className="section-title">Confermate per il tuo profilo</h2>
           </div>
+          <Link href="/search?matched_status=confirmed" className="button-secondary">
+            Vedi tutte
+          </Link>
         </div>
         <div className="grid cards-3">
           {(confirmed.length ? confirmed : opportunities.slice(0, 3)).map((opportunity) => (
@@ -341,6 +363,9 @@ function ProductHomePage({
             <p className="eyebrow">Da sbloccare</p>
             <h2 className="section-title">Probabili, ma con qualche dato mancante</h2>
           </div>
+          <Link href="/search?matched_status=likely" className="button-secondary">
+            Vedi tutte
+          </Link>
         </div>
         <div className="grid cards-3">
           {(likely.length ? likely : opportunities.slice(3, 6)).map((opportunity) => (
@@ -355,6 +380,9 @@ function ProductHomePage({
             <p className="eyebrow">Urgenza</p>
             <h2 className="section-title">Scadenze da tenere sotto controllo</h2>
           </div>
+          <Link href="/search?sort=deadline" className="button-secondary">
+            Vedi tutte
+          </Link>
         </div>
         <div className="grid cards-3">
           {expiring.map((opportunity) => (

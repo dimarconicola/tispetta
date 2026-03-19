@@ -1,4 +1,4 @@
-"""Initial placeholder migration.
+"""Initial schema baseline.
 
 Revision ID: 20260312_0001
 Revises:
@@ -8,7 +8,8 @@ Create Date: 2026-03-12
 from collections.abc import Sequence
 
 from alembic import op
-import sqlalchemy as sa
+
+from app.models import Base
 
 
 revision: str = '20260312_0001'
@@ -18,11 +19,8 @@ depends_on: Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    # Schema bootstrap is currently handled by SQLAlchemy metadata create_all during local development.
-    # Keep this placeholder so Alembic is wired and ready for incremental revisions.
-    pass
-
+    Base.metadata.create_all(bind=op.get_bind())
 
 
 def downgrade() -> None:
-    pass
+    Base.metadata.drop_all(bind=op.get_bind())

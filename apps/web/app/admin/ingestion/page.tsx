@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { AdminConsoleNav } from '@/components/admin-console-nav';
@@ -34,7 +35,9 @@ export default async function AdminIngestionPage() {
           <tbody>
             {runs.map((run) => (
               <tr key={run.id}>
-                <td>{run.id.slice(0, 8)}</td>
+                <td>
+                  <Link href={`/admin/ingestion/${run.id}`}>{run.id.slice(0, 8)}</Link>
+                </td>
                 <td>{run.source_endpoint_id.slice(0, 8)}</td>
                 <td>{run.stage}</td>
                 <td>{run.status}</td>

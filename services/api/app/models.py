@@ -236,7 +236,7 @@ class Source(Base):
     __tablename__ = 'sources'
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    source_name: Mapped[str] = mapped_column(String(255))
+    source_name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     source_type: Mapped[str] = mapped_column(String(32), default=SourceType.WEBSITE.value)
     authority_level: Mapped[str] = mapped_column(String(32), default='tier_1')
     crawl_method: Mapped[str] = mapped_column(String(32), default=CrawlMethod.HTML.value)
@@ -255,7 +255,7 @@ class SourceEndpoint(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     source_id: Mapped[str] = mapped_column(ForeignKey('sources.id'), index=True)
     name: Mapped[str] = mapped_column(String(255))
-    url: Mapped[str] = mapped_column(Text)
+    url: Mapped[str] = mapped_column(Text, unique=True)
     document_type: Mapped[str] = mapped_column(String(64), default='opportunity_page')
     status: Mapped[str] = mapped_column(String(32), default='active')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -265,6 +265,7 @@ class SourceEndpoint(Base):
 
 class SourceSnapshot(Base):
     __tablename__ = 'source_snapshots'
+    __table_args__ = (UniqueConstraint('source_endpoint_id', 'checksum', name='uq_snapshot_endpoint_checksum'),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     source_endpoint_id: Mapped[str] = mapped_column(ForeignKey('source_endpoints.id'), index=True)

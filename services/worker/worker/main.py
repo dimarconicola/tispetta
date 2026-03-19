@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.db.session import SessionLocal
 from app.models import MeasureFamily, SourceEndpoint
 from worker.config import settings
-from worker.jobs.pipeline import bootstrap_measure_family, ingest_source_endpoint, recompute_survey_weights
+from worker.jobs.pipeline import bootstrap_measure_family, ingest_source_endpoint, recompute_survey_weights, send_deadline_reminders, send_weekly_digest
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -51,6 +51,8 @@ def run() -> None:
     endpoint_last_run: dict[str, datetime] = {}
     family_last_run: dict[str, datetime] = {}
     survey_last_run: datetime | None = None
+    deadline_reminder_last_run: datetime | None = None
+    digest_last_run: datetime | None = None
     while True:
         now = datetime.now(UTC)
         with SessionLocal() as db:
@@ -70,6 +72,16 @@ def run() -> None:
             survey_last_run = now
             dispatched = True
             logger.info('Recomputed survey coverage snapshot')
+        if _is_due(deadline_reminder_last_run, now, settings.worker_deadline_reminder_interval_seconds):
+            send_deadline_reminders.fn()
+            deadline_reminder_last_run = now
+            dispatched = True
+            logger.info('Dispatched deadline reminder emails')
+        if _is_due(digest_last_run, now, settings.worker_weekly_digest_interval_seconds):
+            send_weekly_digest.fn()
+            digest_last_run = now
+            dispatched = True
+            logger.info('Dispatched weekly digest emails')
 
         if not dispatched:
             logger.debug('No recurring worker tasks due in this cycle')

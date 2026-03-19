@@ -3,9 +3,12 @@ import { cookies } from 'next/headers';
 import { INTERNAL_API_URL, SESSION_COOKIE_NAME } from '@/lib/env';
 import type {
   AdminDocument,
+  AdminIntegritySnapshot,
   BootstrapRunResult,
   IngestionRun,
+  IngestionRunDetail,
   MeasureFamily,
+  NotificationHistoryItem,
   NotificationPreferences,
   OpportunityCard,
   OpportunityDetail,
@@ -78,6 +81,10 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   return apiFetch<NotificationPreferences>('/v1/notifications/preferences');
 }
 
+export async function getNotificationHistory(): Promise<NotificationHistoryItem[]> {
+  return (await apiFetch<NotificationHistoryItem[]>('/v1/notifications/history')) ?? [];
+}
+
 export async function getAdminSources(): Promise<Source[]> {
   return (await apiFetch<Source[]>('/v1/admin/sources')) ?? [];
 }
@@ -97,8 +104,16 @@ export async function getAdminDocuments(params?: Record<string, string | undefin
   return (await apiFetch<AdminDocument[]>(path)) ?? [];
 }
 
+export async function getAdminIngestionRun(id: string): Promise<IngestionRunDetail | null> {
+  return apiFetch<IngestionRunDetail>(`/v1/admin/ingestion-runs/${id}`);
+}
+
 export async function getAdminSurveyCoverage(): Promise<SurveyCoverageSnapshot | null> {
   return apiFetch<SurveyCoverageSnapshot>('/v1/admin/survey/coverage');
+}
+
+export async function getAdminIntegrity(): Promise<AdminIntegritySnapshot | null> {
+  return apiFetch<AdminIntegritySnapshot>('/v1/admin/integrity');
 }
 
 export async function runBootstrapRefresh(): Promise<BootstrapRunResult | null> {
@@ -107,6 +122,10 @@ export async function runBootstrapRefresh(): Promise<BootstrapRunResult | null> 
 
 export async function getAdminIngestionRuns(): Promise<IngestionRun[]> {
   return (await apiFetch<IngestionRun[]>('/v1/admin/ingestion-runs')) ?? [];
+}
+
+export async function getAdminNotificationHistory(): Promise<NotificationHistoryItem[]> {
+  return (await apiFetch<NotificationHistoryItem[]>('/v1/admin/notifications/history')) ?? [];
 }
 
 export async function getAdminReviewItems(): Promise<ReviewItem[]> {

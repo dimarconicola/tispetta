@@ -70,6 +70,10 @@ def test_magic_link_exchange_creates_authenticated_session() -> None:
     assert me.status_code == 200
     assert me.json()['email'] == 'demo@example.com'
 
+    history = client.get('/v1/notifications/history', headers={'X-Session-Token': session_token})
+    assert history.status_code == 200
+    assert isinstance(history.json(), list)
+
 
 def test_admin_bootstrap_endpoints() -> None:
     request = client.post('/v1/auth/request-magic-link', json={'email': 'admin@example.com'})
@@ -85,15 +89,46 @@ def test_admin_bootstrap_endpoints() -> None:
     assert families.status_code == 200
     assert len(families.json()) >= 18
 
+    sources = client.get('/v1/admin/sources', headers=headers)
+    assert sources.status_code == 200
+    source_payload = sources.json()
+    assert len(source_payload) >= 1
+
+    trigger_run = client.post(f"/v1/admin/sources/{source_payload[0]['id']}/run", headers=headers)
+    assert trigger_run.status_code == 200
+    run_payload = trigger_run.json()
+
+    run_detail = client.get(f"/v1/admin/ingestion-runs/{run_payload['id']}", headers=headers)
+    assert run_detail.status_code == 200
+    assert run_detail.json()['endpoint_url']
+
     documents = client.get('/v1/admin/documents', headers=headers)
     assert documents.status_code == 200
     assert len(documents.json()) >= 36
+    first_document = documents.json()[0]
+
+    review_document = client.post(
+        f"/v1/admin/documents/{first_document['id']}/review",
+        headers=headers,
+        json={'document_role': first_document['document_role'], 'lifecycle_status': first_document['lifecycle_status']},
+    )
+    assert review_document.status_code == 200
 
     coverage = client.get('/v1/admin/survey/coverage', headers=headers)
     assert coverage.status_code == 200
     payload = coverage.json()
     assert payload['total_measure_families'] >= 18
     assert len(payload['rows']) >= 8
+
+    integrity = client.get('/v1/admin/integrity', headers=headers)
+    assert integrity.status_code == 200
+    integrity_payload = integrity.json()
+    assert integrity_payload['head_revision'] == '20260312_0001'
+    assert isinstance(integrity_payload['checks'], list)
+
+    notification_history = client.get('/v1/admin/notifications/history', headers=headers)
+    assert notification_history.status_code == 200
+    assert isinstance(notification_history.json(), list)
 
     bootstrap = client.post('/v1/admin/bootstrap/run', headers=headers)
     assert bootstrap.status_code == 200

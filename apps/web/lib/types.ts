@@ -89,6 +89,18 @@ export type NotificationPreferences = {
   source_change_digests: boolean;
 };
 
+export type NotificationHistoryItem = {
+  id: string;
+  event_type: string;
+  opportunity_id: string | null;
+  status: string;
+  recipient: string;
+  subject: string;
+  created_at: string;
+  sent_at: string | null;
+  error_message: string | null;
+};
+
 export type Source = {
   id: string;
   source_name: string;
@@ -110,6 +122,14 @@ export type IngestionRun = {
   started_at: string;
   finished_at?: string | null;
   diagnostics?: Record<string, unknown> | null;
+};
+
+export type IngestionRunDetail = IngestionRun & {
+  endpoint_name: string;
+  endpoint_url: string;
+  source_name: string;
+  review_item_id: string | null;
+  normalized_document_id: string | null;
 };
 
 export type ReviewItem = {
@@ -182,6 +202,7 @@ export type AdminDocument = {
   is_primary_legal_basis: boolean;
   is_primary_operational_doc: boolean;
   created_at: string;
+  metadata_json?: Record<string, unknown> | null;
 };
 
 export type SurveyCoverageRow = {
@@ -216,4 +237,18 @@ export type BootstrapRunResult = {
   facts_seeded: number;
   coverage_rows: number;
   review_message: string;
+};
+
+export type IntegrityCheck = {
+  name: string;
+  duplicate_group_count: number;
+  duplicate_row_count: number;
+  sample_values: string[];
+};
+
+export type AdminIntegritySnapshot = {
+  current_revision: string | null;
+  head_revision: string;
+  schema_current: boolean;
+  checks: IntegrityCheck[];
 };

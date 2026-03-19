@@ -24,8 +24,8 @@ export default async function StartPage() {
     <section className="split entry-shell">
       <MagicLinkForm
         eyebrow="Ingresso guidato"
-        title="Entra nel motore da un percorso piu corto"
-        lead="Lascia la tua email e ti portiamo direttamente nel profilo guidato: prima i fatti stabili che contano davvero, poi eventuali moduli specifici solo se servono a una misura reale."
+        title="Entra nel motore da un percorso più corto"
+        lead="Lascia la tua email e ti portiamo direttamente nel profilo guidato: prima scegli se sei una persona fisica o un'attivita, poi le domande davvero rilevanti per te — poche, mirate, senza questionari infiniti."
         submitLabel="Invia link e continua"
         redirectTo="/onboarding?entry=apex"
       />
@@ -34,25 +34,25 @@ export default async function StartPage() {
           <p className="eyebrow">Cosa succede dopo</p>
           <h2 style={{ fontSize: '2.2rem' }}>Non entri in un questionario infinito.</h2>
           <div className="stack subtle">
-            <p>Il primo blocco resta entro 8 domande core: fase attivita, forma giuridica, regione, dimensione, settore e stato innovativo.</p>
+            <p>Prima ti chiediamo se stai cercando benefici personali o misure per la tua attivita. Le domande che seguono cambiano in base alla risposta.</p>
             <p>Dopo il primo salvataggio, il motore ricalcola subito e ti mostra match, status e campi mancanti con evidenze esplicite.</p>
           </div>
         </div>
         <div className="grid cards-3 entry-track">
           <article className="card stack entry-track-card">
-            <span className="marketing-step-index">Core entity</span>
-            <h3>Fatti stabili</h3>
-            <p className="subtle">Profilo tipo, fase attivita, legal form, regione, dimensione, settore.</p>
+            <span className="marketing-step-index">Chi sei</span>
+            <h3>Persona o impresa?</h3>
+            <p className="subtle">La prima scelta separa i benefici personali (INPS, detrazioni, bonus) dagli incentivi per attivita (crediti, voucher, misure imprenditoriali).</p>
           </article>
           <article className="card stack entry-track-card">
-            <span className="marketing-step-index">Strategic intent</span>
-            <h3>Intenti che spostano la classifica</h3>
-            <p className="subtle">Assunzioni, export, investimenti digitali o energetici solo quando incidono davvero.</p>
+            <span className="marketing-step-index">Fatti stabili</span>
+            <h3>Le domande che contano</h3>
+            <p className="subtle">Per le persone: ISEE, composizione familiare, occupazione. Per le imprese: forma giuridica, regione, settore, dimensione.</p>
           </article>
           <article className="card stack entry-track-card">
-            <span className="marketing-step-index">Conditional accuracy</span>
-            <h3>Domande sensibili solo se necessarie</h3>
-            <p className="subtle">Dati su target hire o condizioni personali compaiono solo per famiglie di misure che li richiedono.</p>
+            <span className="marketing-step-index">Profondita condizionale</span>
+            <h3>Solo se serve davvero</h3>
+            <p className="subtle">Dati su assunzioni, export, figli under 3 o condizioni specifiche compaiono solo per le famiglie di misure che li richiedono.</p>
           </article>
         </div>
         <div className="panel stack">

@@ -7,7 +7,17 @@ import dramatiq
 from sqlalchemy import select
 
 from app.db.session import SessionLocal
-from app.models import IngestionRun, IngestionStage, MeasureFamily, NormalizedDocument, Notification, NotificationEvent, NotificationStatus, SourceEndpoint
+from app.matching.service import evaluate_profile_against_catalog
+from app.models import (
+    IngestionRun,
+    IngestionStage,
+    MeasureFamily,
+    NormalizedDocument,
+    NotificationEvent,
+    Profile,
+    SourceEndpoint,
+)
+from app.services.notifications import deliver_notification_event, run_deadline_reminders, run_weekly_digest
 from worker.services.bootstrap import (
     classify_document_role as classify_document_role_impl,
     extract_measure_requirements as extract_measure_requirements_impl,
@@ -39,7 +49,7 @@ def ingest_source_endpoint(source_endpoint_id: str) -> None:
             run.stage = IngestionStage.EXTRACT.value
             db.commit()
             candidate = extract_candidate(endpoint, document)
-            route_candidate_for_review(db, endpoint, candidate)
+            review_item = route_candidate_for_review(db, endpoint, document, candidate)
             run.stage = IngestionStage.COMPLETE.value
             run.status = 'success'
             run.finished_at = datetime.now(UTC)
@@ -47,6 +57,10 @@ def ingest_source_endpoint(source_endpoint_id: str) -> None:
                 'document_type': document.document_type,
                 'confidence': candidate.confidence,
                 'storage_path': snapshot.storage_path,
+                'snapshot_id': snapshot.id,
+                'normalized_document_id': document.id,
+                'review_item_id': review_item.id if review_item is not None else None,
+                'candidate_title': candidate.title,
             }
             db.commit()
         except Exception as exc:  # pragma: no cover - defensive worker logging
@@ -60,7 +74,13 @@ def ingest_source_endpoint(source_endpoint_id: str) -> None:
 
 @dramatiq.actor
 def recompute_profile_matches(user_id: str) -> None:
-    logger.info('Requested profile recomputation for user %s', user_id)
+    with SessionLocal() as db:
+        profile = db.execute(select(Profile).where(Profile.user_id == user_id)).scalar_one_or_none()
+        if profile is None:
+            logger.warning('Profile not found for user %s', user_id)
+            return
+        results = evaluate_profile_against_catalog(db, profile)
+        logger.info('Recomputed %s matches for user %s', len(results), user_id)
 
 
 @dramatiq.actor
@@ -69,16 +89,24 @@ def enqueue_notifications(event_id: str) -> None:
         event = db.execute(select(NotificationEvent).where(NotificationEvent.id == event_id)).scalar_one_or_none()
         if event is None:
             return
-        notification = Notification(
-            notification_event_id=event.id,
-            recipient=event.payload.get('email', 'unknown@example.com') if event.payload else 'unknown@example.com',
-            subject=event.payload.get('subject', 'Aggiornamento opportunita') if event.payload else 'Aggiornamento opportunita',
-            body=event.payload.get('body', '') if event.payload else '',
-            status=NotificationStatus.PENDING.value,
-        )
-        db.add(notification)
-        db.commit()
-        logger.info('Notification enqueued for event %s', event_id)
+        delivered = deliver_notification_event(db, event.id)
+        logger.info('Notification dispatch for event %s delivered=%s', event_id, delivered)
+
+
+@dramatiq.actor
+def send_deadline_reminders(_: str = 'run') -> None:
+    """Send deadline alerts for confirmed/likely matches expiring within 30 days."""
+    with SessionLocal() as db:
+        dispatched = run_deadline_reminders(db)
+        logger.info('Deadline reminder job complete: %d emails sent', dispatched)
+
+
+@dramatiq.actor
+def send_weekly_digest(_: str = 'run') -> None:
+    """Send weekly top-matches digest to users with weekly_profile_nudges enabled."""
+    with SessionLocal() as db:
+        dispatched = run_weekly_digest(db)
+        logger.info('Weekly digest job complete: %d emails sent', dispatched)
 
 
 @dramatiq.actor

@@ -7,8 +7,25 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const query = typeof params.query === 'string' ? params.query : '';
   const category = typeof params.category === 'string' ? params.category : '';
+  const matchedStatus = typeof params.matched_status === 'string' ? params.matched_status : '';
+  const sort = typeof params.sort === 'string' ? params.sort : '';
 
-  const opportunities = query ? await searchOpportunities(query).catch(() => []) : await getOpportunities({ category }).catch(() => []);
+  let opportunities = query
+    ? await searchOpportunities(query).catch(() => [])
+    : await getOpportunities({ category, matched_status: matchedStatus || undefined }).catch(() => []);
+
+  if (sort === 'deadline') {
+    opportunities = [...opportunities]
+      .filter((o) => o.deadline_date)
+      .sort((a, b) => new Date(a.deadline_date ?? '').getTime() - new Date(b.deadline_date ?? '').getTime());
+  }
+
+  const statusLabels: Record<string, string> = {
+    confirmed: 'Confermate',
+    likely: 'Probabili',
+    unclear: 'Da chiarire',
+    not_eligible: 'Non idonee',
+  };
 
   return (
     <div className="stack">
@@ -43,7 +60,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
       <div className="section-header">
         <div>
-          <p className="eyebrow">Risultati</p>
+          <p className="eyebrow">Risultati{matchedStatus ? ` — ${statusLabels[matchedStatus] ?? matchedStatus}` : sort === 'deadline' ? ' — Per scadenza' : ''}</p>
           <h2 className="section-title">{opportunities.length} opportunita trovate</h2>
         </div>
         <Link href="/" className="button-secondary">

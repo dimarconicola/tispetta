@@ -50,6 +50,7 @@ class OpportunitySeed:
     long_description: str = ''
     official_link: str = ''
     source_document: str = ''
+    extra_required: list[dict] | None = None
 
 
 SOURCE_SPECS = [
@@ -113,6 +114,36 @@ SOURCE_SPECS = [
         'region': 'Italy',
         'endpoint_url': 'https://www.mase.gov.it/',
     },
+    {
+        'name': 'INPS',
+        'source_type': 'website',
+        'authority_level': 'tier_1',
+        'crawl_method': 'html',
+        'crawl_frequency': 'daily',
+        'trust_level': 'high',
+        'region': 'Italy',
+        'endpoint_url': 'https://www.inps.it/',
+    },
+    {
+        'name': 'Mediocredito Centrale',
+        'source_type': 'website',
+        'authority_level': 'tier_1',
+        'crawl_method': 'html',
+        'crawl_frequency': 'weekly',
+        'trust_level': 'high',
+        'region': 'Italy',
+        'endpoint_url': 'https://www.mcc.it/',
+    },
+    {
+        'name': 'GSE — Gestore Servizi Energetici',
+        'source_type': 'website',
+        'authority_level': 'tier_1',
+        'crawl_method': 'html',
+        'crawl_frequency': 'weekly',
+        'trust_level': 'high',
+        'region': 'Italy',
+        'endpoint_url': 'https://www.gse.it/',
+    },
 ]
 
 
@@ -143,6 +174,489 @@ OPPORTUNITY_SEEDS: list[OpportunitySeed] = [
     OpportunitySeed('Voucher Cybersecurity PMI', 'Ministero delle Imprese e del Made in Italy', 'digitization_incentive', OpportunityType.DIGITIZATION.value, 'voucher audit e protezione cyber', ['sme', 'startup'], ['micro', 'small', 'medium'], ['digitale', 'servizi', 'manifattura', 'retail'], ['digitalizzazione'], True, ['0-12m', '1-3y', '3-5y', '5y+'], 30000, 0.5, 75, 'Agevolazione per audit cyber, formazione e messa in sicurezza infrastrutturale.', 'Pensato per PMI che hanno accelerato il digitale ma hanno lacune su sicurezza e compliance.', 'https://www.mimit.gov.it/', 'https://www.mimit.gov.it/it/incentivi/cybersecurity'),
     OpportunitySeed('Export Lab Innovatori Italiani', 'SIMEST', 'export_incentive', OpportunityType.EXPORT.value, 'contributo consulenziale per mercati esteri', ['startup', 'sme', 'freelancer'], ['solo', 'micro', 'small', 'medium'], ['digitale', 'servizi', 'manifattura'], ['export'], True, ['0-12m', '1-3y', '3-5y', '5y+'], 18000, 0.55, 88, 'Percorso di accompagnamento e contributo per test commerciali e marketing internazionale.', 'Adatto a chi ha già una proposta vendibile e cerca i primi segnali di domanda fuori dall’Italia.', 'https://www.simest.it/', 'https://www.simest.it/export-lab'),
     OpportunitySeed('Bonus Startup Ricerca Collaborativa', 'Ministero delle Imprese e del Made in Italy', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value, 'credito d’imposta per progetti con universita e centri ricerca', ['startup'], ['micro', 'small'], ['digitale', 'energia', 'agritech'], ['innovazione'], True, ['0-12m', '1-3y'], 220000, 0.4, 135, 'Credito e contributo per collaborazioni di ricerca applicata.', 'Particolarmente utile per startup che devono validare tecnologia con partner istituzionali.', 'https://www.mimit.gov.it/', 'https://www.mimit.gov.it/it/incentivi/ricerca-collaborativa'),
+    # --- Persona fisica: benefici di base ---
+    OpportunitySeed(
+        'Assegno Unico Universale',
+        'INPS', 'family_benefit', OpportunityType.GRANT.value,
+        'assegno mensile per figli a carico',
+        ['persona_fisica'], None, None, [], None, None,
+        6840.0, 1.0, 365,
+        "Assegno mensile erogato da INPS per ogni figlio under 21 a carico, modulato per ISEE.",
+        "Spetta automaticamente a ogni famiglia con figli a carico. L'importo scala da 57 a 199 euro al mese per figlio in base all'ISEE. Chi non fa domanda perde i soldi.",
+        'https://www.inps.it/assegno-unico',
+        'https://www.inps.it/assegno-unico',
+        extra_required=[
+            {'in': {'field': 'family_composition', 'value': ['coppia_con_figli', 'genitore_solo_con_figli']}},
+            {'not_in': {'field': 'figli_a_carico_count', 'value': ['0']}},
+        ],
+    ),
+    OpportunitySeed(
+        'Contributo Asilo Nido INPS',
+        'INPS', 'family_benefit', OpportunityType.GRANT.value,
+        'contributo annuale per rette asilo nido',
+        ['persona_fisica'], None, None, [], None, None,
+        3600.0, 1.0, 365,
+        "Contributo INPS fino a 3.600 euro annui per rette di asilo nido o assistenza domiciliare per bambini sotto i 3 anni.",
+        "Modulato per ISEE: 3.600 euro sotto 25.000 euro, 3.000 euro tra 25.000-40.000 euro, 1.500 euro oltre 40.000 euro. Si richiede online su INPS con ricevute di pagamento.",
+        'https://www.inps.it/bonus-asilo-nido',
+        'https://www.inps.it/bonus-asilo-nido',
+        extra_required=[
+            {'in': {'field': 'family_composition', 'value': ['coppia_con_figli', 'genitore_solo_con_figli']}},
+            {'not_in': {'field': 'figli_a_carico_count', 'value': ['0']}},
+            {'in': {'field': 'youngest_child_age_band', 'value': ['under_3']}},
+        ],
+    ),
+    OpportunitySeed(
+        "ANF — Assegni al Nucleo Familiare",
+        'INPS', 'family_benefit', OpportunityType.GRANT.value,
+        'assegno mensile per famiglie numerose con dipendenti',
+        ['persona_fisica'], None, None, [], None, None,
+        2400.0, 1.0, 365,
+        "Assegni al Nucleo Familiare INPS per lavoratori dipendenti con figli a carico. Importo variabile per reddito e numero di componenti.",
+        "Dedicato a dipendenti con figli o coniuge a carico. Si richiede tramite il datore di lavoro o direttamente su INPS. Integra il reddito familiare su base mensile.",
+        'https://www.inps.it/anf',
+        'https://www.inps.it/anf',
+        extra_required=[
+            {'eq': {'field': 'employment_type', 'value': 'dipendente'}},
+            {'not_in': {'field': 'figli_a_carico_count', 'value': ['0']}},
+        ],
+    ),
+    OpportunitySeed(
+        "NASpI — Indennita di Disoccupazione",
+        'INPS', 'social_benefit', OpportunityType.GRANT.value,
+        'indennita per lavoratori dipendenti che perdono involontariamente il lavoro',
+        ['persona_fisica'], None, None, [], None, None,
+        8400.0, 0.75, 365,
+        "Indennita INPS pari al 75% della retribuzione media mensile (max 1.352 euro) per lavoratori dipendenti che perdono involontariamente il lavoro.",
+        "Richiede almeno 13 settimane di contribuzione nei 4 anni precedenti. Dura meta dei mesi contributivi. Si riduce del 3% ogni mese a partire dal quinto. Domanda entro 68 giorni.",
+        'https://www.inps.it/naspi',
+        'https://www.inps.it/naspi',
+        extra_required=[
+            {'eq': {'field': 'employment_type', 'value': 'disoccupato'}},
+        ],
+    ),
+    OpportunitySeed(
+        'Regime Forfettario Agevolato Primo Anno',
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        'imposta sostitutiva al 5% per nuovi autonomi nel primo quinquennio',
+        ['persona_fisica'], None, None, [], None, None,
+        4250.0, 0.05, 365,
+        "Regime fiscale agevolato per autonomi con ricavi sotto 85.000 euro: aliquota flat del 15% (5% per i primi 5 anni di attivita).",
+        "Nessun obbligo IVA, esenzione IRAP, contabilita semplificata. Si accede automaticamente aprendo P.IVA senza precedenti attivita fiscalmente rilevanti negli ultimi 3 anni.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/regime-forfetario',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/regime-forfetario',
+        extra_required=[
+            {'eq': {'field': 'employment_type', 'value': 'autonomo'}},
+        ],
+    ),
+    OpportunitySeed(
+        'Detrazione per Figli a Carico',
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        'detrazione IRPEF per figli a carico fino a 24 anni',
+        ['persona_fisica'], None, None, [], None, None,
+        950.0, 1.0, 365,
+        "Detrazione IRPEF di 950 euro per ciascun figlio a carico fino a 21 anni (detrazione piena per under 3 con figli con disabilita).",
+        "Si calcola automaticamente nel 730 precompilato. Per figli over 21 non coperti da Assegno Unico, la detrazione continua fino a 24 anni se studenti.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/detrazioni-figli',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/detrazioni-figli',
+        extra_required=[
+            {'not_in': {'field': 'figli_a_carico_count', 'value': ['0']}},
+        ],
+    ),
+    OpportunitySeed(
+        'Bonus Prima Casa Under 36',
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        'esenzione imposte ipotecarie e catastali per under 36 con ISEE sotto 40.000 euro',
+        ['persona_fisica'], None, None, [], None, None,
+        3000.0, 1.0, 365,
+        "Esenzione totale da imposte ipotecaria, catastale e di registro per under 36 che acquistano prima casa con ISEE sotto 40.000 euro.",
+        "Anche credito IVA pari all'imposta pagata se acquistato da costruttore con IVA. Si autocertifica al rogito notarile entro i 36 anni. Non prorogabile dopo il compimento dei 36 anni.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/agevolazioni-prima-casa-under36',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/agevolazioni-prima-casa-under36',
+        extra_required=[
+            {'eq': {'field': 'persona_fisica_age_band', 'value': 'under_35'}},
+            {'not_in': {'field': 'isee_bracket', 'value': ['over_40k']}},
+        ],
+    ),
+    OpportunitySeed(
+        'Detrazione Interessi Mutuo Prima Casa',
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        'detrazione IRPEF 19% sugli interessi passivi del mutuo prima casa fino a 4.000 euro',
+        ['persona_fisica'], None, None, [], None, None,
+        760.0, 0.19, 365,
+        "Detrazione IRPEF del 19% sugli interessi passivi del mutuo per acquisto prima casa, fino a un massimo di 4.000 euro di interessi (detrazione massima 760 euro).",
+        "Si indica ogni anno nel 730. Include anche le spese accessorie (perizia, notaio per ipoteca). Valida finche dura il mutuo e la casa rimane prima casa.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/interessi-passivi-mutuo',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/interessi-passivi-mutuo',
+        extra_required=[
+            {'eq': {'field': 'home_ownership_status', 'value': 'proprietario'}},
+        ],
+    ),
+    OpportunitySeed(
+        'Detrazioni Ristrutturazione Casa 50%',
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        'detrazione IRPEF 50% su lavori edilizi fino a 96.000 euro',
+        ['persona_fisica'], None, None, [], None, None,
+        48000.0, 0.5, 365,
+        "Detrazione IRPEF del 50% su lavori di ristrutturazione edilizia fino a 96.000 euro di spesa, recuperata in 10 anni.",
+        "Include rifacimento bagni, impianti, pareti, pavimenti, infissi. Richiede bonifico parlante. Compatibile con Ecobonus 65% per interventi energy. Valida per proprietari e locatari.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/ristrutturazioni-edilizie',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/ristrutturazioni-edilizie',
+        extra_required=[
+            {'in': {'field': 'home_ownership_status', 'value': ['proprietario', 'inquilino_contratto_registrato']}},
+        ],
+    ),
+    OpportunitySeed(
+        'Carta Acquisti INPS',
+        'INPS', 'social_benefit', OpportunityType.GRANT.value,
+        'carta prepagata da 80 euro bimestrali per famiglie in difficolta',
+        ['persona_fisica'], None, None, [], None, None,
+        480.0, 1.0, 365,
+        "Carta prepagata INPS con 80 euro ricaricati ogni 2 mesi per famiglie con ISEE sotto determinata soglia: anziani over 65, famiglie con bambini sotto 3 anni.",
+        "Per famiglie con figli under 3 o anziani over 65 con ISEE molto basso. Si richiede presso uffici postali con SPID. Include carburante, farmaci e spesa alimentare.",
+        'https://www.inps.it/carta-acquisti',
+        'https://www.inps.it/carta-acquisti',
+        extra_required=[
+            {'eq': {'field': 'isee_bracket', 'value': 'under_15k'}},
+        ],
+    ),
+    # --- Persona fisica: nuovi benefici sociali e fiscali ---
+    OpportunitySeed(
+        "ADI — Assegno di Inclusione",
+        'INPS', 'social_benefit', OpportunityType.GRANT.value,
+        "sussidio mensile per famiglie in difficolta economica",
+        ['persona_fisica'], None, None, [], None, None,
+        6000.0, 1.0, 365,
+        "Misura INPS per famiglie con figli minorenni, disabili o anziani over 60 con ISEE sotto 9.360 euro.",
+        "Sostituisce il Reddito di Cittadinanza per i nuclei con persone fragili. Importo base 500 euro/mese + 280 euro per affitto. Si richiede su INPS con ISEE aggiornato.",
+        'https://www.inps.it/assegno-inclusione',
+        'https://www.inps.it/assegno-inclusione',
+        extra_required=[
+            {'in': {'field': 'family_composition', 'value': ['coppia_con_figli', 'genitore_solo_con_figli']}},
+            {'eq': {'field': 'isee_bracket', 'value': 'under_15k'}},
+        ],
+    ),
+    OpportunitySeed(
+        "SFL — Supporto Formazione e Lavoro",
+        'INPS', 'social_benefit', OpportunityType.GRANT.value,
+        "indennita mensile per disoccupati in percorso formativo",
+        ['persona_fisica'], None, None, [], None, None,
+        4200.0, 1.0, 365,
+        "Indennita INPS di 350 euro/mese per persone tra 18 e 59 anni in cerca di lavoro e iscritte a percorsi formativi.",
+        "Dedicato a disoccupati occupabili senza figli o disabili a carico che partecipano a corsi GOL o equivalenti. Si attiva tramite centro per l'impiego.",
+        'https://www.inps.it/supporto-formazione-lavoro',
+        'https://www.inps.it/supporto-formazione-lavoro',
+        extra_required=[
+            {'eq': {'field': 'employment_type', 'value': 'disoccupato'}},
+            {'in': {'field': 'persona_fisica_age_band', 'value': ['under_35', '35_55']}},
+        ],
+    ),
+    OpportunitySeed(
+        'Bonus Psicologo',
+        'INPS', 'social_benefit', OpportunityType.GRANT.value,
+        'contributo per sedute di psicoterapia fino a 1.500 euro',
+        ['persona_fisica'], None, None, [], None, None,
+        1500.0, 1.0, 365,
+        'Contributo INPS per sedute di psicoterapia: fino a 1.500 euro per ISEE sotto 15.000 euro.',
+        'Si richiede tramite portale INPS con codice fiscale del terapeuta abilitato. Disponibile fino a esaurimento fondi annuali.',
+        'https://www.inps.it/bonus-psicologo',
+        'https://www.inps.it/bonus-psicologo',
+    ),
+    OpportunitySeed(
+        'Detrazioni Spese Mediche 730',
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        'detrazione IRPEF 19% su spese sanitarie sopra 129 euro',
+        ['persona_fisica'], None, None, [], None, None,
+        2400.0, 0.19, 365,
+        'Detrazione IRPEF del 19% su spese mediche, farmaci, visite specialistiche, analisi e dispositivi medici.',
+        'Si dichiara nel 730 precompilato con spese tracciate. Include spese per familiari a carico. Nessuna soglia ISEE.',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/spese-sanitarie',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/spese-sanitarie',
+    ),
+    OpportunitySeed(
+        'Ecobonus Riqualificazione Energetica 65%',
+        'Agenzia delle Entrate', 'sustainability_incentive', OpportunityType.TAX_INCENTIVE.value,
+        'detrazione 65% su impianti di riscaldamento e coibentazione',
+        ['persona_fisica'], None, None, [], None, None,
+        30000.0, 0.65, 365,
+        "Detrazione IRPEF del 65% su lavori di riqualificazione energetica: caldaia, isolamento pareti, infissi a risparmio energetico.",
+        "Richiede asseverazione energetica e bonifico parlante. Spalmata in 10 anni. Vale per proprietari e conduttori con contratto registrato.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/riqualificazione-energetica',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/riqualificazione-energetica',
+        extra_required=[
+            {'in': {'field': 'home_ownership_status', 'value': ['proprietario', 'inquilino_contratto_registrato']}},
+        ],
+    ),
+    OpportunitySeed(
+        'Bonus Mobili e Grandi Elettrodomestici',
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        "detrazione 50% su mobili e grandi elettrodomestici collegati a ristrutturazione",
+        ['persona_fisica'], None, None, [], None, None,
+        4000.0, 0.5, 365,
+        "Detrazione IRPEF del 50% su mobili e grandi elettrodomestici classe A+ acquistati nell'anno della ristrutturazione, fino a 8.000 euro.",
+        "Legato alla detrazione ristrutturazione 50%. Pagamento con bonifico o carta.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/bonus-mobili',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/bonus-mobili',
+        extra_required=[
+            {'eq': {'field': 'home_ownership_status', 'value': 'proprietario'}},
+        ],
+    ),
+    OpportunitySeed(
+        'Detrazione Affitto Inquilini',
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        'detrazione fino a 300 euro per inquilini con contratto registrato',
+        ['persona_fisica'], None, None, [], None, None,
+        300.0, 1.0, 365,
+        'Detrazione IRPEF flat per inquilini con abitazione principale in affitto e reddito sotto 30.987 euro.',
+        'Si dichiara nel 730 con il contratto di affitto registrato. Nessuna spesa minima.',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/detrazione-affitto',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/detrazione-affitto',
+        extra_required=[
+            {'eq': {'field': 'home_ownership_status', 'value': 'inquilino_contratto_registrato'}},
+            {'in': {'field': 'isee_bracket', 'value': ['under_15k', '15_25k']}},
+        ],
+    ),
+    OpportunitySeed(
+        'Congedo Parentale Indennizzato',
+        'INPS', 'family_benefit', OpportunityType.GRANT.value,
+        "indennita per astensione dal lavoro dei genitori",
+        ['persona_fisica'], None, None, [], None, None,
+        3800.0, 0.8, 365,
+        "Congedo parentale INPS: il primo mese viene indennizzato all'80% dello stipendio, i successivi al 30% fino ai 12 anni del figlio.",
+        "Dal 2024 il secondo mese e stato elevato all'80%. Si richiede online su INPS prima dell'astensione.",
+        'https://www.inps.it/congedo-parentale',
+        'https://www.inps.it/congedo-parentale',
+        extra_required=[
+            {'eq': {'field': 'employment_type', 'value': 'dipendente'}},
+            {'in': {'field': 'family_composition', 'value': ['coppia_con_figli', 'genitore_solo_con_figli']}},
+        ],
+    ),
+    OpportunitySeed(
+        "Legge 104 — Agevolazioni e Permessi Retribuiti",
+        'INPS', 'social_benefit', OpportunityType.GRANT.value,
+        "permessi retribuiti e agevolazioni per disabilita grave",
+        ['persona_fisica'], None, None, [], None, None,
+        2400.0, 1.0, 365,
+        "La Legge 104 garantisce 3 giorni di permesso retribuito al mese al dipendente che assiste un familiare con disabilita grave.",
+        "Richiede il riconoscimento INPS della condizione di handicap grave (art. 3 co. 3). Include detrazioni auto H e agevolazioni fiscali.",
+        'https://www.inps.it/legge-104',
+        'https://www.inps.it/legge-104',
+        extra_required=[
+            {'in': {'field': 'disability_status', 'value': ['legge_104_in_famiglia', 'invalidita_civile', 'indennita_accompagnamento']}},
+        ],
+    ),
+    OpportunitySeed(
+        "Rientro Cervelli — Regime Impatriati",
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        "esenzione fiscale 50-90% per lavoratori rientrati in Italia",
+        ['persona_fisica'], None, None, [], None, None,
+        15000.0, 0.7, 365,
+        "Regime agevolato per lavoratori che trasferiscono la residenza fiscale in Italia dopo almeno 2 anni all'estero.",
+        "50% del reddito imponibile esente per 5 anni (90% per Sud o con figli). Estendibile a 10 anni per chi acquista casa. Nessuna domanda: si indica in dichiarazione dei redditi.",
+        'https://www.agenziaentrate.gov.it/portale/regime-impatriati',
+        'https://www.agenziaentrate.gov.it/portale/regime-impatriati',
+    ),
+    # --- Freelancer: agevolazioni specifiche per autonomi ---
+    OpportunitySeed(
+        'Esonero Contributivo INPS Under 35',
+        'INPS', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        'riduzione 35% contributi per nuovi iscritti gestione separata under 35',
+        ['freelancer'], ['solo'], None, [], False, ['idea', '0-12m', '1-3y'],
+        3500.0, 0.35, 365,
+        'Riduzione del 35% dei contributi INPS gestione separata per i nuovi iscritti under 35 nei primi 3 anni.',
+        "Si attiva in automatico all'apertura P.IVA. Richiede la prima iscrizione alla gestione separata (non iscritti in passato).",
+        'https://www.inps.it/esonero-contributivo-autonomi',
+        'https://www.inps.it/esonero-contributivo-autonomi',
+        extra_required=[
+            {'eq': {'field': 'persona_fisica_age_band', 'value': 'under_35'}},
+            {'eq': {'field': 'employment_type', 'value': 'autonomo'}},
+        ],
+    ),
+    OpportunitySeed(
+        "DIS-COLL — Disoccupazione Collaboratori",
+        'INPS', 'unemployment_benefit', OpportunityType.GRANT.value,
+        "indennita di disoccupazione per collaboratori e co.co.co.",
+        ['freelancer'], None, None, [], None, None,
+        8000.0, 0.75, 365,
+        "Indennita INPS per co.co.co. e collaboratori che perdono il rapporto di collaborazione involontariamente.",
+        "Alternativa alla NASpI per chi lavora con contratto di collaborazione. Dura meta dei mesi di contribuzione negli ultimi 4 anni, max 6 mesi.",
+        'https://www.inps.it/dis-coll',
+        'https://www.inps.it/dis-coll',
+        extra_required=[
+            {'eq': {'field': 'employment_type', 'value': 'disoccupato'}},
+        ],
+    ),
+    # --- Business: misure nazionali chiave mancanti ---
+    OpportunitySeed(
+        "Nuova Sabatini — Finanziamento Beni Strumentali",
+        'Ministero delle Imprese e del Made in Italy',
+        'subsidized_loan', OpportunityType.SUBSIDIZED_LOAN.value,
+        'contributo interessi su finanziamento per beni strumentali e macchinari',
+        ['sme', 'startup'], ['micro', 'small', 'medium'],
+        ['manifattura', 'digitale', 'servizi', 'agritech'],
+        ['digitalizzazione'],
+        True, ['0-12m', '1-3y', '3-5y', '5y+'],
+        4000000.0, 0.35, 180,
+        'Contributo in conto interessi su finanziamenti bancari per acquisto o leasing di macchinari, impianti, attrezzature e hardware/software.',
+        "Una delle misure piu utilizzate in Italia per investimenti produttivi. Soglia minima 20.000 euro, massimo 4 milioni. Opera attraverso banche convenzionate.",
+        'https://www.mimit.gov.it/it/incentivi/nuova-sabatini',
+        'https://www.mimit.gov.it/it/incentivi/nuova-sabatini',
+    ),
+    OpportunitySeed(
+        "Fondo di Garanzia PMI — MCC",
+        'Mediocredito Centrale',
+        'loan_guarantee', OpportunityType.SUBSIDIZED_LOAN.value,
+        "garanzia pubblica fino all'80% su finanziamenti bancari",
+        ['sme', 'startup', 'freelancer'], ['solo', 'micro', 'small', 'medium'],
+        None, ['crescita'],
+        None, ['idea', '0-12m', '1-3y', '3-5y', '5y+'],
+        5000000.0, 0.8, 180,
+        "Il Fondo di Garanzia MCC garantisce fino all'80% dei finanziamenti bancari per PMI, startup e professionisti.",
+        "Strumento di accesso al credito piu impattante per le PMI italiane. La garanzia pubblica riduce il rischio bancario. Richiesta tramite banca o confidi.",
+        'https://www.mcc.it/fondo-di-garanzia-pmi',
+        'https://www.mcc.it/fondo-di-garanzia-pmi',
+    ),
+    OpportunitySeed(
+        'Piano Transizione 5.0',
+        'GSE — Gestore Servizi Energetici',
+        'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        "credito d’imposta per investimenti digitali con risparmio energetico certificato",
+        ['sme', 'startup'], ['micro', 'small', 'medium'],
+        ['manifattura', 'energia', 'digitale', 'agritech'],
+        ['sostenibilita', 'digitalizzazione', 'innovazione'],
+        True, ['0-12m', '1-3y', '3-5y', '5y+'],
+        500000.0, 0.45, 180,
+        "Credito d’imposta per beni strumentali 4.0 con riduzione certificata dei consumi energetici di almeno il 3-10%.",
+        "Evoluzione di Transizione 4.0: richiede di dimostrare il risparmio energetico. Aliquote: 35% fino a 2,5M, 15% fino a 10M. Gestito tramite GSE con asseverazione.",
+        'https://www.gse.it/servizi-per-te/transizione-5-0',
+        'https://www.gse.it/servizi-per-te/transizione-5-0',
+    ),
+    OpportunitySeed(
+        "Credito R&S — Ricerca, Sviluppo e Design",
+        'Agenzia delle Entrate',
+        'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        "credito d’imposta su R&S, innovazione tecnologica e design",
+        ['startup', 'sme'], ['micro', 'small', 'medium'],
+        ['digitale', 'manifattura', 'agritech', 'energia'],
+        ['innovazione'],
+        True, ['0-12m', '1-3y', '3-5y', '5y+'],
+        200000.0, 0.2, 180,
+        "Credito d’imposta su costi per ricerca fondamentale, sviluppo sperimentale, innovazione tecnologica e design.",
+        "Aliquote: R&S 20%, innovazione tecnologica 10%, design 10%. Include costi di personale, contratti con universita e centri ricerca, software e materiali.",
+        'https://www.agenziaentrate.gov.it/portale/credito-imposta-ricerca',
+        'https://www.agenziaentrate.gov.it/portale/credito-imposta-ricerca',
+    ),
+    OpportunitySeed(
+        "Voucher 3I — Brevetti per Imprese Innovative",
+        'Ministero delle Imprese e del Made in Italy',
+        'grants', OpportunityType.GRANT.value,
+        'contributo per deposito brevetti nazionali e internazionali',
+        ['startup', 'sme'], ['micro', 'small', 'medium'],
+        ['digitale', 'manifattura', 'agritech', 'energia'],
+        ['innovazione'],
+        True, ['idea', '0-12m', '1-3y', '3-5y', '5y+'],
+        25000.0, 1.0, 120,
+        'Voucher MIMIT fino a 25.000 euro per coprire costi di deposito e assistenza per brevetti nazionali EPO e PCT.',
+        'Gestito da UIBM. Include compenso consulente brevettuale, tasse deposito e traduzione. Rimborso fino al 100% delle spese.',
+        'https://www.mimit.gov.it/it/incentivi/voucher-3i-brevetti',
+        'https://www.mimit.gov.it/it/incentivi/voucher-3i-brevetti',
+    ),
+    OpportunitySeed(
+        'Bonus Giovani Under 35 Assunzioni',
+        'INPS', 'hiring_incentive', OpportunityType.HIRING_INCENTIVE.value,
+        'esonero contributivo 100% per 3 anni su assunzioni under 35 a tempo indeterminato',
+        ['startup', 'sme'], ['micro', 'small', 'medium'],
+        None, ['hiring'],
+        True, ['0-12m', '1-3y', '3-5y', '5y+'],
+        24000.0, 1.0, 90,
+        'Esonero totale dei contributi previdenziali per 36 mesi su assunzioni a tempo indeterminato di under 35 che non hanno mai avuto tale contratto.',
+        'Massimale 8.000 euro/anno per lavoratore. Compatibile con altri incentivi. Il dipendente non deve aver avuto precedenti contratti a tempo indeterminato.',
+        'https://www.inps.it/bonus-giovani-under35',
+        'https://www.inps.it/bonus-giovani-under35',
+    ),
+    OpportunitySeed(
+        'Bonus Donne Assunzioni',
+        'INPS', 'hiring_incentive', OpportunityType.HIRING_INCENTIVE.value,
+        'esonero contributivo 60-100% per assunzioni donne svantaggiate',
+        ['startup', 'sme'], ['micro', 'small', 'medium'],
+        None, ['hiring'],
+        True, ['0-12m', '1-3y', '3-5y', '5y+'],
+        18000.0, 0.6, 90,
+        'Riduzione contributi previdenziali del 60% (100% per il Sud) su assunzioni a tempo indeterminato di donne disoccupate da almeno 6 mesi.',
+        'Rimborso massimo 8.000 euro/anno per lavoratrice. Include assunzioni a tempo determinato (50% per 12 mesi).',
+        'https://www.inps.it/bonus-donne',
+        'https://www.inps.it/bonus-donne',
+    ),
+    OpportunitySeed(
+        'Resto al Sud 2.0',
+        'Invitalia', 'grants', OpportunityType.GRANT.value,
+        'mix contributo a fondo perduto e finanziamento agevolato per nuove imprese al Sud',
+        ['startup', 'sme', 'freelancer'], ['solo', 'micro', 'small'],
+        ['manifattura', 'servizi', 'digitale', 'turismo', 'agritech'],
+        ['avvio'],
+        False, ['idea', '0-12m', '1-3y'],
+        200000.0, 0.5, 150,
+        'Incentivo Invitalia per nuove imprese in Basilicata, Calabria, Campania, Molise, Puglia, Sardegna, Sicilia, Abruzzo.',
+        'Mix 50% fondo perduto + 50% tasso zero. Dedicato a under 46 residenti o disposti a trasferirsi nelle regioni del Mezzogiorno.',
+        'https://www.invitalia.it/cosa-facciamo/creiamo-nuove-aziende/resto-al-sud',
+        'https://www.invitalia.it/cosa-facciamo/creiamo-nuove-aziende/resto-al-sud',
+    ),
+    OpportunitySeed(
+        "Fringe Benefits Dipendenti con Figli 2024",
+        'INPS', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        "esenzione contributiva fino a 3.000 euro per dipendenti con figli",
+        ['persona_fisica'], None, None, [], None, None,
+        3000.0, 1.0, 365,
+        "I datori di lavoro possono concedere ai dipendenti con figli a carico fringe benefit esenti fino a 3.000 euro annui (bollette, buoni, rimborsi spese abitazione).",
+        "Incluso nel CCNL o accordo aziendale. Si dichiara in CU. Richiede figli fiscalmente a carico.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/fringe-benefit',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/fringe-benefit',
+        extra_required=[
+            {'eq': {'field': 'employment_type', 'value': 'dipendente'}},
+            {'not_in': {'field': 'figli_a_carico_count', 'value': ['0']}},
+        ],
+    ),
+    OpportunitySeed(
+        "Detrazione Spese Istruzione Universitaria",
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        "detrazione 19% sulle spese universitarie dei figli",
+        ['persona_fisica'], None, None, [], None, None,
+        2000.0, 0.19, 365,
+        "Detrazione IRPEF del 19% su tasse universitarie, rette di corsi di laurea e master per figli fiscalmente a carico.",
+        "Si dichiara nel 730. Include corsi pubblici e privati. Nessun limite di reddito per la detrazione base.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/istruzione',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/dichiarazioni/istruzione',
+        extra_required=[
+            {'not_in': {'field': 'figli_a_carico_count', 'value': ['0']}},
+        ],
+    ),
+    OpportunitySeed(
+        "Patent Box — Agevolazione Fiscale su Redditi da IP",
+        'Agenzia delle Entrate', 'tax_incentive', OpportunityType.TAX_INCENTIVE.value,
+        "riduzione del 50% sulla tassazione dei redditi derivanti da brevetti e IP",
+        ['startup', 'sme'], ['micro', 'small', 'medium'],
+        ['digitale', 'manifattura', 'agritech', 'energia'], ['innovazione'],
+        True, ['0-12m', '1-3y', '3-5y', '5y+'],
+        200000.0, 0.5, 180,
+        "Il Patent Box consente una deduzione del 110% sui costi sostenuti per attivita di R&S legate a brevetti, modelli di utilita, software protetto da copyright e know-how.",
+        "Richiede documentazione dei costi R&S e nexus approach. Si attiva in dichiarazione dei redditi.",
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/patent-box',
+        'https://www.agenziaentrate.gov.it/portale/web/guest/schede/agevolazioni/patent-box',
+    ),
+    OpportunitySeed(
+        "Sabatini Green — Beni Strumentali Ecologici",
+        'Ministero delle Imprese e del Made in Italy', 'sustainability_incentive',
+        OpportunityType.SUSTAINABILITY.value,
+        "finanziamento agevolato per macchinari e impianti a basso impatto ambientale",
+        ['sme', 'startup'], ['micro', 'small', 'medium'],
+        ['manifattura', 'energia', 'agritech', 'servizi'], ['sostenibilita'],
+        True, ['0-12m', '1-3y', '3-5y', '5y+'],
+        4000000.0, 0.35, 150,
+        "Variante green della Nuova Sabatini con contributo in conto interessi maggiorato per beni strumentali a basso consumo energetico o impatto ambientale ridotto.",
+        "Stessi requisiti della Sabatini ordinaria con vincolo green sui beni acquistati. Gestita da banche aderenti alla convenzione MIMIT-ABI.",
+        'https://www.mimit.gov.it/it/incentivi/nuova-sabatini',
+        'https://www.mimit.gov.it/it/incentivi/nuova-sabatini',
+    ),
 ]
 
 
@@ -169,6 +683,8 @@ def build_rule(seed: OpportunitySeed) -> dict[str, Any]:
         required.append({'eq': {'field': 'business_exists', 'value': seed.requires_business}})
     if seed.company_age_band:
         required.append({'in': {'field': 'company_age_band', 'value': seed.company_age_band}})
+    if seed.extra_required:
+        required.extend(seed.extra_required)
 
     boosters: list[dict[str, Any]] = []
     if 'hiring' in seed.goals:
@@ -190,11 +706,46 @@ def build_rule(seed: OpportunitySeed) -> dict[str, Any]:
             {'missing': {'field': 'company_size_band'}},
             {'missing': {'field': 'company_age_band'}},
             {'missing': {'field': 'sector_code_or_category'}},
+            {'missing': {'field': 'youngest_child_age_band'}},
+            {'missing': {'field': 'home_ownership_status'}},
+            {'missing': {'field': 'disability_status'}},
+            {'missing': {'field': 'tax_regime_freelancer'}},
         ],
     }
 
 
 def positive_profile(seed: OpportunitySeed) -> dict[str, Any]:
+    if seed.user_types == ['persona_fisica']:
+        return {
+            'user_type': 'persona_fisica',
+            'region': 'Lombardia',
+            'business_exists': False,
+            'employment_type': 'dipendente',
+            'isee_bracket': 'under_15k',
+            'family_composition': 'coppia_con_figli',
+            'figli_a_carico_count': '1',
+            'persona_fisica_age_band': 'under_35',
+            'youngest_child_age_band': 'under_3',
+            'home_ownership_status': 'proprietario',
+            'disability_status': 'legge_104_in_famiglia',
+            'tax_regime_freelancer': 'forfettario',
+        }
+    if len(seed.user_types) > 0 and seed.user_types[0] == 'freelancer':
+        return {
+            'user_type': 'freelancer',
+            'region': 'Lombardia',
+            'business_exists': seed.requires_business if seed.requires_business is not None else False,
+            'employment_type': 'autonomo',
+            'persona_fisica_age_band': 'under_35',
+            'tax_regime_freelancer': 'forfettario',
+            'company_size_band': seed.size_constraints[0] if seed.size_constraints else 'solo',
+            'company_age_band': seed.company_age_band[0] if seed.company_age_band else '1-3y',
+            'sector_code_or_category': seed.sectors[0] if seed.sectors else 'servizi',
+            'hiring_intent': 'hiring' in seed.goals,
+            'innovation_intent': 'innovazione' in seed.goals,
+            'sustainability_intent': 'sostenibilita' in seed.goals,
+            'export_intent': 'export' in seed.goals,
+        }
     return {
         'user_type': seed.user_types[0],
         'region': 'Lombardia',
@@ -210,6 +761,15 @@ def positive_profile(seed: OpportunitySeed) -> dict[str, Any]:
 
 
 def negative_profile(seed: OpportunitySeed) -> dict[str, Any]:
+    if seed.user_types == ['persona_fisica']:
+        return {
+            'user_type': 'sme',
+            'region': 'Lombardia',
+            'business_exists': True,
+            'company_size_band': 'small',
+            'company_age_band': '3-5y',
+            'sector_code_or_category': 'servizi',
+        }
     fallback_user_type = 'freelancer' if seed.user_types[0] != 'freelancer' else 'sme'
     payload = positive_profile(seed)
     payload['user_type'] = fallback_user_type
@@ -225,6 +785,9 @@ def incomplete_profile(seed: OpportunitySeed) -> dict[str, Any]:
 
 def get_or_create_source(db: Session, spec: dict[str, str]) -> Source:
     source = db.execute(select(Source).where(Source.source_name == spec['name'])).scalar_one_or_none()
+    endpoint = db.execute(select(SourceEndpoint).where(SourceEndpoint.url == spec['endpoint_url'])).scalars().first()
+    if source is None and endpoint is not None and endpoint.source is not None:
+        return endpoint.source
     if source is None:
         source = Source(
             source_name=spec['name'],
@@ -238,6 +801,18 @@ def get_or_create_source(db: Session, spec: dict[str, str]) -> Source:
         )
         db.add(source)
         db.flush()
+        if endpoint is None:
+            db.add(
+                SourceEndpoint(
+                    source_id=source.id,
+                    name=f"{spec['name']} primary endpoint",
+                    url=spec['endpoint_url'],
+                    document_type='opportunity_page',
+                )
+            )
+        db.commit()
+        db.refresh(source)
+    elif endpoint is None:
         db.add(
             SourceEndpoint(
                 source_id=source.id,
@@ -255,7 +830,7 @@ def seed_sources(db: Session) -> dict[str, Source]:
     sources: dict[str, Source] = {}
     for spec in SOURCE_SPECS:
         source = get_or_create_source(db, spec)
-        sources[source.source_name] = source
+        sources[spec['name']] = source
     return sources
 
 

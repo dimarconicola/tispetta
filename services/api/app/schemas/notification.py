@@ -7,3 +7,15 @@ class NotificationPreferencePayload(ApiModel):
     deadline_reminders: bool
     new_opportunity_alerts: bool
     source_change_digests: bool
+
+
+class NotificationHistoryItem(ApiModel):
+    id: str
+    event_type: str
+    opportunity_id: str | None
+    status: str
+    recipient: str
+    subject: str
+    created_at: str
+    sent_at: str | None
+    error_message: str | None
