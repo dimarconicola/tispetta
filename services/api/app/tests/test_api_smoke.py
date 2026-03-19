@@ -95,6 +95,12 @@ def test_admin_bootstrap_endpoints() -> None:
     assert payload['total_measure_families'] >= 18
     assert len(payload['rows']) >= 8
 
+    integrity = client.get('/v1/admin/integrity', headers=headers)
+    assert integrity.status_code == 200
+    integrity_payload = integrity.json()
+    assert integrity_payload['head_revision'] == '20260312_0001'
+    assert isinstance(integrity_payload['checks'], list)
+
     bootstrap = client.post('/v1/admin/bootstrap/run', headers=headers)
     assert bootstrap.status_code == 200
     assert bootstrap.json()['coverage_rows'] >= 8

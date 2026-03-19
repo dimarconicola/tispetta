@@ -71,3 +71,17 @@ class BootstrapRunResult(ApiModel):
     facts_seeded: int
     coverage_rows: int
     review_message: str
+
+
+class IntegrityCheckRead(ApiModel):
+    name: str
+    duplicate_group_count: int
+    duplicate_row_count: int
+    sample_values: list[str]
+
+
+class AdminIntegrityRead(ApiModel):
+    current_revision: str | None = None
+    head_revision: str
+    schema_current: bool
+    checks: list[IntegrityCheckRead]

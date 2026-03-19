@@ -81,10 +81,13 @@ Recommended production setup:
 - keep `app.tispetta.eu` as a URL-prefix property for app-specific indexing checks
 
 ### Database bootstrap
-The API includes a bootstrap command for Railway predeploy:
+The API bootstrap command for Railway predeploy is:
 - `cd services/api && python -m app.predeploy`
 
-That command creates the schema using the current SQLAlchemy metadata. It is a pragmatic stopgap until the Alembic migration chain is fully authored. After the first bootstrap, keep `AUTO_CREATE_SCHEMA=false` in production so runtime startup does not mutate schema.
+That command now runs `alembic upgrade head` programmatically before any optional seed step. After the first bootstrap, keep `AUTO_CREATE_SCHEMA=false` in production so runtime startup does not mutate schema.
+
+Local migration command:
+- `cd services/api && alembic upgrade head`
 
 ### Email delivery
 Magic-link delivery supports:

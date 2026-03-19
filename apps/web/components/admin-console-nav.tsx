@@ -5,6 +5,7 @@ const LINKS = [
   { href: '/admin/measure-families', label: 'Famiglie' },
   { href: '/admin/documents', label: 'Documenti' },
   { href: '/admin/survey-coverage', label: 'Survey' },
+  { href: '/admin/integrity', label: 'Integrity' },
   { href: '/admin/sources', label: 'Fonti' },
   { href: '/admin/ingestion', label: 'Ingestion' },
   { href: '/admin/review', label: 'Review' },

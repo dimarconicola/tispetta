@@ -217,3 +217,17 @@ export type BootstrapRunResult = {
   coverage_rows: number;
   review_message: string;
 };
+
+export type IntegrityCheck = {
+  name: string;
+  duplicate_group_count: number;
+  duplicate_row_count: number;
+  sample_values: string[];
+};
+
+export type AdminIntegritySnapshot = {
+  current_revision: string | null;
+  head_revision: string;
+  schema_current: boolean;
+  checks: IntegrityCheck[];
+};

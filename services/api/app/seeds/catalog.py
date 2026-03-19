@@ -785,6 +785,9 @@ def incomplete_profile(seed: OpportunitySeed) -> dict[str, Any]:
 
 def get_or_create_source(db: Session, spec: dict[str, str]) -> Source:
     source = db.execute(select(Source).where(Source.source_name == spec['name'])).scalar_one_or_none()
+    endpoint = db.execute(select(SourceEndpoint).where(SourceEndpoint.url == spec['endpoint_url'])).scalars().first()
+    if source is None and endpoint is not None and endpoint.source is not None:
+        return endpoint.source
     if source is None:
         source = Source(
             source_name=spec['name'],
@@ -798,6 +801,18 @@ def get_or_create_source(db: Session, spec: dict[str, str]) -> Source:
         )
         db.add(source)
         db.flush()
+        if endpoint is None:
+            db.add(
+                SourceEndpoint(
+                    source_id=source.id,
+                    name=f"{spec['name']} primary endpoint",
+                    url=spec['endpoint_url'],
+                    document_type='opportunity_page',
+                )
+            )
+        db.commit()
+        db.refresh(source)
+    elif endpoint is None:
         db.add(
             SourceEndpoint(
                 source_id=source.id,
@@ -815,7 +830,7 @@ def seed_sources(db: Session) -> dict[str, Source]:
     sources: dict[str, Source] = {}
     for spec in SOURCE_SPECS:
         source = get_or_create_source(db, spec)
-        sources[source.source_name] = source
+        sources[spec['name']] = source
     return sources
 
 

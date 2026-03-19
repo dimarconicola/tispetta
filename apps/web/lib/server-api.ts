@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { INTERNAL_API_URL, SESSION_COOKIE_NAME } from '@/lib/env';
 import type {
   AdminDocument,
+  AdminIntegritySnapshot,
   BootstrapRunResult,
   IngestionRun,
   MeasureFamily,
@@ -99,6 +100,10 @@ export async function getAdminDocuments(params?: Record<string, string | undefin
 
 export async function getAdminSurveyCoverage(): Promise<SurveyCoverageSnapshot | null> {
   return apiFetch<SurveyCoverageSnapshot>('/v1/admin/survey/coverage');
+}
+
+export async function getAdminIntegrity(): Promise<AdminIntegritySnapshot | null> {
+  return apiFetch<AdminIntegritySnapshot>('/v1/admin/integrity');
 }
 
 export async function runBootstrapRefresh(): Promise<BootstrapRunResult | null> {

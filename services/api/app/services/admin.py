@@ -2,20 +2,25 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.db.migrations import current_revision, head_revision
 from app.matching.service import run_rule_tests
 from app.models import (
     AuditEvent,
     IngestionRun,
+    MeasureFamilyDocument,
+    NotificationEvent,
     Opportunity,
     OpportunityRule,
     OpportunityVersion,
     RecordStatus,
     ReviewItem,
     ReviewStatus,
+    SavedOpportunity,
     Source,
+    SourceEndpoint,
 )
 from app.services.corpus import ensure_bootstrap_corpus, get_survey_coverage_payload, list_family_documents, list_measure_families
 from app.services.family_opportunities import sync_measure_family_opportunities
@@ -173,4 +178,68 @@ def run_bootstrap(db: Session) -> dict:
     return {
         **result,
         'review_message': f"Bootstrap corpus aggiornato con famiglie di misura, documenti e copertura survey. Sync opportunita: create {sync['created']}, aggiornate {sync['updated']}, nascoste {sync['unpublished']}.",
+    }
+
+
+def get_integrity_payload(db: Session) -> dict:
+    checks = [
+        _duplicate_check(
+            db,
+            name='source_names',
+            stmt=select(Source.source_name, func.count(Source.id)).group_by(Source.source_name).having(func.count(Source.id) > 1),
+        ),
+        _duplicate_check(
+            db,
+            name='source_endpoint_urls',
+            stmt=select(SourceEndpoint.url, func.count(SourceEndpoint.id)).group_by(SourceEndpoint.url).having(func.count(SourceEndpoint.id) > 1),
+        ),
+        _duplicate_check(
+            db,
+            name='measure_family_documents',
+            stmt=select(
+                MeasureFamilyDocument.measure_family_id,
+                MeasureFamilyDocument.normalized_document_id,
+                func.count(MeasureFamilyDocument.id),
+            )
+            .group_by(MeasureFamilyDocument.measure_family_id, MeasureFamilyDocument.normalized_document_id)
+            .having(func.count(MeasureFamilyDocument.id) > 1),
+        ),
+        _duplicate_check(
+            db,
+            name='saved_opportunities',
+            stmt=select(
+                SavedOpportunity.user_id,
+                SavedOpportunity.opportunity_id,
+                func.count(SavedOpportunity.id),
+            )
+            .group_by(SavedOpportunity.user_id, SavedOpportunity.opportunity_id)
+            .having(func.count(SavedOpportunity.id) > 1),
+        ),
+        _duplicate_check(
+            db,
+            name='notification_dedupe_keys',
+            stmt=select(NotificationEvent.dedupe_key, func.count(NotificationEvent.id))
+            .group_by(NotificationEvent.dedupe_key)
+            .having(func.count(NotificationEvent.id) > 1),
+        ),
+    ]
+    current = current_revision()
+    head = head_revision()
+    return {
+        'current_revision': current,
+        'head_revision': head,
+        'schema_current': current == head,
+        'checks': checks,
+    }
+
+
+def _duplicate_check(db: Session, *, name: str, stmt) -> dict:
+    rows = db.execute(stmt).all()
+    sample_values = [str(tuple(row[:-1]) if len(row) > 2 else row[0]) for row in rows[:5]]
+    duplicate_row_count = sum(int(row[-1]) for row in rows)
+    return {
+        'name': name,
+        'duplicate_group_count': len(rows),
+        'duplicate_row_count': duplicate_row_count,
+        'sample_values': sample_values,
     }

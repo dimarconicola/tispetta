@@ -6,12 +6,13 @@ from app.api.deps import get_admin_user
 from app.db.session import get_db
 from app.models import IngestionRun, ReviewItem, Source
 from app.schemas.common import ApiMessage
-from app.schemas.corpus import AdminDocumentRead, BootstrapRunResult, MeasureFamilyRead, SurveyCoverageSnapshotRead
+from app.schemas.corpus import AdminDocumentRead, AdminIntegrityRead, BootstrapRunResult, MeasureFamilyRead, SurveyCoverageSnapshotRead
 from app.schemas.review import ReviewItemRead, ReviewResolve, RuleTestResult
 from app.schemas.source import IngestionRunRead, SourceCreate, SourceRead
 from app.services.admin import (
     create_source,
     diff_opportunity,
+    get_integrity_payload,
     get_survey_coverage,
     list_document_payloads,
     list_measure_family_payloads,
@@ -61,6 +62,11 @@ def get_documents(
 @router.get('/survey/coverage', response_model=SurveyCoverageSnapshotRead)
 def get_admin_survey_coverage(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> SurveyCoverageSnapshotRead:
     return SurveyCoverageSnapshotRead.model_validate(get_survey_coverage(db))
+
+
+@router.get('/integrity', response_model=AdminIntegrityRead)
+def get_admin_integrity(db: Session = Depends(get_db), _=Depends(get_admin_user)) -> AdminIntegrityRead:
+    return AdminIntegrityRead.model_validate(get_integrity_payload(db))
 
 
 @router.post('/bootstrap/run', response_model=BootstrapRunResult)
