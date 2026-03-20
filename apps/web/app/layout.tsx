@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { headers } from 'next/headers';
 
+import { BuildFooter } from '@/components/build-footer';
 import { Topbar } from '@/components/topbar';
 import {
   GA_MEASUREMENT_ID_APEX,
@@ -97,6 +98,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Topbar user={user} variant={experience.marketingHost ? 'marketing' : 'app'} />
           {children}
         </main>
+        <BuildFooter variant={experience.marketingHost ? 'marketing' : 'app'} />
         {experience.gaMeasurementId ? (
           <>
             <Script
