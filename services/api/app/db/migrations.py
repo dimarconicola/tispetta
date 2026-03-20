@@ -43,6 +43,19 @@ def run_migrations(revision: str = 'head', database_url: str | None = None) -> N
     command.upgrade(alembic_config(database_url), revision)
 
 
+def stamp_revision(revision: str = 'head', database_url: str | None = None) -> None:
+    command.stamp(alembic_config(database_url), revision)
+
+
+def existing_tables(database_url: str | None = None) -> set[str]:
+    engine = migration_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            return set(inspect(connection).get_table_names())
+    finally:
+        engine.dispose()
+
+
 def current_revision(database_url: str | None = None) -> str | None:
     engine = migration_engine(database_url)
     try:
@@ -59,3 +72,19 @@ def current_revision(database_url: str | None = None) -> str | None:
 def head_revision(database_url: str | None = None) -> str:
     script = ScriptDirectory.from_config(alembic_config(database_url))
     return script.get_current_head()
+
+
+def ensure_schema_revision(database_url: str | None = None) -> str:
+    current = current_revision(database_url)
+    if current:
+        run_migrations('head', database_url)
+        return current_revision(database_url) or head_revision(database_url)
+
+    tables = existing_tables(database_url)
+    materialized_tables = {table for table in tables if table != 'alembic_version'}
+    if materialized_tables:
+        stamp_revision('head', database_url)
+        return head_revision(database_url)
+
+    run_migrations('head', database_url)
+    return current_revision(database_url) or head_revision(database_url)

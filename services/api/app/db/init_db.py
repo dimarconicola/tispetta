@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.db.migrations import run_migrations
+from app.db.migrations import ensure_schema_revision, run_migrations
 from app.db.session import engine, normalized_database_url
 
 
 def upgrade_db() -> None:
-    run_migrations('head', normalized_database_url)
+    ensure_schema_revision(normalized_database_url)
 
 
 def init_db() -> None:

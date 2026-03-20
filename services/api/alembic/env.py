@@ -4,11 +4,14 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
+from app.db.migrations import normalize_database_url
 from app.models import Base
 
 config = context.config
 settings = get_settings()
-config.set_main_option('sqlalchemy.url', settings.database_url)
+configured_url = config.get_main_option('sqlalchemy.url') or settings.database_url
+normalized_url = normalize_database_url(configured_url)
+config.set_main_option('sqlalchemy.url', normalized_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -17,7 +20,7 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    context.configure(url=settings.database_url, target_metadata=target_metadata, literal_binds=True)
+    context.configure(url=normalized_url, target_metadata=target_metadata, literal_binds=True)
 
     with context.begin_transaction():
         context.run_migrations()
