@@ -26,6 +26,8 @@ def test_confirmed_match() -> None:
     )
     assert result.status == 'confirmed'
     assert result.score > 0
+    assert result.blocking_missing_fields == []
+    assert result.refinement_missing_fields == []
 
 
 def test_not_eligible_when_hard_requirement_fails() -> None:
@@ -52,6 +54,8 @@ def test_likely_when_tolerated_missing_fields_exist() -> None:
     )
     assert result.status == 'likely'
     assert 'company_size_band' in result.missing_fields
+    assert result.blocking_missing_fields == []
+    assert result.refinement_missing_fields == ['company_size_band']
 
 
 def test_profile_completeness_scores_progressively() -> None:

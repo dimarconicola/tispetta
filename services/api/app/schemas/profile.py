@@ -5,6 +5,12 @@ from pydantic import BaseModel
 from app.schemas.common import ApiModel
 
 
+class ProfileQuestionImpactCounts(ApiModel):
+    clarification_opportunity_count: int = 0
+    blocking_opportunity_count: int = 0
+    upgrade_opportunity_count: int = 0
+
+
 class ProfileQuestion(ApiModel):
     key: str
     label: str
@@ -21,6 +27,35 @@ class ProfileQuestion(ApiModel):
     why_needed: str | None = None
     coverage_weight: float = 0
     ambiguity_reduction_score: float = 0
+    priority: int = 0
+    impact_counts: ProfileQuestionImpactCounts = ProfileQuestionImpactCounts()
+    blocking_opportunity_count: int = 0
+    upgrade_opportunity_count: int = 0
+
+
+class ProfileQuestionModule(ApiModel):
+    key: str
+    title: str
+    description: str
+    questions: list[ProfileQuestion]
+
+
+class ProfileQuestionProgress(ApiModel):
+    core_answered: int = 0
+    core_total: int = 0
+    strategic_answered: int = 0
+    strategic_total: int = 0
+    conditional_answered: int = 0
+    conditional_total: int = 0
+    completeness_score: float = 0
+    blocked_opportunity_count: int = 0
+    upgradable_opportunity_count: int = 0
+
+
+class ProfileQuestionResponse(ApiModel):
+    recommended_step: str
+    progress_summary: ProfileQuestionProgress
+    modules: list[ProfileQuestionModule]
 
 
 class ProfilePayload(BaseModel):

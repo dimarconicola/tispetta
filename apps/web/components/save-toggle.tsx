@@ -1,6 +1,10 @@
 'use client';
 
+import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { useState, useTransition } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const API_URL = '/api/proxy';
 
@@ -22,8 +26,15 @@ export function SaveToggle({ opportunityId, initialSaved }: { opportunityId: str
   }
 
   return (
-    <button type="button" className="button" onClick={onToggle} disabled={isPending}>
-      {saved ? 'Salvata' : 'Salva'}
-    </button>
+    <Button
+      type="button"
+      variant={saved ? 'default' : 'secondary'}
+      className={cn('min-w-[8.5rem]', !saved && 'bg-white')}
+      onClick={onToggle}
+      disabled={isPending}
+    >
+      {saved ? <BookmarkCheck className="size-4" /> : <Bookmark className="size-4" />}
+      {isPending ? 'Aggiorno...' : saved ? 'Salvata' : 'Salva'}
+    </Button>
   );
 }

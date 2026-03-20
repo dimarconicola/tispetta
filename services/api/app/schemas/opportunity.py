@@ -9,6 +9,25 @@ class EvidenceSnippet(ApiModel):
     field: str
 
 
+class MatchQuestionHint(ApiModel):
+    key: str
+    label: str
+    kind: str
+    why_this_question_matters_now: str | None = None
+    blocking_opportunity_count: int = 0
+    upgrade_opportunity_count: int = 0
+
+
+class MatchBreakdown(ApiModel):
+    status: str | None = None
+    matched_reasons: list[str] = []
+    blocking_missing_facts: list[MatchQuestionHint] = []
+    refinement_facts: list[MatchQuestionHint] = []
+    next_best_questions: list[MatchQuestionHint] = []
+    why_matched: list[str] = []
+    what_blocks_confirmation: list[str] = []
+
+
 class OpportunityCard(ApiModel):
     id: str
     slug: str
@@ -25,6 +44,10 @@ class OpportunityCard(ApiModel):
     estimated_value_max: float | None = None
     last_checked_at: datetime
     is_saved: bool = False
+    why_now: str | None = None
+    blocking_question_keys: list[str] = []
+    match_reasons: list[str] = []
+    blocking_missing_labels: list[str] = []
 
 
 class OpportunityDetail(OpportunityCard):
@@ -38,3 +61,4 @@ class OpportunityDetail(OpportunityCard):
     why_this_matches: list[str]
     what_is_missing: list[str]
     verification_status: str
+    match_breakdown: MatchBreakdown = MatchBreakdown()

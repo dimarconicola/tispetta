@@ -3,18 +3,31 @@
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import type { NotificationPreferences } from '@/lib/types';
 
 const API_URL = '/api/proxy';
 
+const SETTINGS = [
+  ['email_enabled', 'Abilita email di prodotto', 'Tutte le comunicazioni transazionali e di monitoraggio.'],
+  ['new_opportunity_alerts', 'Nuove opportunita pertinenti', 'Quando un match passa a likely o confirmed.'],
+  ['deadline_reminders', 'Promemoria scadenze', 'Quando una scheda rilevante o salvata si avvicina alla deadline.'],
+  ['source_change_digests', 'Digest modifiche fonti', 'Quando cambia materialmente una fonte ufficiale collegata a una scheda.'],
+  ['weekly_profile_nudges', 'Promemoria completamento profilo', 'Solo quando mancano dati che bloccano opportunita concrete.'],
+] as const;
+
 export function PreferencesForm({ preferences }: { preferences: NotificationPreferences | null }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const { register, handleSubmit } = useForm<NotificationPreferences>({ defaultValues: preferences ?? undefined });
+  const { register, handleSubmit, setValue, watch } = useForm<NotificationPreferences>({ defaultValues: preferences ?? undefined });
 
   return (
     <form
-      className="panel stack"
+      className="grid gap-6"
       onSubmit={handleSubmit((values) => {
         startTransition(async () => {
           const response = await fetch(`${API_URL}/v1/notifications/preferences`, {
@@ -27,25 +40,40 @@ export function PreferencesForm({ preferences }: { preferences: NotificationPref
         });
       })}
     >
-      <div>
-        <p className="eyebrow">Notifiche email</p>
-        <h2 style={{ fontSize: '2rem' }}>Controlla ritmo e tipologia degli alert</h2>
+      <Card>
+        <CardHeader className="gap-3">
+          <Badge variant="soft" className="w-fit">Notifiche email</Badge>
+          <CardTitle className="text-4xl leading-[0.95]">Controlla ritmo e tipologia degli alert.</CardTitle>
+          <CardDescription className="max-w-2xl text-base leading-7">
+            Le email servono a monitorare opportunita, scadenze e cambi di fonte. Qui scegli solo il ritmo che vuoi ricevere.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <div className="grid gap-4">
+        {SETTINGS.map(([key, title, body]) => (
+          <Card key={key}>
+            <CardContent className="flex items-start gap-4 py-6">
+              <Checkbox
+                id={key}
+                checked={watch(key)}
+                onCheckedChange={(checked) => setValue(key, Boolean(checked), { shouldDirty: true })}
+              />
+              <div className="grid gap-1">
+                <Label htmlFor={key}>{title}</Label>
+                <p className="text-sm leading-6 text-slate-600">{body}</p>
+              </div>
+            </CardContent>
+            <input type="hidden" {...register(key)} />
+          </Card>
+        ))}
       </div>
-      {[
-        ['email_enabled', 'Abilita email di prodotto'],
-        ['new_opportunity_alerts', 'Nuove opportunita pertinenti'],
-        ['deadline_reminders', 'Promemoria scadenze'],
-        ['source_change_digests', 'Digest modifiche fonti'],
-        ['weekly_profile_nudges', 'Promemoria completamento profilo'],
-      ].map(([key, label]) => (
-        <label key={key} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-          <input type="checkbox" {...register(key as keyof NotificationPreferences)} />
-          <span>{label}</span>
-        </label>
-      ))}
-      <button className="button" type="submit" disabled={isPending}>
-        {isPending ? 'Salvataggio...' : 'Aggiorna preferenze'}
-      </button>
+
+      <div className="flex flex-wrap gap-3">
+        <Button type="submit" className="min-w-[14rem]" disabled={isPending}>
+          {isPending ? 'Salvataggio...' : 'Aggiorna preferenze'}
+        </Button>
+      </div>
       {message ? <div className="banner">{message}</div> : null}
     </form>
   );

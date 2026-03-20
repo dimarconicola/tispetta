@@ -2,15 +2,33 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { OpportunityCard } from '@/components/opportunity-card';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getOpportunities, getSessionUser } from '@/lib/server-api';
 import type { OpportunityCard as OpportunityCardType } from '@/lib/types';
 
 const STATUS_ORDER = ['confirmed', 'likely', 'unclear', 'not_eligible'];
-const STATUS_LABELS: Record<string, { eyebrow: string; title: string }> = {
-  confirmed: { eyebrow: 'Confermate', title: 'Idonee con i tuoi dati attuali' },
-  likely: { eyebrow: 'Probabili', title: 'Promettenti, con qualche dato mancante' },
-  unclear: { eyebrow: 'Da chiarire', title: 'Criteri non ancora verificabili' },
-  not_eligible: { eyebrow: 'Non idonee', title: 'Non corrispondenti al profilo attuale' },
+const STATUS_LABELS: Record<string, { eyebrow: string; title: string; body: string }> = {
+  confirmed: {
+    eyebrow: 'Confermate',
+    title: 'Idonee con i tuoi dati attuali',
+    body: 'Sono le schede piu solide con il profilo attuale.',
+  },
+  likely: {
+    eyebrow: 'Probabili',
+    title: 'Promettenti, ma ancora da chiudere',
+    body: 'Hanno buon fit, ma puoi confermarle con poche risposte mirate.',
+  },
+  unclear: {
+    eyebrow: 'Da chiarire',
+    title: 'Serve piu contesto',
+    body: 'Il motore non ha ancora i dati necessari per dare uno stato piu forte.',
+  },
+  not_eligible: {
+    eyebrow: 'Non idonee',
+    title: 'Non coerenti col profilo attuale',
+    body: 'Le tieni salvate per confronto, ma oggi il profilo non le supporta.',
+  },
 };
 
 function sortByDeadline(items: OpportunityCardType[]): OpportunityCardType[] {
@@ -29,72 +47,90 @@ export default async function SavedPage() {
   }
 
   const items = await getOpportunities({ saved_only: true }).catch(() => []);
-
   const grouped = STATUS_ORDER.reduce<Record<string, OpportunityCardType[]>>((acc, status) => {
     acc[status] = sortByDeadline(items.filter((item) => item.match_status === status));
     return acc;
   }, {} as Record<string, OpportunityCardType[]>);
   const unmatched = items.filter((item) => !item.match_status);
 
-  const confirmedCount = (grouped.confirmed ?? []).length;
-  const hasItems = items.length > 0;
-
   return (
-    <div className="stack">
-      <section className="panel stack">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <p className="eyebrow">Salvate — {items.length} opportunita</p>
-            <h1 style={{ fontSize: '3rem' }}>La tua shortlist da monitorare.</h1>
-            <p className="subtle">Opportunita salvate, ordinate per stato di match e scadenza.</p>
-          </div>
-          {confirmedCount > 0 ? (
-            <div style={{ textAlign: 'right' }}>
-              <strong style={{ fontSize: '2.4rem' }}>{confirmedCount}</strong>
-              <p className="subtle" style={{ fontSize: '0.85rem' }}>confermate</p>
-            </div>
-          ) : null}
-        </div>
-        {!hasItems ? (
-          <Link href="/search" className="button-secondary" style={{ alignSelf: 'flex-start' }}>
-            Esplora il catalogo
-          </Link>
-        ) : null}
+    <div className="grid gap-8 pb-8">
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.85fr)]">
+        <Card>
+          <CardHeader className="gap-3">
+            <Badge variant="soft" className="w-fit">Salvate</Badge>
+            <CardTitle className="text-5xl leading-[0.95]">La tua shortlist da monitorare.</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-base leading-7 text-slate-600">
+            <p>Le opportunita salvate restano ordinate per stato e urgenza, cosi puoi rientrare e capire subito dove intervenire.</p>
+            {items.length === 0 ? (
+              <Link href="/search" className="button-secondary w-fit">
+                Esplora il catalogo
+              </Link>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="gap-3">
+            <Badge variant="outline" className="w-fit">Snapshot</Badge>
+            <CardTitle className="text-3xl">{items.length} opportunita salvate</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-sm text-slate-600">
+            <span>{(grouped.confirmed ?? []).length} confermate</span>
+            <span>{(grouped.likely ?? []).length} probabili</span>
+            <span>{(grouped.unclear ?? []).length} da chiarire</span>
+          </CardContent>
+        </Card>
       </section>
 
-      {!hasItems ? (
-        <div className="banner">Nessuna opportunita salvata per ora. Usa il catalogo per trovarne di rilevanti.</div>
+      {items.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 py-8 text-sm text-slate-600">
+            <span>Nessuna opportunita salvata per ora. Usa il catalogo per trovare quelle davvero rilevanti.</span>
+            <Link href="/search" className="button">
+              Vai alla ricerca
+            </Link>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {STATUS_ORDER.filter((status) => (grouped[status] ?? []).length > 0).map((status) => {
-            const statusMeta = STATUS_LABELS[status] ?? { eyebrow: status, title: status };
+            const meta = STATUS_LABELS[status] ?? {
+              eyebrow: status,
+              title: status,
+              body: '',
+            };
+            const cards = grouped[status] ?? [];
             return (
-              <section className="section" key={status}>
-                <div className="section-header">
+              <section key={status} className="grid gap-5">
+                <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-end md:justify-between">
                   <div>
-                    <p className="eyebrow">{statusMeta.eyebrow}</p>
-                    <h2 className="section-title">{statusMeta.title}</h2>
+                    <p className="eyebrow">{meta.eyebrow}</p>
+                    <h2 className="section-title">{meta.title}</h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{meta.body}</p>
                   </div>
-                  <span className="subtle" style={{ fontSize: '0.9rem' }}>{(grouped[status] ?? []).length}</span>
+                  <span className="text-sm text-slate-500">{cards.length}</span>
                 </div>
-                <div className="grid cards-3">
-                  {(grouped[status] ?? []).map((opportunity) => (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {cards.map((opportunity) => (
                     <OpportunityCard key={opportunity.id} opportunity={opportunity} />
                   ))}
                 </div>
               </section>
             );
           })}
+
           {unmatched.length > 0 ? (
-            <section className="section">
-              <div className="section-header">
+            <section className="grid gap-5">
+              <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-end md:justify-between">
                 <div>
                   <p className="eyebrow">Da valutare</p>
-                  <h2 className="section-title">Completa il profilo per vedere il match</h2>
+                  <h2 className="section-title">Completa il profilo per vederne il match</h2>
                 </div>
-                <span className="subtle" style={{ fontSize: '0.9rem' }}>{unmatched.length}</span>
+                <span className="text-sm text-slate-500">{unmatched.length}</span>
               </div>
-              <div className="grid cards-3">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {unmatched.map((opportunity) => (
                   <OpportunityCard key={opportunity.id} opportunity={opportunity} />
                 ))}

@@ -29,9 +29,11 @@ def test_public_catalog_endpoints() -> None:
     questions = client.get('/v1/profile/questions')
     assert questions.status_code == 200
     question_payload = questions.json()
-    assert len(question_payload) >= 8
-    assert {'module', 'sensitive', 'coverage_weight', 'ambiguity_reduction_score'} <= set(question_payload[0])
-    assert sum(1 for question in question_payload if question['required']) <= 8
+    assert {'recommended_step', 'progress_summary', 'modules'} <= set(question_payload)
+    all_questions = [question for module in question_payload['modules'] for question in module['questions']]
+    assert len(all_questions) >= 8
+    assert {'module', 'sensitive', 'coverage_weight', 'ambiguity_reduction_score', 'priority', 'impact_counts'} <= set(all_questions[0])
+    assert sum(1 for question in all_questions if question['required']) <= 8
     assert {
         'profile_type',
         'activity_stage',
@@ -41,17 +43,20 @@ def test_public_catalog_endpoints() -> None:
         'size_band',
         'sector_macro_category',
         'innovation_regime_status',
-    } <= {question['key'] for question in question_payload}
+    } <= {question['key'] for question in all_questions}
 
     opportunities = client.get('/v1/opportunities')
     assert opportunities.status_code == 200
     opportunity_payload = opportunities.json()
     assert len(opportunity_payload) >= 35
     assert any(item['slug'] == 'smart_start_italia' for item in opportunity_payload)
+    assert {'why_now', 'blocking_question_keys', 'match_reasons', 'blocking_missing_labels'} <= set(opportunity_payload[0])
 
     detail = client.get('/v1/opportunities/smart_start_italia')
     assert detail.status_code == 200
-    assert detail.json()['issuer_name'] == 'Invitalia'
+    detail_payload = detail.json()
+    assert detail_payload['issuer_name'] == 'Invitalia'
+    assert {'status', 'matched_reasons', 'blocking_missing_facts', 'next_best_questions'} <= set(detail_payload['match_breakdown'])
 
 
 def test_magic_link_exchange_creates_authenticated_session() -> None:

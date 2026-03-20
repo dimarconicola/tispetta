@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import NotificationPreference, Profile, ProfileFactCatalog, ProfileFactValue, ProfileRevision, User
+from app.models import Match, MatchStatus, NotificationPreference, Profile, ProfileFactCatalog, ProfileFactValue, ProfileRevision, User
 from app.schemas.profile import ProfilePayload
 from app.services.corpus import CORE_FACT_KEYS, build_profile_questions, ensure_bootstrap_corpus
 
@@ -37,6 +37,21 @@ LEGACY_TO_FACT = {
     'sector_code_or_category': 'sector_macro_category',
     'hiring_intent': 'hiring_interest',
     'export_intent': 'export_investment_intent',
+}
+
+MODULE_META = {
+    'core_entity': {
+        'title': 'Core entity',
+        'description': 'I fatti stabili che determinano subito il primo perimetro di eleggibilita.',
+    },
+    'strategic_intent': {
+        'title': 'Improve precision',
+        'description': 'Le intenzioni progettuali che migliorano ranking, coverage e rilevanza.',
+    },
+    'conditional_accuracy': {
+        'title': 'Close residual ambiguity',
+        'description': 'Domande che appaiono solo quando chiariscono davvero opportunita vive.',
+    },
 }
 
 
@@ -119,10 +134,61 @@ def get_or_create_profile(db: Session, user: User) -> Profile:
     return profile
 
 
-def get_profile_questions(db: Session, user: User | None = None) -> list[dict]:
+def get_profile_questions(db: Session, user: User | None = None) -> dict:
     ensure_bootstrap_corpus(db)
     profile = user.profile if user is not None and user.profile is not None else None
-    return build_profile_questions(db, profile)
+    questions = build_profile_questions(db, profile)
+    question_keys = {question['key'] for question in questions}
+    fact_values = dict((profile_to_response(profile)['fact_values'] if profile is not None else {}) or {})
+    impacts = compute_question_impacts(db, profile, question_keys)
+
+    modules = {'core_entity': [], 'strategic_intent': [], 'conditional_accuracy': []}
+    for question in questions:
+        question_impact = impacts.get(
+            question['key'],
+            {
+                'clarification_opportunity_count': 0,
+                'blocking_opportunity_count': 0,
+                'upgrade_opportunity_count': 0,
+            },
+        )
+        enriched = {
+            **question,
+            'impact_counts': question_impact,
+            'blocking_opportunity_count': question_impact['blocking_opportunity_count'],
+            'upgrade_opportunity_count': question_impact['upgrade_opportunity_count'],
+        }
+        unanswered = fact_values.get(question['key']) in (None, '', [])
+        enriched['priority'] = compute_question_priority(enriched, unanswered=unanswered)
+        modules.setdefault(question['module'] or 'core_entity', []).append(enriched)
+
+    grouped_modules = []
+    for module_key in ('core_entity', 'strategic_intent', 'conditional_accuracy'):
+        module_questions = sorted(
+            modules.get(module_key, []),
+            key=lambda item: (
+                0 if item.get('required') else 1,
+                -(item.get('priority') or 0),
+                -(item.get('ambiguity_reduction_score') or 0),
+                item.get('sensitive', False),
+                item.get('step', 0),
+            ),
+        )
+        grouped_modules.append(
+            {
+                'key': module_key,
+                'title': MODULE_META[module_key]['title'],
+                'description': MODULE_META[module_key]['description'],
+                'questions': module_questions,
+            }
+        )
+
+    progress_summary = build_progress_summary(grouped_modules, fact_values, profile)
+    return {
+        'recommended_step': recommended_step(grouped_modules, fact_values),
+        'progress_summary': progress_summary,
+        'modules': grouped_modules,
+    }
 
 
 def update_profile(db: Session, user: User, payload: ProfilePayload) -> Profile:
@@ -274,3 +340,85 @@ def parse_boolish(value) -> bool | None:
     if isinstance(value, str):
         return value.lower() == 'true'
     return bool(value)
+
+
+def compute_question_impacts(db: Session, profile: Profile | None, question_keys: set[str]) -> dict[str, dict[str, int]]:
+    impacts = {
+        key: {
+            'clarification_opportunity_count': 0,
+            'blocking_opportunity_count': 0,
+            'upgrade_opportunity_count': 0,
+        }
+        for key in question_keys
+    }
+    if profile is None:
+        return impacts
+
+    matches = db.execute(select(Match).where(Match.user_id == profile.user_id)).scalars().all()
+    for match in matches:
+        if not match.missing_fields:
+            continue
+        for field in match.missing_fields:
+            if field not in impacts:
+                continue
+            impacts[field]['clarification_opportunity_count'] += 1
+            if match.match_status in {MatchStatus.UNCLEAR.value, MatchStatus.LIKELY.value}:
+                impacts[field]['blocking_opportunity_count'] += 1
+                impacts[field]['upgrade_opportunity_count'] += 1
+    return impacts
+
+
+def compute_question_priority(question: dict, *, unanswered: bool) -> int:
+    if question.get('required'):
+        return 10_000
+    impact = question.get('impact_counts') or {}
+    priority = 0
+    if unanswered:
+        priority += int(impact.get('upgrade_opportunity_count', 0)) * 100
+        priority += int(impact.get('clarification_opportunity_count', 0)) * 10
+        priority += int(round(float(question.get('ambiguity_reduction_score') or 0) * 10))
+        if question.get('sensitive'):
+            priority -= 5
+    else:
+        priority = 1
+    return priority
+
+
+def build_progress_summary(grouped_modules: list[dict], fact_values: dict, profile: Profile | None) -> dict:
+    counts = {
+        'core_answered': 0,
+        'core_total': 0,
+        'strategic_answered': 0,
+        'strategic_total': 0,
+        'conditional_answered': 0,
+        'conditional_total': 0,
+        'completeness_score': float(profile.profile_completeness_score if profile is not None else 0),
+        'blocked_opportunity_count': 0,
+        'upgradable_opportunity_count': 0,
+    }
+    module_key_to_count_key = {
+        'core_entity': ('core_answered', 'core_total'),
+        'strategic_intent': ('strategic_answered', 'strategic_total'),
+        'conditional_accuracy': ('conditional_answered', 'conditional_total'),
+    }
+    for module in grouped_modules:
+        answered_key, total_key = module_key_to_count_key[module['key']]
+        counts[total_key] = len(module['questions'])
+        counts[answered_key] = sum(1 for question in module['questions'] if fact_values.get(question['key']) not in (None, '', []))
+        counts['blocked_opportunity_count'] += sum(question.get('blocking_opportunity_count', 0) for question in module['questions'])
+        counts['upgradable_opportunity_count'] += sum(question.get('upgrade_opportunity_count', 0) for question in module['questions'])
+    return counts
+
+
+def recommended_step(grouped_modules: list[dict], fact_values: dict) -> str:
+    for module in grouped_modules:
+        if module['key'] == 'core_entity':
+            if any(fact_values.get(question['key']) in (None, '', []) for question in module['questions']):
+                return 'core_entity'
+        else:
+            if any(
+                fact_values.get(question['key']) in (None, '', []) and (question.get('priority') or 0) > 0
+                for question in module['questions']
+            ):
+                return module['key']
+    return 'results'

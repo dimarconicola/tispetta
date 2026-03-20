@@ -55,21 +55,21 @@ export function BuildFooter({ variant = 'app', apiHealth }: BuildFooterProps) {
             <strong>v{APP_VERSION_LABEL}</strong>
           </span>
           <span className="build-footer__dot" aria-hidden="true">
-            •
+            |
           </span>
           <span className="build-footer__item" title={apiVersionLabel}>
             <span className="build-footer__label">API</span>
             <strong>v{apiVersionLabel}</strong>
           </span>
           <span className="build-footer__dot" aria-hidden="true">
-            •
+            |
           </span>
           <span className="build-footer__item" title={updated.title}>
             <span className="build-footer__label">Web aggiornata</span>
             <strong>{updated.label}</strong>
           </span>
           <span className="build-footer__dot" aria-hidden="true">
-            •
+            |
           </span>
           <span className="build-footer__item" title={apiUpdated.title}>
             <span className="build-footer__label">API aggiornata</span>
@@ -78,7 +78,7 @@ export function BuildFooter({ variant = 'app', apiHealth }: BuildFooterProps) {
           {deploymentLabel ? (
             <>
               <span className="build-footer__dot" aria-hidden="true">
-                •
+                |
               </span>
               <span className="build-footer__item" title={BUILD_DEPLOYMENT_ID ?? undefined}>
                 <span className="build-footer__label">Web deploy</span>
@@ -89,7 +89,7 @@ export function BuildFooter({ variant = 'app', apiHealth }: BuildFooterProps) {
           {apiDeploymentLabel ? (
             <>
               <span className="build-footer__dot" aria-hidden="true">
-                •
+                |
               </span>
               <span className="build-footer__item" title={apiHealth?.deployment_id ?? undefined}>
                 <span className="build-footer__label">API deploy</span>

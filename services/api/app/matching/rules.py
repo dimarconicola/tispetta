@@ -19,6 +19,8 @@ class MatchComputation:
     status: str
     score: float
     missing_fields: list[str]
+    blocking_missing_fields: list[str]
+    refinement_missing_fields: list[str]
     matched_conditions: list[dict[str, Any]]
     failed_conditions: list[dict[str, Any]]
     blockers: list[dict[str, Any]]
@@ -167,12 +169,16 @@ def compute_match(rule_json: dict[str, Any], payload: dict[str, Any]) -> MatchCo
     triggered_disqualifiers = [item for result in disqualifiers if result.ok for item in result.matched_conditions]
     matched_boosters = [item for result in boosters if result.ok for item in result.matched_conditions]
     tolerated_missing_fields = {field for result in tolerated_missing for field in result.missing_fields}
+    blocking_missing_fields = sorted(field for field in missing_fields if field not in tolerated_missing_fields)
+    refinement_missing_fields = sorted(field for field in missing_fields if field in tolerated_missing_fields)
 
     if triggered_disqualifiers:
         return MatchComputation(
             status=MatchStatus.NOT_ELIGIBLE.value,
             score=0.0,
             missing_fields=missing_fields,
+            blocking_missing_fields=blocking_missing_fields,
+            refinement_missing_fields=refinement_missing_fields,
             matched_conditions=matched_required,
             failed_conditions=failed_required,
             blockers=triggered_disqualifiers,
@@ -210,6 +216,8 @@ def compute_match(rule_json: dict[str, Any], payload: dict[str, Any]) -> MatchCo
         status=base_status,
         score=max(score, 0),
         missing_fields=missing_fields,
+        blocking_missing_fields=blocking_missing_fields,
+        refinement_missing_fields=refinement_missing_fields,
         matched_conditions=matched_required,
         failed_conditions=failed_required,
         blockers=triggered_disqualifiers,

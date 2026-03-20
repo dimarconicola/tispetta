@@ -55,6 +55,46 @@ export type ProfileQuestion = {
   why_needed?: string | null;
   coverage_weight?: number;
   ambiguity_reduction_score?: number;
+  priority?: number;
+  impact_counts?: {
+    clarification_opportunity_count: number;
+    blocking_opportunity_count: number;
+    upgrade_opportunity_count: number;
+  };
+  blocking_opportunity_count?: number;
+  upgrade_opportunity_count?: number;
+};
+
+export type ProfileQuestionModule = {
+  key: string;
+  title: string;
+  description: string;
+  questions: ProfileQuestion[];
+};
+
+export type ProfileQuestionResponse = {
+  recommended_step: string;
+  progress_summary: {
+    core_answered: number;
+    core_total: number;
+    strategic_answered: number;
+    strategic_total: number;
+    conditional_answered: number;
+    conditional_total: number;
+    completeness_score: number;
+    blocked_opportunity_count: number;
+    upgradable_opportunity_count: number;
+  };
+  modules: ProfileQuestionModule[];
+};
+
+export type MatchQuestionHint = {
+  key: string;
+  label: string;
+  kind: string;
+  why_this_question_matters_now?: string | null;
+  blocking_opportunity_count: number;
+  upgrade_opportunity_count: number;
 };
 
 export type OpportunityCard = {
@@ -73,6 +113,10 @@ export type OpportunityCard = {
   estimated_value_max: number | null;
   last_checked_at: string;
   is_saved: boolean;
+  why_now?: string | null;
+  blocking_question_keys: string[];
+  match_reasons: string[];
+  blocking_missing_labels: string[];
 };
 
 export type OpportunityDetail = OpportunityCard & {
@@ -86,6 +130,15 @@ export type OpportunityDetail = OpportunityCard & {
   why_this_matches: string[];
   what_is_missing: string[];
   verification_status: string;
+  match_breakdown: {
+    status: string | null;
+    matched_reasons: string[];
+    blocking_missing_facts: MatchQuestionHint[];
+    refinement_facts: MatchQuestionHint[];
+    next_best_questions: MatchQuestionHint[];
+    why_matched: string[];
+    what_blocks_confirmation: string[];
+  };
 };
 
 export type NotificationPreferences = {

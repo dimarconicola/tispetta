@@ -1,6 +1,7 @@
 import './globals.css';
 
 import type { Metadata, Viewport } from 'next';
+import localFont from 'next/font/local';
 import Script from 'next/script';
 import { headers } from 'next/headers';
 
@@ -17,6 +18,18 @@ import { APEX_HOST, isApexLikeHost } from '@/lib/hosts';
 import { getApiHealthSummary, getSessionUser } from '@/lib/server-api';
 
 const appSiteUrl = new URL(PUBLIC_APP_URL);
+const bodyFont = localFont({
+  src: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
+  variable: '--font-body-family',
+  display: 'swap',
+  weight: '100 900',
+});
+const headingFont = localFont({
+  src: '../node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2',
+  variable: '--font-display-family',
+  display: 'swap',
+  weight: '100 900',
+});
 
 function resolveHostExperience(host: string | null | undefined) {
   const marketingHost = isApexLikeHost(host);
@@ -96,7 +109,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="it">
-      <body>
+      <body className={`${bodyFont.variable} ${headingFont.variable}`}>
         <main className="page-shell">
           <Topbar user={user} variant={experience.marketingHost ? 'marketing' : 'app'} />
           {children}

@@ -14,7 +14,7 @@ import type {
   OpportunityCard,
   OpportunityDetail,
   Profile,
-  ProfileQuestion,
+  ProfileQuestionResponse,
   ReviewItem,
   RuleListItem,
   RuleTestResult,
@@ -76,8 +76,8 @@ export async function getProfile(): Promise<Profile | null> {
   return apiFetch<Profile>('/v1/profile');
 }
 
-export async function getProfileQuestions(): Promise<ProfileQuestion[]> {
-  return (await apiFetch<ProfileQuestion[]>('/v1/profile/questions')) ?? [];
+export async function getProfileQuestions(): Promise<ProfileQuestionResponse | null> {
+  return apiFetch<ProfileQuestionResponse>('/v1/profile/questions');
 }
 
 export async function getOpportunities(params?: Record<string, string | boolean | undefined>): Promise<OpportunityCard[]> {

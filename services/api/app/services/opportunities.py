@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import UTC, datetime
 
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Match, Opportunity, RecordStatus, SavedOpportunity, User
+from app.matching.rules import PROFILE_FIELD_LABELS
+from app.models import Match, MatchEvaluation, Opportunity, RecordStatus, SavedOpportunity, User
+from app.services.profile import get_profile_questions
 
 
 def _search_clause(query: str):
@@ -40,16 +43,33 @@ def list_opportunities(
     opportunities = db.execute(stmt).scalars().all()
     saved_ids: set[str] = set()
     matches_by_opp: dict[str, Match] = {}
+    latest_evaluations_by_match_id: dict[str, MatchEvaluation] = {}
+    question_lookup: dict[str, dict] = {}
     if user is not None:
         saved_ids = set(
             db.execute(select(SavedOpportunity.opportunity_id).where(SavedOpportunity.user_id == user.id)).scalars().all()
         )
         user_matches = db.execute(select(Match).where(Match.user_id == user.id)).scalars().all()
         matches_by_opp = {match.opportunity_id: match for match in user_matches}
+        if user_matches:
+            evaluations = (
+                db.execute(
+                    select(MatchEvaluation)
+                    .where(MatchEvaluation.match_id.in_([match.id for match in user_matches]))
+                    .order_by(MatchEvaluation.created_at.desc())
+                )
+                .scalars()
+                .all()
+            )
+            for evaluation in evaluations:
+                latest_evaluations_by_match_id.setdefault(evaluation.match_id, evaluation)
+        question_lookup = flatten_question_lookup(get_profile_questions(db, user))
 
     payloads: list[dict] = []
     for opportunity in opportunities:
         match = matches_by_opp.get(opportunity.id)
+        evaluation = latest_evaluations_by_match_id.get(match.id) if match else None
+        match_meta = build_match_metadata(match, evaluation, question_lookup)
         if matched_status and (match is None or match.match_status != matched_status):
             continue
         if saved_only and opportunity.id not in saved_ids:
@@ -71,13 +91,21 @@ def list_opportunities(
                 'estimated_value_max': opportunity.estimated_value_max,
                 'last_checked_at': opportunity.last_checked_at,
                 'is_saved': opportunity.id in saved_ids,
+                'why_now': build_why_now(match, match_meta),
+                'blocking_question_keys': match_meta['blocking_keys'],
+                'match_reasons': match_meta['matched_reasons'],
+                'blocking_missing_labels': match_meta['blocking_labels'],
             }
         )
     payloads.sort(
         key=lambda item: (
             status_rank(item['match_status']),
-            item['deadline_date'].timestamp() if item['deadline_date'] else float('inf'),
+            len(item['blocking_question_keys']),
+            deadline_urgency_bucket(item['deadline_date']),
+            -len(item['match_reasons']),
             -(item['match_score'] or 0),
+            -float(item['estimated_value_max'] or 0),
+            freshness_bucket(item['last_checked_at']),
         )
     )
     return payloads
@@ -99,17 +127,24 @@ def get_opportunity_detail(db: Session, opportunity_key: str, user: User | None)
     version = opportunity.current_version
     match = None
     is_saved = False
+    evaluation = None
+    question_lookup: dict[str, dict] = {}
     if user is not None:
         match = db.execute(select(Match).where(Match.user_id == user.id, Match.opportunity_id == opportunity.id)).scalar_one_or_none()
         is_saved = db.execute(
             select(SavedOpportunity).where(SavedOpportunity.user_id == user.id, SavedOpportunity.opportunity_id == opportunity.id)
         ).scalar_one_or_none() is not None
+        question_lookup = flatten_question_lookup(get_profile_questions(db, user))
+        if match is not None:
+            evaluation = db.execute(
+                select(MatchEvaluation)
+                .where(MatchEvaluation.match_id == match.id)
+                .order_by(MatchEvaluation.created_at.desc())
+            ).scalars().first()
 
-    why = []
-    missing = []
-    if match is not None:
-        why = [match.explanation_summary]
-        missing = match.missing_fields
+    match_meta = build_match_metadata(match, evaluation, question_lookup)
+    why = match_meta['matched_reasons'] or ([match.explanation_summary] if match is not None else [])
+    missing = match_meta['blocking_labels'] or ([PROFILE_FIELD_LABELS.get(item, item) for item in match.missing_fields] if match is not None else [])
 
     return {
         'id': opportunity.id,
@@ -137,6 +172,21 @@ def get_opportunity_detail(db: Session, opportunity_key: str, user: User | None)
         'what_is_missing': missing,
         'verification_status': version.verification_status,
         'is_saved': is_saved,
+        'why_now': build_why_now(match, match_meta),
+        'blocking_question_keys': match_meta['blocking_keys'],
+        'match_reasons': match_meta['matched_reasons'],
+        'blocking_missing_labels': match_meta['blocking_labels'],
+        'match_breakdown': {
+            'status': match.match_status if match else None,
+            'matched_reasons': match_meta['matched_reasons'],
+            'blocking_missing_facts': match_meta['blocking_facts'],
+            'refinement_facts': match_meta['refinement_facts'],
+            'next_best_questions': match_meta['next_best_questions'],
+            'why_matched': why,
+            'what_blocks_confirmation': [
+                f"Manca {label.lower()}" for label in match_meta['blocking_labels']
+            ],
+        },
     }
 
 
@@ -179,3 +229,107 @@ def interpret_query(query: str) -> dict:
     elif 'energia' in lowered or 'sostenibil' in lowered:
         category = 'sustainability_incentive'
     return {'query': query, 'category': category}
+
+
+def flatten_question_lookup(question_payload: dict | None) -> dict[str, dict]:
+    lookup: dict[str, dict] = {}
+    if not question_payload:
+        return lookup
+    for module in question_payload.get('modules', []):
+        for question in module.get('questions', []):
+            lookup[question['key']] = question
+    return lookup
+
+
+def build_match_metadata(
+    match: Match | None,
+    evaluation: MatchEvaluation | None,
+    question_lookup: dict[str, dict],
+) -> dict[str, list | dict]:
+    trace = evaluation.rule_evaluation_trace if evaluation is not None else {}
+    matched_reasons = unique_preserving_order(
+        [item.get('label') for item in trace.get('matched_conditions', []) if item.get('label')]
+    )[:3]
+    blocking_keys = trace.get('blocking_missing_fields') or []
+    refinement_keys = trace.get('refinement_missing_fields') or []
+    blocking_facts = [build_question_hint(key, question_lookup) for key in blocking_keys]
+    refinement_facts = [build_question_hint(key, question_lookup) for key in refinement_keys]
+    next_best_questions = sorted(
+        blocking_facts + refinement_facts,
+        key=lambda item: (-(item['upgrade_opportunity_count']), -(item['blocking_opportunity_count']), item['label']),
+    )[:3]
+    return {
+        'matched_reasons': matched_reasons or ([match.explanation_summary] if match is not None and match.explanation_summary else []),
+        'blocking_keys': blocking_keys,
+        'blocking_labels': [item['label'] for item in blocking_facts],
+        'blocking_facts': blocking_facts,
+        'refinement_facts': refinement_facts,
+        'next_best_questions': next_best_questions,
+    }
+
+
+def build_question_hint(key: str, question_lookup: dict[str, dict]) -> dict:
+    question = question_lookup.get(key)
+    if question is None:
+        return {
+            'key': key,
+            'label': PROFILE_FIELD_LABELS.get(key, key.replace('_', ' ')),
+            'kind': 'unknown',
+            'why_this_question_matters_now': None,
+            'blocking_opportunity_count': 0,
+            'upgrade_opportunity_count': 0,
+        }
+    return {
+        'key': key,
+        'label': question['label'],
+        'kind': question['kind'],
+        'why_this_question_matters_now': question.get('why_needed'),
+        'blocking_opportunity_count': question.get('blocking_opportunity_count', 0),
+        'upgrade_opportunity_count': question.get('upgrade_opportunity_count', 0),
+    }
+
+
+def build_why_now(match: Match | None, meta: dict[str, list | dict]) -> str | None:
+    if match is None:
+        return 'Completa il profilo per ottenere un primo match spiegabile.'
+    if meta['blocking_labels']:
+        labels = ', '.join(meta['blocking_labels'][:2])
+        return f"Puoi confermarla rispondendo prima su {labels}."
+    if meta['matched_reasons']:
+        return f"Sta emergendo ora per {meta['matched_reasons'][0].lower()}."
+    return match.explanation_summary
+
+
+def deadline_urgency_bucket(deadline_date) -> int:
+    if deadline_date is None:
+        return 4
+    normalized = ensure_utc(deadline_date)
+    days = (normalized - datetime.now(UTC)).days
+    if days <= 7:
+        return 0
+    if days <= 30:
+        return 1
+    return 2
+
+
+def freshness_bucket(last_checked_at) -> float:
+    if last_checked_at is None:
+        return float('inf')
+    return (datetime.now(UTC) - ensure_utc(last_checked_at)).total_seconds()
+
+
+def unique_preserving_order(values: Iterable[str | None]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return ordered
+
+
+def ensure_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)

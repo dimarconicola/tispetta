@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_optional_current_user
 from app.db.session import get_db
 from app.matching.service import evaluate_profile_against_catalog
-from app.schemas.profile import ProfilePayload, ProfileQuestion, ProfileResponse
+from app.schemas.profile import ProfilePayload, ProfileQuestionResponse, ProfileResponse
 from app.services.profile import get_or_create_profile, get_profile_questions, profile_to_response, update_profile
 
 router = APIRouter(prefix='/v1/profile', tags=['profile'])
@@ -26,6 +26,6 @@ def put_profile(payload: ProfilePayload, db: Session = Depends(get_db), user=Dep
     return ProfileResponse.model_validate(profile_to_response(profile))
 
 
-@router.get('/questions', response_model=list[ProfileQuestion])
-def get_questions(db: Session = Depends(get_db), user=Depends(get_optional_current_user)) -> list[ProfileQuestion]:
-    return [ProfileQuestion.model_validate(question) for question in get_profile_questions(db, user)]
+@router.get('/questions', response_model=ProfileQuestionResponse)
+def get_questions(db: Session = Depends(get_db), user=Depends(get_optional_current_user)) -> ProfileQuestionResponse:
+    return ProfileQuestionResponse.model_validate(get_profile_questions(db, user))

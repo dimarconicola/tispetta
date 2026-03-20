@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 import { MagicLinkForm } from '@/components/magic-link-form';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
   title: 'Accedi',
@@ -15,33 +18,36 @@ export default function SignInPage() {
   const isLocalEnvironment = process.env.NODE_ENV !== 'production';
 
   return (
-    <section className="split">
+    <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
       <MagicLinkForm />
-      <div className="panel stack">
+      <div className="grid gap-4">
+        <Card>
+          <CardHeader className="gap-3">
+            <Badge variant="outline" className="w-fit">Produzione</Badge>
+            <CardTitle className="text-4xl leading-[0.95]">Il link arriva via email e scade in 30 minuti.</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-sm leading-7 text-slate-600">
+            <p>Ogni accesso crea una sessione nuova sul dominio sicuro di Tispetta.</p>
+            <p>Se non trovi il messaggio, controlla spam e promozioni prima di richiedere un secondo invio.</p>
+            <p>
+              Se arrivi dal sito principale e vuoi un percorso piu guidato, usa <Link href="/start" className="font-semibold text-primary">l&apos;ingresso dedicato</Link>.
+            </p>
+          </CardContent>
+        </Card>
+
         {isLocalEnvironment ? (
-          <>
-            <p className="eyebrow">Suggerimento locale</p>
-            <h2 style={{ fontSize: '2.4rem' }}>Usa gli account seed per vedere subito il prodotto</h2>
-            <ul className="list-reset stack subtle">
-              <li>`demo@example.com` per il percorso utente</li>
-              <li>`admin@example.com` per il pannello operatore</li>
-              <li>Mailpit: `http://localhost:8025` per controllare le email locali</li>
-            </ul>
-          </>
-        ) : (
-          <>
-            <p className="eyebrow">Produzione</p>
-            <h2 style={{ fontSize: '2.4rem' }}>Il link arriva via email e scade in 30 minuti</h2>
-            <div className="stack subtle">
-              <p>Ogni accesso crea una sessione nuova sul dominio sicuro di Tispetta.</p>
-              <p>Se non trovi il messaggio, controlla spam e promozioni prima di richiedere un secondo invio.</p>
-              <p>
-                Se arrivi dal sito principale e vuoi un percorso piu guidato, usa{' '}
-                <a href="/start">l&apos;ingresso dedicato</a>.
-              </p>
-            </div>
-          </>
-        )}
+          <Card>
+            <CardHeader className="gap-3">
+              <Badge variant="soft" className="w-fit">Locale</Badge>
+              <CardTitle className="text-2xl">Account seed</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm leading-6 text-slate-600">
+              <span>`demo@example.com` per il percorso utente</span>
+              <span>`admin@example.com` per il pannello operatore</span>
+              <span>Mailpit: `http://localhost:8025` per controllare le email locali</span>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </section>
   );

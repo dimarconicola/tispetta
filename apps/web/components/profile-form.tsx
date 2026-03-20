@@ -1,237 +1,369 @@
 'use client';
 
 import Link from 'next/link';
+import { BriefcaseBusiness, ChevronRight, CircleHelp, Sparkles, UserRound } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 
-import type { Profile, ProfileQuestion } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import type { Profile, ProfileQuestion, ProfileQuestionResponse } from '@/lib/types';
+
+import { QuestionStepper } from './question-stepper';
 
 const API_URL = '/api/proxy';
 
-const MODULE_COPY: Record<string, { eyebrow: string; title: string; body: string; stepLabel: string }> = {
+type ViewStep = 'gate' | 'core_entity' | 'results' | 'strategic_intent' | 'conditional_accuracy';
+
+type FormValues = Record<string, string | boolean | null>;
+
+const STEP_COPY: Record<Exclude<ViewStep, 'gate'>, { eyebrow: string; title: string; body: string }> = {
   core_entity: {
-    eyebrow: 'Step 1 di 3',
+    eyebrow: 'Step 1',
     title: 'Chiudi il perimetro stabile',
-    body: 'Completa solo i fatti che spostano davvero l’ammissibilita iniziale. Dopo questo salvataggio vedi subito i primi match.',
-    stepLabel: 'Core Entity',
+    body: "Compila solo i dati che spostano davvero l'ammissibilita iniziale. Dopo il salvataggio vedi subito i primi match.",
+  },
+  results: {
+    eyebrow: 'Step 2',
+    title: 'Hai gia una prima lettura spendibile',
+    body: 'Ora sai gia cosa sta emergendo. Il resto serve a chiudere le ambiguita, non a sbloccare il prodotto.',
   },
   strategic_intent: {
-    eyebrow: 'Step 2 di 3',
-    title: 'Aumenta la precisione sui progetti reali',
-    body: 'Queste domande migliorano ranking e copertura su export, investimenti digitali, energia e hiring. Non bloccano i risultati gia visibili.',
-    stepLabel: 'Strategic Intent',
+    eyebrow: 'Step 3',
+    title: 'Migliora precisione e coverage',
+    body: 'Qui apri solo i moduli che corrispondono a progetti reali: assunzioni, export, investimenti digitali o energia.',
   },
   conditional_accuracy: {
-    eyebrow: 'Step 3 di 3',
-    title: 'Chiudi solo le ambiguita residue',
-    body: 'Qui compaiono solo le domande che una famiglia di misure attiva richiede davvero per chiarire lo stato.',
-    stepLabel: 'Conditional Accuracy',
+    eyebrow: 'Step 4',
+    title: 'Chiudi solo i blocchi veri',
+    body: 'Le domande finali compaiono solo quando una misura attiva dipende davvero da questa risposta.',
   },
 };
 
-type StepKey = 'core' | 'strategic' | 'conditional';
+const GROUP_LABELS: Record<string, { title: string; body: string }> = {
+  hiring: {
+    title: 'Assunzioni',
+    body: 'Serve solo per incentivi occupazionali e bonus legati al profilo del lavoratore target.',
+  },
+  export: {
+    title: 'Export e mercati',
+    body: 'Domande che chiariscono se le famiglie SIMEST e simili sono davvero rilevanti per te.',
+  },
+  digital_energy: {
+    title: 'Digitale, energia e investimenti',
+    body: 'Usate per Transizione 4.0 / 5.0 e misure progettuali, non per il matching di base.',
+  },
+  personal_family: {
+    title: 'Benefici personali e familiari',
+    body: 'Dati che compaiono solo per misure personali, familiari o fiscali specifiche.',
+  },
+  general: {
+    title: 'Dettagli aggiuntivi',
+    body: 'Informazioni ulteriori che possono affinare stato e priorita dei match.',
+  },
+};
+const DEFAULT_GROUP_LABEL = {
+  title: 'Dettagli aggiuntivi',
+  body: 'Informazioni ulteriori che possono affinare stato e priorita dei match.',
+};
 
 export function ProfileForm({
   profile,
-  questions,
+  questionPayload,
   currentStep,
   entry,
 }: {
   profile: Profile | null;
-  questions: ProfileQuestion[];
-  currentStep: StepKey;
+  questionPayload: ProfileQuestionResponse | null;
+  currentStep: ViewStep;
   entry?: string;
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [gatePassed, setGatePassed] = useState(Boolean(resolveUserType(profile)));
+  const [localStep, setLocalStep] = useState<ViewStep>(currentStep);
+  const [selectedProfileType, setSelectedProfileType] = useState<string | null>(resolveUserType(profile));
   const initialValues = useMemo(() => buildInitialValues(profile), [profile]);
-  const { register, handleSubmit, watch, setValue } = useForm<Record<string, string | boolean | null>>({
-    defaultValues: initialValues,
-  });
+  const { register, handleSubmit, watch, setValue } = useForm<FormValues>({ defaultValues: initialValues });
 
-  const userType = (watch('profile_type') as string | undefined) || resolveUserType(profile) || 'startup';
-  const visibleQuestions = useMemo(
-    () => questions.filter((question) => !question.audience || question.audience.includes(userType)),
-    [questions, userType]
-  );
-  const grouped = useMemo(() => {
-    const buckets: Record<string, ProfileQuestion[]> = {
-      core_entity: [],
-      strategic_intent: [],
-      conditional_accuracy: [],
-    };
-    for (const question of visibleQuestions) {
-      const moduleKey = question.module ?? 'core_entity';
-      const bucket = buckets[moduleKey] ?? [];
-      bucket.push(question);
-      buckets[moduleKey] = bucket;
-    }
-    return buckets;
-  }, [visibleQuestions]);
+  const activeStep = localStep === 'gate' && selectedProfileType ? 'core_entity' : localStep;
+  const watchedProfileType = (watch('profile_type') as string | undefined) || selectedProfileType || 'startup';
+  const moduleMap = useMemo(() => new Map((questionPayload?.modules ?? []).map((module) => [module.key, module])), [questionPayload]);
+  const activeQuestions = useMemo(() => {
+    if (activeStep === 'results' || activeStep === 'gate') return [];
+    const rawQuestions = moduleMap.get(activeStep)?.questions ?? [];
+    return rawQuestions
+      .filter((question) => !question.audience || question.audience.includes(watchedProfileType))
+      .filter((question) => !(activeStep === 'core_entity' && question.key === 'profile_type'));
+  }, [activeStep, moduleMap, watchedProfileType]);
+  const groupedQuestions = useMemo(() => groupQuestionsByIntent(activeQuestions), [activeQuestions]);
+  const hasConditionalQuestions = Boolean((moduleMap.get('conditional_accuracy')?.questions ?? []).length);
+  const progress = questionPayload?.progress_summary;
+  const progressPercent = progress ? Math.min(100, Math.max(8, progress.completeness_score)) : 8;
 
-  const currentModule = currentStep === 'core' ? 'core_entity' : currentStep === 'strategic' ? 'strategic_intent' : 'conditional_accuracy';
-  const currentQuestions = grouped[currentModule] ?? [];
-  const hasConditionalQuestions = (grouped.conditional_accuracy ?? []).length > 0;
-  const moduleCopy: (typeof MODULE_COPY)[keyof typeof MODULE_COPY] =
-    MODULE_COPY[currentModule] ?? MODULE_COPY.core_entity!;
+  if (activeStep === 'gate' && !selectedProfileType) {
+    return (
+      <div className="grid gap-6">
+        <QuestionStepper current="gate" progress={6} />
+        <Card>
+          <CardHeader className="gap-3">
+            <Badge variant="soft" className="w-fit">Step 0</Badge>
+            <CardTitle className="text-4xl leading-[0.95]">Per chi stai cercando opportunita?</CardTitle>
+            <CardDescription className="max-w-2xl text-base leading-7">
+              Questa scelta non e cosmetica: separa benefici personali e familiari dalle misure per attivita, freelance, startup e PMI.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <button
+              type="button"
+              className={gateCardClass}
+              onClick={() => {
+                setSelectedProfileType('persona_fisica');
+                setValue('profile_type', 'persona_fisica');
+                setLocalStep('core_entity');
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-primary">
+                  <UserRound className="size-5" />
+                </span>
+                <div className="text-left">
+                  <p className="text-base font-semibold text-slate-950">Persona fisica</p>
+                  <p className="mt-1 text-sm text-slate-600">Bonus familiari, INPS, fisco personale, lavoro e casa.</p>
+                </div>
+              </div>
+              <span className="text-sm font-medium text-slate-500">Percorso breve e focalizzato sui tuoi diritti personali.</span>
+            </button>
+
+            <button
+              type="button"
+              className={gateCardClass}
+              onClick={() => {
+                setSelectedProfileType('startup');
+                setValue('profile_type', 'startup');
+                setLocalStep('core_entity');
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
+                  <BriefcaseBusiness className="size-5" />
+                </span>
+                <div className="text-left">
+                  <p className="text-base font-semibold text-slate-950">Attivita o impresa</p>
+                  <p className="mt-1 text-sm text-slate-600">Freelance, startup, PMI, crediti, voucher, export, assunzioni.</p>
+                </div>
+              </div>
+              <span className="text-sm font-medium text-slate-500">Prima ti chiediamo perimetro stabile, poi solo i moduli che servono davvero.</span>
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeStep === 'results') {
+    return (
+      <div className="grid gap-6">
+        <QuestionStepper current="results" progress={progressPercent} />
+        <Card>
+          <CardHeader className="gap-3">
+            <Badge variant="soft" className="w-fit">{STEP_COPY.results.eyebrow}</Badge>
+            <CardTitle className="text-4xl leading-[0.95]">{STEP_COPY.results.title}</CardTitle>
+            <CardDescription className="max-w-2xl text-base leading-7">{STEP_COPY.results.body}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="grid gap-4 rounded-[1.75rem] border border-border/70 bg-white/80 p-5">
+              <div className="flex items-center gap-2 text-primary">
+                <Sparkles className="size-4" />
+                <span className="text-sm font-semibold">Il motore ha gia un perimetro serio.</span>
+              </div>
+              <p className="text-sm leading-7 text-slate-600">
+                Da qui in poi puoi scegliere quanta precisione aggiungere. Le domande successive servono a far salire i match da unclear o likely verso confirmed.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <a className="button" href={nextHref('results', hasConditionalQuestions, entry)}>
+                  Migliora precisione
+                  <ChevronRight className="size-4" />
+                </a>
+                <a className="button-secondary" href={`/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}`}>
+                  Vai ai risultati completi
+                </a>
+              </div>
+            </div>
+            <div className="grid gap-3 rounded-[1.75rem] border border-border/70 bg-slate-50/85 p-5 text-sm text-slate-600">
+              <span className="eyebrow">Snapshot</span>
+              <span>Core risposto: {progress?.core_answered ?? 0}/{progress?.core_total ?? 0}</span>
+              <span>Blocchi chiaribili: {progress?.blocked_opportunity_count ?? 0}</span>
+              <span>Upgrade potenziali: {progress?.upgradable_opportunity_count ?? 0}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const copy = STEP_COPY[activeStep as Exclude<ViewStep, 'gate'>];
 
   return (
     <form
-      className="stack"
+      className="grid gap-6"
       onSubmit={handleSubmit((values) => {
         startTransition(async () => {
           setMessage(null);
-          const normalized = {
-            fact_values: Object.fromEntries(
-              currentQuestions
-                .map((question) => [question.key, normalizeValue(question, values[question.key])])
-                .filter(([, value]) => value !== undefined)
-            ),
-          };
+          const currentQuestions = activeQuestions;
+          const normalizedFactValues = Object.fromEntries(
+            currentQuestions
+              .map((question) => [question.key, normalizeValue(question, values[question.key])])
+              .filter(([, value]) => value !== undefined)
+          );
+          if (!normalizedFactValues.profile_type && selectedProfileType) {
+            normalizedFactValues.profile_type = selectedProfileType;
+          }
           const response = await fetch(`${API_URL}/v1/profile`, {
             method: 'PUT',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(normalized),
+            body: JSON.stringify({ fact_values: normalizedFactValues }),
           });
           if (!response.ok) {
-            setMessage('Aggiornamento non riuscito.');
+            setMessage('Aggiornamento non riuscito. Riprova tra qualche secondo.');
             return;
           }
-          const next = nextHref(currentStep, hasConditionalQuestions, entry);
-          window.location.assign(next);
+          window.location.assign(nextHref(activeStep, hasConditionalQuestions, entry));
         });
       })}
     >
-      {!gatePassed ? (
-        <div className="stack">
-          <div className="panel stack">
-            <p className="eyebrow">Ingresso</p>
-            <h2 style={{ fontSize: '2rem' }}>Per chi stai cercando opportunita?</h2>
-            <p className="subtle">Serve solo a scegliere il ramo giusto. Il resto delle domande resta nel core a massimo 8 risposte.</p>
-          </div>
-          <div className="grid cards-2">
-            <button
-              type="button"
-              className="card stack"
-              style={{ textAlign: 'left', cursor: 'pointer', border: '1px solid var(--line)' }}
-              onClick={() => {
-                setValue('profile_type', 'persona_fisica');
-                setGatePassed(true);
-              }}
-            >
-              <span className="eyebrow">Persona fisica</span>
-              <h3>Benefit, bonus e misure personali</h3>
-              <p className="subtle">Ti mostriamo un percorso focalizzato su benefici personali e lavoro, senza trascinarti nel ramo impresa.</p>
-            </button>
-            <button
-              type="button"
-              className="card stack"
-              style={{ textAlign: 'left', cursor: 'pointer', border: '1px solid var(--line)' }}
-              onClick={() => {
-                setValue('profile_type', 'startup');
-                setGatePassed(true);
-              }}
-            >
-              <span className="eyebrow">Attivita o impresa</span>
-              <h3>Incentivi, crediti e misure imprenditoriali</h3>
-              <p className="subtle">Percorso per freelance strutturati, startup e PMI con domande su perimetro, investimenti e priorita reali.</p>
-            </button>
-          </div>
+      <QuestionStepper current={activeStep} progress={progressPercent} />
+
+      <Card>
+        <CardHeader className="gap-3">
+          <Badge variant="soft" className="w-fit">{copy.eyebrow}</Badge>
+          <CardTitle className="text-4xl leading-[0.95]">{copy.title}</CardTitle>
+          <CardDescription className="max-w-3xl text-base leading-7">{copy.body}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          <Stat label="Domande attive" value={String(activeQuestions.length)} />
+          <Stat label="Blocchi chiaribili" value={String(sumQuestionMetric(activeQuestions, 'blocking_opportunity_count'))} />
+          <Stat label="Upgrade potenziali" value={String(sumQuestionMetric(activeQuestions, 'upgrade_opportunity_count'))} />
+        </CardContent>
+      </Card>
+
+      {activeStep === 'core_entity' ? (
+        <div className="rounded-[1.75rem] border border-blue-100 bg-blue-50/80 px-5 py-4 text-sm leading-7 text-blue-950">
+          Hai scelto il percorso <strong>{selectedProfileType === 'persona_fisica' ? 'Persona fisica' : 'Attivita o impresa'}</strong>. Se vuoi cambiare ramo, torna indietro ricaricando questa pagina prima di salvare il core.
         </div>
-      ) : (
-        <>
-          <section className="panel stack">
-            <div className="stack" style={{ gap: '0.45rem' }}>
-              <p className="eyebrow">{moduleCopy.eyebrow}</p>
-              <h2 style={{ fontSize: '2rem' }}>{moduleCopy.title}</h2>
-              <p className="subtle">{moduleCopy.body}</p>
-            </div>
-            <div className="meta-list">
-              <span>Modulo: {moduleCopy.stepLabel}</span>
-              <span>Domande attive ora: {currentQuestions.length}</span>
-              <span>Sensibili: {currentQuestions.filter((question) => question.sensitive).length}</span>
-            </div>
-          </section>
+      ) : null}
 
-          {currentQuestions.length > 0 ? (
-            <section className="panel stack">
-              <div className="form-grid">
-                {currentQuestions.map((question) => (
-                  <label className="field" key={question.key}>
-                    <span>{question.label}</span>
-                    {question.kind === 'boolean' ? (
-                      <select {...register(question.key)}>
-                        <option value="">Seleziona</option>
-                        <option value="true">Si</option>
-                        <option value="false">No</option>
-                      </select>
-                    ) : question.options ? (
-                      <select {...register(question.key)}>
-                        <option value="">Seleziona</option>
-                        {question.options.map((option) => (
-                          <option key={option} value={option}>
-                            {formatOptionLabel(option)}
-                          </option>
-                        ))}
-                      </select>
-                    ) : question.kind === 'text' ? (
-                      <textarea {...register(question.key)} />
-                    ) : (
-                      <input {...register(question.key)} />
-                    )}
-                    {question.helper_text ? <small className="subtle">{question.helper_text}</small> : null}
-                    {question.why_needed ? (
-                      <small className="subtle">
-                        {question.sensitive ? 'Perche te lo chiediamo adesso: ' : 'Perche lo chiediamo: '}
-                        {question.why_needed}
-                      </small>
-                    ) : null}
-                    {question.ask_when_measure_families?.length ? (
-                      <small className="subtle">Misure che dipendono da questa risposta: {question.ask_when_measure_families.join(', ')}</small>
-                    ) : null}
-                    {question.sensitive ? <small className="subtle">Dato sensibile: compare solo in presenza di un blocco o di una famiglia rilevante.</small> : null}
-                  </label>
-                ))}
+      {groupedQuestions.map(([groupKey, questions]) => {
+        const groupMeta = GROUP_LABELS[groupKey] ?? DEFAULT_GROUP_LABEL;
+        return (
+          <Card key={groupKey}>
+            <CardHeader className="gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{groupMeta.title}</Badge>
+                {questions.some((question) => question.sensitive) ? <Badge variant="soft">Sensibile solo se serve</Badge> : null}
               </div>
-            </section>
-          ) : (
-            <section className="panel stack">
-              <p className="subtle">
-                Nessuna domanda aggiuntiva e necessaria in questo modulo. Puoi andare direttamente ai risultati o tornare piu avanti se il catalogo cambia.
-              </p>
-            </section>
-          )}
+              <CardTitle className="text-2xl">{groupMeta.title}</CardTitle>
+              <CardDescription>{groupMeta.body}</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-5 md:grid-cols-2">
+              {questions.map((question) => (
+                <QuestionField key={question.key} question={question} register={register} />
+              ))}
+            </CardContent>
+          </Card>
+        );
+      })}
 
-          <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
-            <button className="button" type="submit" disabled={isPending}>
-              {isPending
-                ? 'Salvataggio...'
-                : currentStep === 'core'
-                  ? 'Salva il core e mostra i risultati'
-                  : currentStep === 'strategic'
-                    ? hasConditionalQuestions
-                      ? 'Salva e passa alla precisione finale'
-                      : 'Salva e vai ai risultati'
-                    : 'Aggiorna e vai ai risultati'}
-            </button>
-            {currentStep !== 'core' ? (
-              <Link className="button-secondary" href="/search">
-                Salta per ora
-              </Link>
-            ) : null}
-          </div>
-          {message ? <div className="banner">{message}</div> : null}
-        </>
-      )}
+      {activeQuestions.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-sm text-slate-600">
+            Nessuna domanda attiva in questo step. Puoi proseguire direttamente ai risultati.
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="flex flex-wrap gap-3">
+        <Button type="submit" className="min-w-[16rem]">
+          {isPending ? 'Salvataggio...' : submitLabel(activeStep, hasConditionalQuestions)}
+        </Button>
+        {activeStep !== 'core_entity' ? (
+          <a className="button-secondary" href={skipHref(entry)}>
+            Salta per ora
+          </a>
+        ) : null}
+      </div>
+      {message ? <div className="banner">{message}</div> : null}
     </form>
   );
 }
 
-function buildInitialValues(profile: Profile | null): Record<string, string | boolean | null> {
+function QuestionField({
+  question,
+  register,
+}: {
+  question: ProfileQuestion;
+  register: ReturnType<typeof useForm<FormValues>>['register'];
+}) {
+  return (
+    <div className="grid gap-3 rounded-[1.5rem] border border-border/70 bg-white/85 p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="grid gap-2">
+          <Label htmlFor={question.key}>{question.label}</Label>
+          {question.helper_text ? <p className="text-sm leading-6 text-slate-600">{question.helper_text}</p> : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {question.sensitive ? <Badge variant="outline">Sensibile</Badge> : null}
+          {(question.upgrade_opportunity_count ?? 0) > 0 ? <Badge variant="soft">{question.upgrade_opportunity_count} upgrade</Badge> : null}
+        </div>
+      </div>
+
+      {question.kind === 'boolean' ? (
+        <NativeSelect id={question.key} {...register(question.key)}>
+          <option value="">Seleziona</option>
+          <option value="true">Si</option>
+          <option value="false">No</option>
+        </NativeSelect>
+      ) : question.options ? (
+        <NativeSelect id={question.key} {...register(question.key)}>
+          <option value="">Seleziona</option>
+          {question.options.map((option) => (
+            <option key={option} value={option}>
+              {formatOptionLabel(option)}
+            </option>
+          ))}
+        </NativeSelect>
+      ) : question.kind === 'text' ? (
+        <Textarea id={question.key} {...register(question.key)} />
+      ) : question.kind === 'number' ? (
+        <Input id={question.key} type="number" {...register(question.key)} />
+      ) : (
+        <Input id={question.key} {...register(question.key)} />
+      )}
+
+      <div className="grid gap-2 text-sm text-slate-500">
+        {question.why_needed ? (
+          <div className="flex gap-2 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-3">
+            <CircleHelp className="mt-0.5 size-4 shrink-0 text-slate-400" />
+            <span>{question.sensitive ? 'Perche lo chiediamo adesso: ' : 'Perche lo chiediamo: '}{question.why_needed}</span>
+          </div>
+        ) : null}
+        {question.ask_when_measure_families?.length ? (
+          <p>Misure che dipendono da questa risposta: {question.ask_when_measure_families.join(', ')}.</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function buildInitialValues(profile: Profile | null): FormValues {
   const factValues = (profile?.fact_values ?? {}) as Record<string, unknown>;
-  const values: Record<string, string | boolean | null> = {};
+  const values: FormValues = {};
   Object.entries(factValues).forEach(([key, value]) => {
     if (typeof value === 'boolean') {
       values[key] = value ? 'true' : 'false';
@@ -248,6 +380,8 @@ function buildInitialValues(profile: Profile | null): Record<string, string | bo
   values.sector_macro_category = (values.sector_macro_category as string | undefined) ?? profile?.sector_code_or_category ?? '';
   values.hiring_interest = normalizeBooleanField(values.hiring_interest, profile?.hiring_intent);
   values.export_investment_intent = normalizeBooleanField(values.export_investment_intent, profile?.export_intent);
+  values.digital_transition_project = normalizeBooleanField(values.digital_transition_project, profile?.innovation_intent);
+  values.energy_transition_project = normalizeBooleanField(values.energy_transition_project, profile?.sustainability_intent);
   return values;
 }
 
@@ -276,11 +410,57 @@ function resolveUserType(profile: Profile | null): string | null {
   return (factValues.profile_type as string | undefined) ?? profile?.user_type ?? null;
 }
 
-function nextHref(step: StepKey, hasConditionalQuestions: boolean, entry?: string): string {
-  const suffix = entry ? `?entry=${encodeURIComponent(entry)}` : '';
-  if (step === 'core') return `/onboarding?step=strategic${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
-  if (step === 'strategic' && hasConditionalQuestions) {
-    return `/onboarding?step=conditional${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
+function groupQuestionsByIntent(questions: ProfileQuestion[]): [string, ProfileQuestion[]][] {
+  const buckets = new Map<string, ProfileQuestion[]>();
+  for (const question of questions) {
+    const key = questionGroupKey(question.key);
+    const bucket = buckets.get(key) ?? [];
+    bucket.push(question);
+    buckets.set(key, bucket);
   }
+  return Array.from(buckets.entries()).sort((left, right) => left[0].localeCompare(right[0]));
+}
+
+function questionGroupKey(key: string): string {
+  if (key.startsWith('target_hire_') || key === 'hiring_interest') return 'hiring';
+  if (key.includes('export') || key.includes('market')) return 'export';
+  if (key.includes('digital') || key.includes('energy') || key.includes('patent') || key.includes('balance')) return 'digital_energy';
+  if (key.includes('family') || key.includes('isee') || key.includes('figli') || key.includes('persona_fisica') || key.includes('home_ownership') || key.includes('employment')) {
+    return 'personal_family';
+  }
+  return 'general';
+}
+
+function submitLabel(step: ViewStep, hasConditionalQuestions: boolean): string {
+  if (step === 'core_entity') return 'Salva il core e mostra i risultati';
+  if (step === 'strategic_intent') return hasConditionalQuestions ? 'Salva e passa alla chiusura finale' : 'Salva e vai ai risultati';
+  return 'Aggiorna e vai ai risultati';
+}
+
+function nextHref(step: ViewStep, hasConditionalQuestions: boolean, entry?: string): string {
+  const suffix = entry ? `?entry=${encodeURIComponent(entry)}` : '';
+  if (step === 'core_entity') return `/onboarding?step=results${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
+  if (step === 'results') return `/onboarding?step=strategic${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
+  if (step === 'strategic_intent' && hasConditionalQuestions) return `/onboarding?step=conditional${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
   return `/search${suffix}`;
 }
+
+function skipHref(entry?: string): string {
+  return `/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}`;
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.5rem] border border-border/70 bg-slate-50/85 p-4 shadow-sm">
+      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</span>
+      <p className="mt-2 font-heading text-3xl font-semibold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function sumQuestionMetric(questions: ProfileQuestion[], field: 'blocking_opportunity_count' | 'upgrade_opportunity_count') {
+  return questions.reduce((sum, question) => sum + (question[field] ?? 0), 0);
+}
+
+const gateCardClass =
+  'grid gap-4 rounded-[1.75rem] border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg';

@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.matching.rules import compute_match
+from app.matching.rules import PROFILE_FIELD_LABELS, compute_match
 from app.models import Match, MatchEvaluation, Opportunity, OpportunityRule, OpportunityVersion, Profile, RecordStatus
 from app.services.notifications import emit_match_transition_events
 
@@ -30,15 +30,23 @@ def shortlist_candidates(profile: Profile, opportunities: list[Opportunity]) -> 
     return shortlist
 
 
-def build_explanation(opportunity: Opportunity, status: str, matched: list[dict[str, Any]], missing: list[str]) -> tuple[str, str]:
+def build_explanation(
+    opportunity: Opportunity,
+    status: str,
+    matched: list[dict[str, Any]],
+    blocking_missing: list[str],
+    refinement_missing: list[str],
+) -> tuple[str, str]:
     version = opportunity.current_version
     title = version.title if version else opportunity.title
     reasons = [f"Compatibile con {item['label'].lower()}" for item in matched[:3]]
     if not reasons:
         reasons = [f'Regola disponibile per {title}']
     summary = '; '.join(reasons)
-    if missing:
-        summary = f"{summary}. Mancano dati su: {', '.join(missing)}."
+    if blocking_missing:
+        summary = f"{summary}. Per confermarla mancano: {', '.join(label_for_field(field) for field in blocking_missing)}."
+    elif refinement_missing:
+        summary = f"{summary}. Per migliorare ranking e priorita puoi aggiungere: {', '.join(label_for_field(field) for field in refinement_missing)}."
     full = f"{title}: stato {status}. {summary}"
     return summary, full
 
@@ -81,7 +89,13 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
                 continue
             payload[item.fact.key] = normalize_match_value(item.value_json.get('value'))
         computed = compute_match(active_rule.rule_json, payload)
-        summary, full = build_explanation(opportunity, computed.status, computed.matched_conditions, computed.missing_fields)
+        summary, full = build_explanation(
+            opportunity,
+            computed.status,
+            computed.matched_conditions,
+            computed.blocking_missing_fields,
+            computed.refinement_missing_fields,
+        )
 
         match = db.execute(
             select(Match).where(Match.user_id == profile.user_id, Match.opportunity_id == opportunity.id)
@@ -116,11 +130,16 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
                 'failed_conditions': computed.failed_conditions,
                 'blockers': computed.blockers,
                 'missing_fields': computed.missing_fields,
+                'blocking_missing_fields': computed.blocking_missing_fields,
+                'refinement_missing_fields': computed.refinement_missing_fields,
+                'matched_reason_labels': [item['label'] for item in computed.matched_conditions[:4]],
             },
             ranking_inputs={
                 'score': computed.score,
                 'matched_conditions_count': len(computed.matched_conditions),
                 'boosters_count': len(computed.boosters),
+                'blocking_missing_count': len(computed.blocking_missing_fields),
+                'refinement_missing_count': len(computed.refinement_missing_fields),
             },
         )
         db.add(evaluation)
@@ -132,7 +151,7 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
             previous_status=previous_status,
             current_status=computed.status,
             summary=summary,
-            missing_fields=computed.missing_fields,
+            missing_fields=computed.blocking_missing_fields or computed.refinement_missing_fields,
         )
     db.commit()
     return results
@@ -147,6 +166,10 @@ def normalize_match_value(value):
         if value == 'false':
             return False
     return value
+
+
+def label_for_field(field: str) -> str:
+    return PROFILE_FIELD_LABELS.get(field, field.replace('_', ' '))
 
 
 def run_rule_tests(rule: OpportunityRule) -> list[dict[str, Any]]:
