@@ -19,7 +19,10 @@ def setup_module() -> None:
 def test_health_endpoint() -> None:
     response = client.get('/health')
     assert response.status_code == 200
-    assert response.json() == {'status': 'ok'}
+    payload = response.json()
+    assert payload['status'] == 'ok'
+    assert payload['version']
+    assert payload['updated_at']
 
 
 def test_public_catalog_endpoints() -> None:

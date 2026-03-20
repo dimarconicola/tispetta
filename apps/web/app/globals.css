@@ -17,6 +17,7 @@
 
 html {
   font-size: 16px;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -35,6 +36,23 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+p,
+span,
+a,
+button {
+  overflow-wrap: anywhere;
+}
+
+h1,
+h2,
+h3,
+.balance-title {
+  text-wrap: balance;
 }
 
 a:focus-visible,
@@ -56,6 +74,7 @@ textarea {
 main {
   width: min(1200px, calc(100vw - 2rem));
   margin: 0 auto;
+  min-width: 0;
 }
 
 .page-shell {
@@ -136,6 +155,7 @@ main {
   display: inline-flex;
   flex-direction: column;
   gap: 0.2rem;
+  min-width: 0;
 }
 
 .brand-mark {
@@ -155,6 +175,7 @@ main {
   gap: 1rem;
   flex-wrap: wrap;
   align-items: center;
+  min-width: 0;
 }
 
 .nav a,
@@ -192,6 +213,7 @@ main {
   border-radius: 28px;
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
+  min-width: 0;
 }
 
 .panel {
@@ -267,6 +289,7 @@ main {
 .grid {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .metrics {
@@ -351,6 +374,7 @@ main {
   display: grid;
   gap: 0.6rem;
   color: var(--muted);
+  min-width: 0;
 }
 
 .form-grid {
@@ -421,6 +445,7 @@ main {
 .stack {
   display: grid;
   gap: 0.8rem;
+  min-width: 0;
 }
 
 .topbar-marketing .nav {
@@ -508,6 +533,17 @@ main {
 
 .marketing-proof-card strong {
   font-size: 1.9rem;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.wrap-anywhere {
+  overflow-wrap: anywhere;
 }
 
 .marketing-band {
@@ -683,5 +719,20 @@ main {
 
   .build-footer__meta {
     border-radius: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

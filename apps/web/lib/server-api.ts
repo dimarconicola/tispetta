@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 
 import { INTERNAL_API_URL, SESSION_COOKIE_NAME } from '@/lib/env';
 import type {
+  ApiHealthSummary,
   AdminDocument,
   AdminIntegritySnapshot,
   BootstrapRunResult,
@@ -22,6 +23,8 @@ import type {
   SurveyCoverageSnapshot,
 } from './types';
 
+const API_TIMEOUT_MS = 4_000;
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
   const cookieStore = await cookies();
   const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -32,6 +35,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> 
       ...(session ? { 'X-Session-Token': session } : {}),
       ...(init?.headers ?? {}),
     },
+    signal: init?.signal ?? AbortSignal.timeout(API_TIMEOUT_MS),
     cache: 'no-store',
   });
 
@@ -44,6 +48,24 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> 
   }
 
   return (await response.json()) as T;
+}
+
+export async function getApiHealthSummary(): Promise<ApiHealthSummary | null> {
+  try {
+    const response = await fetch(`${INTERNAL_API_URL}/health`, {
+      cache: 'force-cache',
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(2_500),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as ApiHealthSummary;
+  } catch {
+    return null;
+  }
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {

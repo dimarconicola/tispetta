@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,7 @@ from app.db.session import SessionLocal
 from app.seeds.catalog import seed_all
 
 settings = get_settings()
+STARTED_AT = datetime.now(UTC)
 
 
 @asynccontextmanager
@@ -38,8 +40,13 @@ app.add_middleware(
 
 
 @app.get('/health')
-def health() -> dict[str, str]:
-    return {'status': 'ok'}
+def health() -> dict[str, str | None]:
+    return {
+        'status': 'ok',
+        'version': settings.version_label(),
+        'updated_at': settings.build_updated_at or STARTED_AT.isoformat(),
+        'deployment_id': settings.deployment_label(),
+    }
 
 
 app.include_router(api_router)

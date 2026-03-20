@@ -66,9 +66,9 @@ function MarketingPreviewCard({ opportunity }: { opportunity: HomeOpportunity })
     <article className="card marketing-preview-card stack">
       <div className="stack" style={{ gap: '0.4rem' }}>
         <span className="eyebrow">{opportunity.category.replace(/_/g, ' ')}</span>
-        <h3>{opportunity.title}</h3>
+        <h3 className="balance-title">{opportunity.title}</h3>
       </div>
-      <p className="subtle">{opportunity.short_description}</p>
+      <p className="subtle line-clamp-3">{opportunity.short_description}</p>
       <div className="meta-list">
         <span>Stato: {getMarketingMatchLabel(opportunity.match_status)}</span>
         <span>Perimetro: {opportunity.geography_scope}</span>

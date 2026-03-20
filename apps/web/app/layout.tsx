@@ -14,7 +14,7 @@ import {
   PUBLIC_APP_URL,
 } from '@/lib/env';
 import { APEX_HOST, isApexLikeHost } from '@/lib/hosts';
-import { getSessionUser } from '@/lib/server-api';
+import { getApiHealthSummary, getSessionUser } from '@/lib/server-api';
 
 const appSiteUrl = new URL(PUBLIC_APP_URL);
 
@@ -89,7 +89,10 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headerStore = await headers();
   const experience = resolveHostExperience(headerStore.get('host'));
-  const user = experience.marketingHost ? null : await getSessionUser().catch(() => null);
+  const [user, apiHealth] = await Promise.all([
+    experience.marketingHost ? Promise.resolve(null) : getSessionUser().catch(() => null),
+    getApiHealthSummary(),
+  ]);
 
   return (
     <html lang="it">
@@ -98,7 +101,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Topbar user={user} variant={experience.marketingHost ? 'marketing' : 'app'} />
           {children}
         </main>
-        <BuildFooter variant={experience.marketingHost ? 'marketing' : 'app'} />
+        <BuildFooter variant={experience.marketingHost ? 'marketing' : 'app'} apiHealth={apiHealth} />
         {experience.gaMeasurementId ? (
           <>
             <Script

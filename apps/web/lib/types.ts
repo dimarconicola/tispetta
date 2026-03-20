@@ -5,6 +5,13 @@ export type SessionUser = {
   locale: string;
 };
 
+export type ApiHealthSummary = {
+  status: string;
+  version: string | null;
+  updated_at: string | null;
+  deployment_id: string | null;
+};
+
 export type Profile = {
   id: string;
   user_id: string;

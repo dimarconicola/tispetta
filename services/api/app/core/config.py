@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     auto_seed_on_startup: bool = False
     demo_admin_email: str = 'admin@example.com'
     demo_user_email: str = 'demo@example.com'
+    app_version: str | None = None
+    railway_git_commit_sha: str | None = None
+    railway_deployment_id: str | None = None
+    build_updated_at: str | None = None
 
     def cors_origins(self) -> list[str]:
         configured = [origin.strip() for origin in self.cors_allowed_origins.split(',') if origin.strip()]
@@ -62,6 +66,18 @@ class Settings(BaseSettings):
 
     def smtp_ssl_enabled(self) -> bool:
         return self.smtp_use_ssl or self.smtp_port == 465
+
+    def version_label(self) -> str:
+        candidate = (self.app_version or self.railway_git_commit_sha or '').strip()
+        if not candidate:
+            return '0.1.0'
+        return candidate[:7] if len(candidate) >= 7 else candidate
+
+    def deployment_label(self) -> str | None:
+        candidate = (self.railway_deployment_id or '').strip()
+        if not candidate:
+            return None
+        return candidate[-8:] if len(candidate) > 8 else candidate
 
 
 @lru_cache

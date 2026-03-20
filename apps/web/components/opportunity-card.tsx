@@ -12,18 +12,20 @@ export function OpportunityCard({ opportunity }: { opportunity: OpportunityCardT
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.8rem', alignItems: 'flex-start' }}>
         <div className="stack" style={{ gap: '0.45rem' }}>
           <span className="eyebrow">{categoryLabel(opportunity.category)}</span>
-          <h3>{opportunity.title}</h3>
+          <h3 className="balance-title">{opportunity.title}</h3>
         </div>
         <StatusPill status={opportunity.match_status} />
       </div>
-      <p className="subtle">{opportunity.short_description}</p>
+      <p className="subtle line-clamp-3">{opportunity.short_description}</p>
       <div className="meta-list">
         <span>Perimetro: {opportunity.geography_scope}</span>
         <span>Valore: {formatCurrency(opportunity.estimated_value_max)}</span>
         <span>Scadenza: {formatDate(opportunity.deadline_date)}</span>
       </div>
       {opportunity.user_visible_reasoning ? <div className="banner">{opportunity.user_visible_reasoning}</div> : null}
-      {opportunity.missing_fields.length > 0 ? <p className="subtle">Dati mancanti: {opportunity.missing_fields.join(', ')}</p> : null}
+      {opportunity.missing_fields.length > 0 ? (
+        <p className="subtle wrap-anywhere">Dati mancanti: {opportunity.missing_fields.join(', ')}</p>
+      ) : null}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.8rem', alignItems: 'center' }}>
         <Link className="button-secondary" href={`/opportunities/${opportunity.slug}`}>
           Apri dettaglio
