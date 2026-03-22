@@ -52,6 +52,21 @@ test('impresa_onboarding_core_to_results', async ({ page, request }) => {
   await expect(page.getByText('I primi match sono gia leggibili')).toBeVisible();
 });
 
+test('persona_fisica_onboarding_core_to_results', async ({ page, request }) => {
+  const email = uniqueEmail('persona');
+  await loginViaApi(page, request, email, '/onboarding?entry=apex');
+
+  await expect(page.getByText('Per chi stai cercando opportunita?')).toBeVisible();
+  await page.getByRole('button', { name: /Persona fisica/i }).click();
+
+  await expect(page.getByText('Hai scelto il percorso Persona fisica')).toBeVisible();
+  await page.getByRole('button', { name: 'Salva il core e mostra i risultati' }).click();
+
+  await expect(page).toHaveURL(/step=results/);
+  await expect(page.getByText('Le risposte che sbloccano piu opportunita')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Apri il catalogo completo' })).toBeVisible();
+});
+
 test('anonymous_search_and_detail', async ({ page }) => {
   await page.goto('/search');
   await expect(page.getByText('Intelligenza delle opportunita.')).toBeVisible();

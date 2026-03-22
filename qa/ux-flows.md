@@ -60,9 +60,9 @@ This file is the canonical source of truth for user-facing release gates.
   - save succeeds
   - results appear immediately after core completion
 - Automation:
-  - Playwright
+  - Playwright critical flow
 - Gates:
-  - `release`
+  - `pre-merge`, `release`
 
 ### PROF-02
 - Area: Profile

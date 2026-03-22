@@ -17,6 +17,12 @@ flows:
     file: apps/web/tests/e2e/critical.spec.ts
     test: impresa_onboarding_core_to_results
     gates: [pre-merge, release]
+  - id: PROF-01
+    area: profile
+    automation: playwright
+    file: apps/web/tests/e2e/critical.spec.ts
+    test: persona_fisica_onboarding_core_to_results
+    gates: [pre-merge, release]
   - id: PROF-04
     area: profile
     automation: pytest
