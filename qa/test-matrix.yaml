@@ -1,0 +1,97 @@
+flows:
+  - id: AUTH-01
+    area: auth
+    automation: playwright
+    file: apps/web/tests/e2e/critical.spec.ts
+    test: start_magic_link_login_flow
+    gates: [pre-merge, release]
+  - id: AUTH-03
+    area: auth
+    automation: playwright
+    file: apps/web/tests/e2e/critical.spec.ts
+    test: logout_clears_session
+    gates: [pre-merge, release]
+  - id: PROF-02
+    area: profile
+    automation: playwright
+    file: apps/web/tests/e2e/critical.spec.ts
+    test: impresa_onboarding_core_to_results
+    gates: [pre-merge, release]
+  - id: PROF-04
+    area: profile
+    automation: pytest
+    file: services/api/app/tests/test_api_smoke.py
+    test: test_public_catalog_endpoints
+    gates: [pre-merge, release]
+  - id: MATCH-01
+    area: matching
+    automation: pytest
+    file: services/api/app/tests/test_rules.py
+    test: test_likely_when_tolerated_missing_fields_exist
+    gates: [pre-merge, release]
+  - id: MATCH-02
+    area: matching
+    automation: pytest
+    file: services/api/app/tests/test_api_smoke.py
+    test: test_authenticated_catalog_surfaces_match_explanations
+    gates: [pre-merge, release]
+  - id: EXP-01
+    area: exploration
+    automation: playwright
+    file: apps/web/tests/e2e/critical.spec.ts
+    test: anonymous_search_and_detail
+    gates: [pre-merge, release]
+  - id: EXP-02
+    area: exploration
+    automation: playwright
+    file: apps/web/tests/e2e/critical.spec.ts
+    test: authenticated_save_and_saved_page
+    gates: [pre-merge, release]
+  - id: DET-01
+    area: detail
+    automation: playwright
+    file: apps/web/tests/e2e/critical.spec.ts
+    test: anonymous_search_and_detail
+    gates: [pre-merge, release]
+  - id: DATA-01
+    area: data_quality
+    automation: python
+    file: qa/scripts/check_data_integrity.py
+    test: published_catalog_integrity
+    gates: [pre-merge, nightly, release]
+  - id: DATA-02
+    area: freshness
+    automation: python
+    file: qa/scripts/check_data_freshness.py
+    test: freshness_thresholds
+    gates: [nightly, release]
+  - id: DET-02
+    area: link_health
+    automation: python
+    file: qa/scripts/check_link_health.py
+    test: official_link_health
+    gates: [nightly, release]
+
+gates:
+  pre-merge:
+    commands:
+      - pnpm lint
+      - pnpm typecheck
+      - pnpm test
+      - python3 qa/scripts/check_data_integrity.py --reseed
+      - python3 qa/scripts/check_data_freshness.py --reseed
+      - pnpm test:e2e:critical
+  release:
+    commands:
+      - pnpm lint
+      - pnpm typecheck
+      - pnpm test
+      - python3 qa/scripts/check_data_integrity.py --reseed
+      - python3 qa/scripts/check_data_freshness.py --reseed
+      - pnpm test:e2e:critical
+      - python3 qa/scripts/check_link_health.py --reseed --sample-size 25
+  nightly:
+    commands:
+      - python3 qa/scripts/check_data_integrity.py --reseed
+      - python3 qa/scripts/check_data_freshness.py --reseed
+      - python3 qa/scripts/check_link_health.py --reseed --sample-size 25

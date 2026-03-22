@@ -11,11 +11,19 @@
     "infra:down": "docker compose down",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
-    "test": "pnpm --filter web test && cd services/api && python3 -m pytest",
+    "test": "pnpm --filter web test && cd services/api && DATABASE_URL=sqlite:///./benefits_engine.db python3 -m pytest",
+    "test:e2e:critical": "playwright test --config=playwright.config.ts",
+    "qa:data:integrity": "python3 qa/scripts/check_data_integrity.py --reseed",
+    "qa:data:freshness": "python3 qa/scripts/check_data_freshness.py --reseed",
+    "qa:data:links": "python3 qa/scripts/check_link_health.py --reseed --sample-size 25",
+    "test:pr-gate": "pnpm lint && pnpm typecheck && pnpm test && python3 qa/scripts/check_data_integrity.py --reseed && python3 qa/scripts/check_data_freshness.py --reseed && pnpm test:e2e:critical",
+    "test:release-gate": "pnpm lint && pnpm typecheck && pnpm test && python3 qa/scripts/check_data_integrity.py --reseed && python3 qa/scripts/check_data_freshness.py --reseed && pnpm test:e2e:critical && python3 qa/scripts/check_link_health.py --reseed --sample-size 25",
+    "test:nightly-data": "python3 qa/scripts/check_data_integrity.py --reseed && python3 qa/scripts/check_data_freshness.py --reseed && python3 qa/scripts/check_link_health.py --reseed --sample-size 25",
     "seed": "cd services/api && PYTHONPATH=. python3 -m app.seeds.cli",
     "prepare": "husky || true"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "concurrently": "^9.1.2",
     "husky": "^9.1.7"
   }

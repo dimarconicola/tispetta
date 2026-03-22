@@ -83,6 +83,31 @@ def test_magic_link_exchange_creates_authenticated_session() -> None:
     assert isinstance(history.json(), list)
 
 
+def test_authenticated_catalog_surfaces_match_explanations() -> None:
+    request = client.post('/v1/auth/request-magic-link', json={'email': 'demo@example.com'})
+    assert request.status_code == 200
+    token = parse_qs(urlparse(request.json()['preview_url']).query)['token'][0]
+    exchange = client.post('/v1/auth/exchange-magic-link', json={'token': token})
+    session_token = exchange.json()['session_token']
+    headers = {'X-Session-Token': session_token}
+
+    opportunities = client.get('/v1/opportunities', headers=headers)
+    assert opportunities.status_code == 200
+    payload = opportunities.json()
+    assert len(payload) >= 10
+    first = payload[0]
+    assert isinstance(first['blocking_question_keys'], list)
+    assert isinstance(first['match_reasons'], list)
+    assert isinstance(first['blocking_missing_labels'], list)
+    assert first['why_now']
+
+    detail = client.get(f"/v1/opportunities/{first['slug']}", headers=headers)
+    assert detail.status_code == 200
+    detail_payload = detail.json()
+    assert detail_payload['match_breakdown']['status'] == first['match_status']
+    assert isinstance(detail_payload['match_breakdown']['next_best_questions'], list)
+
+
 def test_admin_bootstrap_endpoints() -> None:
     request = client.post('/v1/auth/request-magic-link', json={'email': 'admin@example.com'})
     assert request.status_code == 200

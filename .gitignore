@@ -38,4 +38,5 @@ tmp/
 # Playwright
 playwright-report/
 .test-results/
+test-results/
 .vercel

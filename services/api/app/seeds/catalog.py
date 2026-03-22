@@ -229,8 +229,8 @@ OPPORTUNITY_SEEDS: list[OpportunitySeed] = [
         8400.0, 0.75, 365,
         "Indennita INPS pari al 75% della retribuzione media mensile (max 1.352 euro) per lavoratori dipendenti che perdono involontariamente il lavoro.",
         "Richiede almeno 13 settimane di contribuzione nei 4 anni precedenti. Dura meta dei mesi contributivi. Si riduce del 3% ogni mese a partire dal quinto. Domanda entro 68 giorni.",
-        'https://www.inps.it/naspi',
-        'https://www.inps.it/naspi',
+        'https://www.inps.it/it/it/inps-comunica/dossier/la-naspi/come-fare-domanda.html',
+        'https://www.inps.it/it/it/inps-comunica/dossier/la-naspi/faq---domande-frequenti-sulla-naspi.html',
         extra_required=[
             {'eq': {'field': 'employment_type', 'value': 'disoccupato'}},
         ],
@@ -439,8 +439,8 @@ OPPORTUNITY_SEEDS: list[OpportunitySeed] = [
         2400.0, 1.0, 365,
         "La Legge 104 garantisce 3 giorni di permesso retribuito al mese al dipendente che assiste un familiare con disabilita grave.",
         "Richiede il riconoscimento INPS della condizione di handicap grave (art. 3 co. 3). Include detrazioni auto H e agevolazioni fiscali.",
-        'https://www.inps.it/legge-104',
-        'https://www.inps.it/legge-104',
+        'https://www.inps.it/it/it/inps-comunica/notizie/dettaglio-news-page.news.2022.11.permessi-legge-n-104-1992-rilascio-funzionalit-rinuncia-ai-benefici-.html',
+        'https://www.inps.it/it/it/inps-comunica/notizie/dettaglio-news-page.news.2023.09.permessi-legge-104-e-congedo-familiari-disabili-variazione-domanda.html',
         extra_required=[
             {'in': {'field': 'disability_status', 'value': ['legge_104_in_famiglia', 'invalidita_civile', 'indennita_accompagnamento']}},
         ],
