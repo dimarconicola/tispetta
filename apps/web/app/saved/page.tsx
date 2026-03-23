@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { FilterChips } from '@/components/filter-chips';
 import { OpportunityCard } from '@/components/opportunity-card';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,13 +41,24 @@ function sortByDeadline(items: OpportunityCardType[]): OpportunityCardType[] {
   });
 }
 
-export default async function SavedPage() {
+const SCOPE_ITEMS = [
+  { label: 'Personale', value: 'personal' },
+  { label: 'Attivita', value: 'business' },
+];
+
+export default async function SavedPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const scope = typeof params.scope === 'string' ? params.scope : '';
   const user = await getSessionUser().catch(() => null);
   if (!user) {
     redirect('/auth/sign-in');
   }
 
-  const items = await getOpportunities({ saved_only: true }).catch(() => []);
+  const items = await getOpportunities({ saved_only: true, scope: scope || undefined }).catch(() => []);
   const grouped = STATUS_ORDER.reduce<Record<string, OpportunityCardType[]>>((acc, status) => {
     acc[status] = sortByDeadline(items.filter((item) => item.match_status === status));
     return acc;
@@ -63,6 +75,7 @@ export default async function SavedPage() {
           </CardHeader>
           <CardContent className="grid gap-3 text-base leading-7 text-slate-600">
             <p>Le opportunita salvate restano ordinate per stato e urgenza, cosi puoi rientrare e capire subito dove intervenire.</p>
+            <FilterChips items={SCOPE_ITEMS} active={scope || null} buildHref={(value) => `/saved${value ? `?scope=${encodeURIComponent(value)}` : ''}`} />
             {items.length === 0 ? (
               <Link href="/search" className="button-secondary w-fit">
                 Esplora il catalogo

@@ -6,11 +6,10 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
 const STEP_LABELS = [
-  { key: 'gate', label: 'Chi sei' },
-  { key: 'core_entity', label: 'Core' },
-  { key: 'results', label: 'Prime opportunita' },
-  { key: 'strategic_intent', label: 'Precisione' },
-  { key: 'conditional_accuracy', label: 'Chiusura' },
+  { key: 'core_entity', label: 'Profilo' },
+  { key: 'results', label: 'Prime misure' },
+  { key: 'strategic_intent', label: 'Progetti' },
+  { key: 'conditional_accuracy', label: 'Dettagli finali' },
 ];
 
 export function QuestionStepper({
@@ -29,7 +28,7 @@ export function QuestionStepper({
         <span className="text-slate-500">{Math.round(progress)}%</span>
       </div>
       <Progress value={progress} />
-      <div className="grid gap-2 sm:grid-cols-5 sm:gap-3">
+      <div className="grid gap-2 sm:grid-cols-4 sm:gap-3">
         {STEP_LABELS.map((step, index) => {
           const active = step.key === current;
           const completed = index < STEP_LABELS.findIndex((item) => item.key === current);

@@ -50,7 +50,7 @@ def test_public_catalog_endpoints() -> None:
     opportunity_payload = opportunities.json()
     assert len(opportunity_payload) >= 35
     assert any(item['slug'] == 'smart_start_italia' for item in opportunity_payload)
-    assert {'why_now', 'blocking_question_keys', 'match_reasons', 'blocking_missing_labels'} <= set(opportunity_payload[0])
+    assert {'why_now', 'blocking_question_keys', 'match_reasons', 'blocking_missing_labels', 'opportunity_scope'} <= set(opportunity_payload[0])
 
     detail = client.get('/v1/opportunities/smart_start_italia')
     assert detail.status_code == 200
@@ -91,6 +91,28 @@ def test_authenticated_catalog_surfaces_match_explanations() -> None:
     session_token = exchange.json()['session_token']
     headers = {'X-Session-Token': session_token}
 
+    profile = client.put(
+        '/v1/profile',
+        headers=headers,
+        json={
+            'fact_values': {
+                'profile_type': 'startup',
+                'main_operating_region': 'Lombardia',
+                'employment_type': 'dipendente',
+                'persona_fisica_age_band': 'under_35',
+                'family_composition': 'single',
+                'figli_a_carico_count': '0',
+                'activity_stage': 'incorporated_business',
+                'legal_form_bucket': 'srl',
+                'company_age_or_formation_window': '1-3y',
+                'size_band': 'micro',
+                'sector_macro_category': 'digitale',
+                'innovation_regime_status': 'startup_innovativa',
+            }
+        },
+    )
+    assert profile.status_code == 200
+
     opportunities = client.get('/v1/opportunities', headers=headers)
     assert opportunities.status_code == 200
     payload = opportunities.json()
@@ -100,12 +122,23 @@ def test_authenticated_catalog_surfaces_match_explanations() -> None:
     assert isinstance(first['match_reasons'], list)
     assert isinstance(first['blocking_missing_labels'], list)
     assert first['why_now']
+    assert any(item['opportunity_scope'] == 'personal' for item in payload)
+    assert any(item['opportunity_scope'] == 'business' for item in payload)
+
+    personal_only = client.get('/v1/opportunities?scope=personal', headers=headers)
+    assert personal_only.status_code == 200
+    assert all(item['opportunity_scope'] in {'personal', 'hybrid'} for item in personal_only.json())
+
+    business_only = client.get('/v1/opportunities?scope=business', headers=headers)
+    assert business_only.status_code == 200
+    assert all(item['opportunity_scope'] in {'business', 'hybrid'} for item in business_only.json())
 
     detail = client.get(f"/v1/opportunities/{first['slug']}", headers=headers)
     assert detail.status_code == 200
     detail_payload = detail.json()
     assert detail_payload['match_breakdown']['status'] == first['match_status']
     assert isinstance(detail_payload['match_breakdown']['next_best_questions'], list)
+    assert detail_payload['opportunity_scope'] in {'personal', 'business', 'hybrid'}
 
 
 def test_admin_bootstrap_endpoints() -> None:

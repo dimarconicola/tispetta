@@ -1,3 +1,6 @@
+import type { Route } from 'next';
+import Link from 'next/link';
+
 import { cn } from '@/lib/utils';
 
 export function FilterChips({
@@ -11,8 +14,8 @@ export function FilterChips({
 }) {
   return (
     <div className="flex flex-wrap gap-2.5">
-      <a
-        href={buildHref(null)}
+      <Link
+        href={buildHref(null) as Route}
         className={cn(
           'inline-flex min-h-11 items-center justify-center rounded-full border px-5 text-sm font-medium transition-all duration-200',
           !active
@@ -21,11 +24,11 @@ export function FilterChips({
         )}
       >
         Tutte
-      </a>
+      </Link>
       {items.map((item) => (
-        <a
+        <Link
           key={item.value}
-          href={buildHref(item.value)}
+          href={buildHref(item.value) as Route}
           className={cn(
             'inline-flex min-h-11 items-center justify-center rounded-full border px-5 text-sm font-medium transition-all duration-200',
             active === item.value
@@ -34,7 +37,7 @@ export function FilterChips({
           )}
         >
           {item.label}
-        </a>
+        </Link>
       ))}
     </div>
   );

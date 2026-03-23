@@ -95,8 +95,12 @@ export async function getOpportunityDetail(key: string): Promise<OpportunityDeta
   return apiFetch<OpportunityDetail>(`/v1/opportunities/${key}`);
 }
 
-export async function searchOpportunities(query: string): Promise<OpportunityCard[]> {
-  return (await apiFetch<OpportunityCard[]>(`/v1/search?query=${encodeURIComponent(query)}`)) ?? [];
+export async function searchOpportunities(query: string, scope?: string): Promise<OpportunityCard[]> {
+  const search = new URLSearchParams({ query });
+  if (scope) {
+    search.set('scope', scope);
+  }
+  return (await apiFetch<OpportunityCard[]>(`/v1/search?${search.toString()}`)) ?? [];
 }
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences | null> {

@@ -369,6 +369,7 @@ def build_profile_questions(db: Session, profile: Profile | None) -> list[dict]:
         ensure_bootstrap_corpus(db)
 
     fact_values = profile_fact_map(profile)
+    active_audiences = active_question_audiences(fact_values)
     coverage = get_latest_coverage_snapshot(db)
     coverage_rows = {row['fact_key']: row for row in coverage.get('rows', [])}
 
@@ -382,6 +383,8 @@ def build_profile_questions(db: Session, profile: Profile | None) -> list[dict]:
         module = fact.module
         step = 1 if module == SurveyModule.CORE_ENTITY.value else 2 if module == SurveyModule.STRATEGIC_INTENT.value else 3
         audience = sorted(derive_audience_for_fact(db, fact.key))
+        if module != SurveyModule.CORE_ENTITY.value and audience and set(audience).isdisjoint(active_audiences):
+            continue
         questions.append(
             {
                 'key': fact.key,
@@ -404,6 +407,14 @@ def build_profile_questions(db: Session, profile: Profile | None) -> list[dict]:
     return questions
 
 
+def active_question_audiences(fact_values: dict[str, str]) -> set[str]:
+    audiences = {'persona_fisica'}
+    profile_type = fact_values.get('profile_type')
+    if profile_type and profile_type != 'persona_fisica':
+        audiences.add(profile_type)
+    return audiences
+
+
 def should_ask_fact(fact: ProfileFactCatalog, fact_values: dict[str, str], ask_when_measure_families: list[str]) -> bool:
     if fact.module == SurveyModule.CORE_ENTITY.value:
         return True
@@ -424,6 +435,8 @@ def should_ask_fact(fact: ProfileFactCatalog, fact_values: dict[str, str], ask_w
 
 
 def derive_audience_for_fact(db: Session, fact_key: str) -> set[str]:
+    if fact_key in {'main_operating_region', 'employment_type', 'isee_bracket', 'family_composition', 'figli_a_carico_count', 'persona_fisica_age_band'}:
+        return {'persona_fisica'}
     items = db.execute(
         select(MeasureFamilyRequirement)
         .options(joinedload(MeasureFamilyRequirement.family_version))

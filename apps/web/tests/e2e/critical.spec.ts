@@ -28,19 +28,22 @@ test('start_magic_link_login_flow', async ({ page }) => {
   await page.getByRole('link', { name: 'Apri link di anteprima' }).click();
 
   await expect(page).toHaveURL(/\/onboarding\?entry=apex/);
-  await expect(page.getByText('Per chi stai cercando opportunita?')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /partiamo dal tuo profilo personale/i })).toBeVisible();
 });
 
 test('impresa_onboarding_core_to_results', async ({ page, request }) => {
   const email = uniqueEmail('onboarding');
   await loginViaApi(page, request, email, '/onboarding?entry=apex');
 
-  await expect(page.getByText('Per chi stai cercando opportunita?')).toBeVisible();
-  await page.getByRole('button', { name: /Attivita o impresa/i }).click();
-
+  await expect(page.getByRole('heading', { name: /partiamo dal tuo profilo personale/i })).toBeVisible();
+  await page.locator('#main_operating_region').selectOption('Lombardia');
+  await page.locator('#employment_type').selectOption('autonomo');
+  await page.locator('#persona_fisica_age_band').selectOption('under_35');
+  await page.locator('#family_composition').selectOption('single');
+  await page.locator('#figli_a_carico_count').selectOption('0');
+  await page.getByRole('button', { name: /Startup o nuova impresa/i }).click();
   await page.locator('#activity_stage').selectOption('incorporated_business');
   await page.locator('#legal_form_bucket').selectOption('srl');
-  await page.locator('#main_operating_region').selectOption('Lombardia');
   await page.locator('#company_age_or_formation_window').selectOption('1-3y');
   await page.locator('#size_band').selectOption('micro');
   await page.locator('#sector_macro_category').selectOption('digitale');
@@ -56,15 +59,15 @@ test('persona_fisica_onboarding_core_to_results', async ({ page, request }) => {
   const email = uniqueEmail('persona');
   await loginViaApi(page, request, email, '/onboarding?entry=apex');
 
-  await expect(page.getByText('Per chi stai cercando opportunita?')).toBeVisible();
-  await page.getByRole('button', { name: /Persona fisica/i }).click();
-
-  await expect(page.getByText('Hai scelto il percorso Persona fisica')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /partiamo dal tuo profilo personale/i })).toBeVisible();
+  await expect(page.getByText('Questa parte vale per tutti')).toBeVisible();
   await expect(page.getByLabel('Qual e la tua situazione lavorativa principale?')).toBeVisible();
   await expect(page.getByLabel("In quale fascia d'eta rientri?")).toBeVisible();
   await expect(page.getByLabel("Com'e composto il tuo nucleo familiare?")).toBeVisible();
-  await expect(page.getByText('Per questo step non c e altro che sposti davvero i match.')).toHaveCount(0);
+  await expect(page.getByText('Aggiungi anche la tua attivita, se esiste')).toBeVisible();
+  await expect(page.getByText('Nessuna attivita aggiunta per ora.')).toBeVisible();
 
+  await page.locator('#main_operating_region').selectOption('Sicilia');
   await page.locator('#employment_type').selectOption('dipendente');
   await page.locator('#persona_fisica_age_band').selectOption('under_35');
   await page.locator('#family_composition').selectOption('coppia_con_figli');

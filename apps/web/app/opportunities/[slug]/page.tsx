@@ -51,7 +51,10 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           <CardHeader className="gap-4 pb-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="grid gap-3">
-                <Badge variant="soft" className="w-fit">{categoryLabel(opportunity.category)}</Badge>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="soft" className="w-fit">{categoryLabel(opportunity.category)}</Badge>
+                  <Badge variant="outline" className="w-fit">{scopeLabel(opportunity.opportunity_scope)}</Badge>
+                </div>
                 <CardTitle className="text-5xl leading-[0.95] text-slate-950 sm:text-6xl">{opportunity.title}</CardTitle>
                 <p className="max-w-3xl text-base leading-8 text-slate-500">{opportunity.long_description ?? opportunity.short_description}</p>
               </div>
@@ -199,4 +202,10 @@ function DetailMeta({ icon, label, value }: { icon: ReactNode; label: string; va
       </div>
     </div>
   );
+}
+
+function scopeLabel(scope: 'personal' | 'business' | 'hybrid') {
+  if (scope === 'personal') return 'Per persona';
+  if (scope === 'business') return 'Per attivita';
+  return 'Persona + attivita';
 }

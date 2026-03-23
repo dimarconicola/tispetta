@@ -34,6 +34,7 @@ class OpportunityCard(ApiModel):
     title: str
     short_description: str
     category: str
+    opportunity_scope: str
     geography_scope: str
     benefit_type: str
     match_status: str | None = None

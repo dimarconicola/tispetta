@@ -22,10 +22,19 @@ def get_opportunities(
     category: str | None = Query(default=None),
     matched_status: str | None = Query(default=None),
     saved_only: bool = Query(default=False),
+    scope: str | None = Query(default=None),
     db: Session = Depends(get_db),
     user=Depends(get_optional_current_user),
 ) -> list[OpportunityCard]:
-    items = list_opportunities(db, user, query=query, category=category, matched_status=matched_status, saved_only=saved_only)
+    items = list_opportunities(
+        db,
+        user,
+        query=query,
+        category=category,
+        matched_status=matched_status,
+        saved_only=saved_only,
+        scope=scope,
+    )
     return [OpportunityCard.model_validate(item) for item in items]
 
 
@@ -52,9 +61,10 @@ def delete_save(opportunity_id: str, db: Session = Depends(get_db), user=Depends
 @router.get('/search', response_model=list[OpportunityCard])
 def search(
     query: str = Query(...),
+    scope: str | None = Query(default=None),
     db: Session = Depends(get_db),
     user=Depends(get_optional_current_user),
 ) -> list[OpportunityCard]:
     parsed = interpret_query(query)
-    items = list_opportunities(db, user, query=parsed['query'], category=parsed['category'])
+    items = list_opportunities(db, user, query=parsed['query'], category=parsed['category'], scope=scope)
     return [OpportunityCard.model_validate(item) for item in items]

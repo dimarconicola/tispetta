@@ -22,22 +22,34 @@ const STATUS_ITEMS = [
   { label: 'Da chiarire', value: 'unclear' },
 ];
 
+const SCOPE_ITEMS = [
+  { label: 'Tutto', value: '' },
+  { label: 'Personale', value: 'personal' },
+  { label: 'Attivita', value: 'business' },
+];
+
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
   const query = typeof params.query === 'string' ? params.query : '';
   const category = typeof params.category === 'string' ? params.category : '';
   const matchedStatus = typeof params.matched_status === 'string' ? params.matched_status : '';
+  const scope = typeof params.scope === 'string' ? params.scope : '';
   const sort = typeof params.sort === 'string' ? params.sort : '';
 
   let opportunities = query
-    ? await searchOpportunities(query).catch(() => [])
-    : await getOpportunities({ category, matched_status: matchedStatus || undefined }).catch(() => []);
+    ? await searchOpportunities(query, scope || undefined).catch(() => [])
+    : await getOpportunities({ category, matched_status: matchedStatus || undefined, scope: scope || undefined }).catch(() => []);
 
   if (category) {
     opportunities = opportunities.filter((item) => item.category === category);
   }
   if (matchedStatus) {
     opportunities = opportunities.filter((item) => item.match_status === matchedStatus);
+  }
+  if (scope) {
+    opportunities = opportunities.filter((item) => scope === 'personal'
+      ? item.opportunity_scope === 'personal' || item.opportunity_scope === 'hybrid'
+      : item.opportunity_scope === 'business' || item.opportunity_scope === 'hybrid');
   }
   if (sort === 'deadline') {
     opportunities = [...opportunities]
@@ -50,6 +62,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     if (query) search.set('query', query);
     if (nextCategory) search.set('category', nextCategory);
     if (matchedStatus) search.set('matched_status', matchedStatus);
+    if (scope) search.set('scope', scope);
     if (sort) search.set('sort', sort);
     return `/search${search.toString() ? `?${search.toString()}` : ''}`;
   };
@@ -59,6 +72,17 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     if (query) search.set('query', query);
     if (category) search.set('category', category);
     if (nextStatus) search.set('matched_status', nextStatus);
+    if (scope) search.set('scope', scope);
+    if (sort) search.set('sort', sort);
+    return `/search${search.toString() ? `?${search.toString()}` : ''}`;
+  };
+
+  const buildScopeHref = (nextScope: string | null) => {
+    const search = new URLSearchParams();
+    if (query) search.set('query', query);
+    if (category) search.set('category', category);
+    if (matchedStatus) search.set('matched_status', matchedStatus);
+    if (nextScope) search.set('scope', nextScope);
     if (sort) search.set('sort', sort);
     return `/search${search.toString() ? `?${search.toString()}` : ''}`;
   };
@@ -68,6 +92,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     if (query) search.set('query', query);
     if (category) search.set('category', category);
     if (matchedStatus) search.set('matched_status', matchedStatus);
+    if (scope) search.set('scope', scope);
     search.set('sort', 'deadline');
     return `/search?${search.toString()}`;
   };
@@ -88,6 +113,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <SearchBar defaultValue={query} />
 
         <div className="grid gap-4">
+          <FilterChips items={SCOPE_ITEMS.filter((item) => item.value !== '')} active={scope || null} buildHref={buildScopeHref} />
           <FilterChips items={CATEGORY_ITEMS} active={category || null} buildHref={buildHref} />
           <FilterChips items={STATUS_ITEMS} active={matchedStatus || null} buildHref={buildStatusHref} />
           <div className="flex flex-wrap gap-3">

@@ -40,9 +40,14 @@ export function OpportunityCard({
       <CardHeader className="gap-4 pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-3">
-            <Badge variant="soft" className="w-fit bg-white/70 text-slate-700">
-              {categoryLabel(opportunity.category)}
-            </Badge>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="soft" className="w-fit bg-white/70 text-slate-700">
+                {categoryLabel(opportunity.category)}
+              </Badge>
+              <Badge variant="outline" className="w-fit bg-white/55 text-slate-700">
+                {scopeLabel(opportunity.opportunity_scope)}
+              </Badge>
+            </div>
             <CardTitle className="balance-title text-2xl leading-tight text-slate-950">{opportunity.title}</CardTitle>
           </div>
           <StatusPill status={opportunity.match_status} />
@@ -110,4 +115,10 @@ export function OpportunityCard({
       </CardFooter>
     </Card>
   );
+}
+
+function scopeLabel(scope: OpportunityCardType['opportunity_scope']) {
+  if (scope === 'personal') return 'Personale';
+  if (scope === 'business') return 'Attivita';
+  return 'Personale + attivita';
 }

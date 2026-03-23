@@ -53,6 +53,11 @@ const CATEGORY_ITEMS = [
   { label: 'Formazione', value: 'training_incentive' },
 ];
 
+const SCOPE_ITEMS = [
+  { label: 'Personale', value: 'personal' },
+  { label: 'Attivita', value: 'business' },
+];
+
 function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunity[] }) {
   const preview = opportunities.slice(0, 3);
   const appStartUrl = `https://${APP_HOST}/start`;
@@ -108,13 +113,13 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
           <Badge variant="outline" className="w-fit">Ingresso</Badge>
           <h2 className="font-heading text-4xl font-semibold tracking-tight text-slate-950">Dal sito entri in un percorso guidato, non in un form generico.</h2>
           <p className="max-w-2xl text-base leading-7 text-slate-500">
-            Prima scegli il tuo ramo. Poi chiudi il core stabile. Dopo il primo salvataggio vedi subito i match e decidi quanta precisione aggiungere.
+            Parti sempre da te. Chiudi il profilo personale, vedi subito i primi match e aggiungi l attivita solo se esiste davvero.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           <StepCard index="01" title="Email e sessione" body="Niente password: il link ti riporta direttamente nel flusso giusto." />
-          <StepCard index="02" title="Core stabile" body="Forma, fase attivita, regione, dimensione, settore e regime innovativo prima delle domande specialistiche." />
-          <StepCard index="03" title="Precisione condizionale" body="Assunzioni, export, ISEE o investimenti appaiono solo se una misura attiva ne dipende davvero." />
+          <StepCard index="02" title="Profilo personale prima" body="Lavoro, fascia di eta, regione e nucleo fanno partire il feed subito con una base leggibile." />
+          <StepCard index="03" title="Attivita solo se c e" body="Partita IVA, startup o PMI entrano dopo, nello stesso profilo e nello stesso feed." />
         </div>
       </section>
 
@@ -153,9 +158,11 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
 function ProductHomePage({
   profile,
   opportunities,
+  scope,
 }: {
   profile: Awaited<ReturnType<typeof getProfile>>;
   opportunities: HomeOpportunity[];
+  scope: string;
 }) {
   const topMatches = opportunities.slice(0, 6);
   const confirmed = opportunities.filter((item) => item.match_status === 'confirmed').slice(0, 3);
@@ -170,12 +177,26 @@ function ProductHomePage({
             Cosa potrebbe essere rilevante per te <span className="text-gradient">adesso.</span>
           </h1>
           <p className="max-w-2xl text-lg leading-8 text-slate-500">
-            {profile?.user_type ? `Profilo ${profile.user_type} in ${profile.region ?? 'Italia'}. ` : ''}
+            {profile?.user_type && profile.user_type !== 'persona_fisica'
+              ? `Profilo personale attivo con area principale ${profile.region ?? 'Italia'} e contesto ${profile.user_type}. `
+              : `Profilo personale attivo${profile?.region ? ` in ${profile.region}` : ''}. `}
             Completezza attuale {Math.round(profile?.profile_completeness_score ?? 0)}%. Cerca, salva e chiarisci prima i match che possono salire di stato.
           </p>
         </div>
         <SearchBar defaultValue="" />
-        <FilterChips items={CATEGORY_ITEMS} active={null} buildHref={(value) => `/search${value ? `?category=${encodeURIComponent(value)}` : ''}`} />
+        <div className="grid gap-3">
+          <FilterChips items={SCOPE_ITEMS} active={scope || null} buildHref={(value) => `/${value ? `?scope=${encodeURIComponent(value)}` : ''}`} />
+          <FilterChips
+            items={CATEGORY_ITEMS}
+            active={null}
+            buildHref={(value) => {
+              const search = new URLSearchParams();
+              if (value) search.set('category', value);
+              if (scope) search.set('scope', scope);
+              return `/search${search.toString() ? `?${search.toString()}` : ''}`;
+            }}
+          />
+        </div>
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.85fr)]">
@@ -321,9 +342,15 @@ function AudienceCard({ eyebrow, title, body }: { eyebrow: string; title: string
   );
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const scope = typeof params.scope === 'string' ? params.scope : '';
   const marketingHost = await isMarketingRequest();
-  const opportunities = await getOpportunities().catch(() => []);
+  const opportunities = await getOpportunities({ scope: scope || undefined }).catch(() => []);
 
   if (marketingHost) {
     return <MarketingLandingPage opportunities={opportunities} />;
@@ -335,5 +362,5 @@ export default async function HomePage() {
     return <PublicProductHome opportunities={opportunities} />;
   }
 
-  return <ProductHomePage profile={profile} opportunities={opportunities} />;
+  return <ProductHomePage profile={profile} opportunities={opportunities} scope={scope} />;
 }

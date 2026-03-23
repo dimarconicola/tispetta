@@ -10,9 +10,11 @@ from sqlalchemy.orm import Session, joinedload
 from app.matching.rules import PROFILE_FIELD_LABELS, compute_match
 from app.models import Match, MatchEvaluation, Opportunity, OpportunityRule, OpportunityVersion, Profile, RecordStatus
 from app.services.notifications import emit_match_transition_events
+from app.services.opportunity_scope import active_profile_types, resolve_effective_profile_type
 
 
 def shortlist_candidates(profile: Profile, opportunities: list[Opportunity]) -> list[Opportunity]:
+    profile_types = set(active_profile_types(profile.user_type))
     shortlist: list[Opportunity] = []
     for opportunity in opportunities:
         version = opportunity.current_version
@@ -20,7 +22,7 @@ def shortlist_candidates(profile: Profile, opportunities: list[Opportunity]) -> 
             continue
         if version.country != 'IT':
             continue
-        if version.target_entities and profile.user_type and profile.user_type not in version.target_entities:
+        if version.target_entities and profile_types.isdisjoint(version.target_entities):
             continue
         if version.company_size_constraints and profile.company_size_band and profile.company_size_band not in version.company_size_constraints:
             continue
@@ -66,8 +68,13 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
         active_rule = next((rule for rule in version.rules if rule.is_active), None)
         if active_rule is None:
             continue
+        effective_profile_type = resolve_effective_profile_type(
+            target_entities=version.target_entities,
+            stored_profile_type=normalize_match_value(profile.user_type),
+        )
         payload = {
-            'user_type': normalize_match_value(profile.user_type),
+            'user_type': effective_profile_type,
+            'profile_type': effective_profile_type,
             'region': profile.region,
             'province': profile.province,
             'age_range': profile.age_range,
@@ -88,6 +95,8 @@ def evaluate_profile_against_catalog(db: Session, profile: Profile) -> list[Matc
             if item.fact is None:
                 continue
             payload[item.fact.key] = normalize_match_value(item.value_json.get('value'))
+        payload['user_type'] = effective_profile_type
+        payload['profile_type'] = effective_profile_type
         computed = compute_match(active_rule.rule_json, payload)
         summary, full = build_explanation(
             opportunity,

@@ -28,7 +28,7 @@ export default async function OnboardingPage({
   const requestedStep = Array.isArray(params.step) ? params.step[0] : params.step;
   const currentStep = resolveCurrentStep(questionPayload?.recommended_step, requestedStep, profile);
   const topMatches = opportunities.slice(0, currentStep === 'results' ? 4 : 2);
-  const highlightedQuestions = selectHighlightedQuestions(questionPayload, currentStep);
+  const highlightedQuestions = selectHighlightedQuestions(questionPayload, currentStep, profile);
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
@@ -60,7 +60,9 @@ export default async function OnboardingPage({
 
 function resolveCurrentStep(recommendedStep: string | undefined, requestedStep: string | undefined, profile: Awaited<ReturnType<typeof getProfile>>) {
   const factValues = (profile?.fact_values ?? {}) as Record<string, unknown>;
-  if (!factValues.profile_type) return 'gate';
+  if (!factValues.profile_type && requestedStep !== 'results' && requestedStep !== 'strategic' && requestedStep !== 'conditional') {
+    return 'core_entity';
+  }
   if (recommendedStep === 'core_entity') return 'core_entity';
   if (requestedStep === 'results') return 'results';
   if (requestedStep === 'strategic') return 'strategic_intent';
@@ -72,9 +74,20 @@ function resolveCurrentStep(recommendedStep: string | undefined, requestedStep: 
 
 function selectHighlightedQuestions(
   payload: Awaited<ReturnType<typeof getProfileQuestions>>,
-  currentStep: string
+  currentStep: string,
+  profile: Awaited<ReturnType<typeof getProfile>>
 ): ProfileQuestion[] {
   if (!payload) return [];
+  const factValues = (profile?.fact_values ?? {}) as Record<string, unknown>;
+  const activeAudiences = ['persona_fisica'];
+  const businessType = typeof factValues.profile_type === 'string' && factValues.profile_type !== 'persona_fisica'
+    ? factValues.profile_type
+    : typeof profile?.user_type === 'string' && profile.user_type !== 'persona_fisica'
+      ? profile.user_type
+      : null;
+  if (businessType) {
+    activeAudiences.push(businessType);
+  }
   const priorityModules =
     currentStep === 'gate' || currentStep === 'core_entity'
       ? ['strategic_intent', 'conditional_accuracy']
@@ -87,6 +100,7 @@ function selectHighlightedQuestions(
     (moduleKey) => payload.modules.find((module) => module.key === moduleKey)?.questions ?? []
   );
   return questions
+    .filter((question) => !question.audience || question.audience.some((audience) => activeAudiences.includes(audience)))
     .filter((question) => (question.priority ?? 0) > 0)
     .sort(
       (left, right) =>

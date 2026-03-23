@@ -27,7 +27,7 @@ export function ImpactRail({
         </CardHeader>
         <CardContent className="grid gap-4 text-sm text-slate-600">
           <p>
-            Dopo ogni salvataggio rivedi subito risultati e priorita. Non serve completare tutto: puoi fermarti ai primi match o stringere ancora il profilo.
+            Dopo ogni salvataggio rivedi subito risultati e priorita. Parti sempre dal profilo personale e aggiungi l attivita solo quando ti serve davvero.
           </p>
           {progress ? (
             <div className="grid gap-2 rounded-[1.5rem] border border-border/70 bg-slate-50/80 p-4 text-sm">

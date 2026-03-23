@@ -103,6 +103,7 @@ export type OpportunityCard = {
   title: string;
   short_description: string;
   category: string;
+  opportunity_scope: 'personal' | 'business' | 'hybrid';
   geography_scope: string;
   benefit_type: string;
   match_status: string | null;

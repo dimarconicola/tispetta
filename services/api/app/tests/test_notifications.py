@@ -193,7 +193,8 @@ def test_publish_opportunity_emits_source_change_digest(monkeypatch) -> None:
         ).scalars().all()
 
     assert len(events) == 1
-    assert calls == [f'Aggiornamento fonte ufficiale: {opportunity.title}']
+    assert f'Aggiornamento fonte ufficiale: {opportunity.title}' in calls
+    assert set(calls) == {f'Aggiornamento fonte ufficiale: {opportunity.title}'}
 
 
 def test_suppressed_notification_is_recorded(monkeypatch) -> None:

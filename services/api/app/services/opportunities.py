@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.matching.rules import PROFILE_FIELD_LABELS
 from app.models import Match, MatchEvaluation, Opportunity, RecordStatus, SavedOpportunity, User
+from app.services.opportunity_scope import derive_opportunity_scope, matches_scope_filter
 from app.services.profile import get_profile_questions
 
 
@@ -28,6 +29,7 @@ def list_opportunities(
     category: str | None = None,
     matched_status: str | None = None,
     saved_only: bool = False,
+    scope: str | None = None,
 ) -> list[dict]:
     stmt: Select[tuple[Opportunity]] = (
         select(Opportunity)
@@ -67,6 +69,9 @@ def list_opportunities(
 
     payloads: list[dict] = []
     for opportunity in opportunities:
+        opportunity_scope = derive_opportunity_scope(opportunity.current_version.target_entities if opportunity.current_version else None)
+        if not matches_scope_filter(opportunity_scope, scope):
+            continue
         match = matches_by_opp.get(opportunity.id)
         evaluation = latest_evaluations_by_match_id.get(match.id) if match else None
         match_meta = build_match_metadata(match, evaluation, question_lookup)
@@ -81,6 +86,7 @@ def list_opportunities(
                 'title': opportunity.title,
                 'short_description': opportunity.short_description,
                 'category': opportunity.category,
+                'opportunity_scope': opportunity_scope,
                 'geography_scope': opportunity.geography_scope,
                 'benefit_type': opportunity.benefit_type,
                 'match_status': match.match_status if match else None,
@@ -145,6 +151,7 @@ def get_opportunity_detail(db: Session, opportunity_key: str, user: User | None)
     match_meta = build_match_metadata(match, evaluation, question_lookup)
     why = match_meta['matched_reasons'] or ([match.explanation_summary] if match is not None else [])
     missing = match_meta['blocking_labels'] or ([PROFILE_FIELD_LABELS.get(item, item) for item in match.missing_fields] if match is not None else [])
+    opportunity_scope = derive_opportunity_scope(version.target_entities)
 
     return {
         'id': opportunity.id,
@@ -153,6 +160,7 @@ def get_opportunity_detail(db: Session, opportunity_key: str, user: User | None)
         'short_description': version.short_description,
         'long_description': version.long_description,
         'category': version.category,
+        'opportunity_scope': opportunity_scope,
         'geography_scope': version.geography_scope,
         'benefit_type': version.benefit_type,
         'match_status': match.match_status if match else None,

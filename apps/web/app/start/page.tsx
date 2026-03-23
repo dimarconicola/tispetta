@@ -9,7 +9,7 @@ import { getSessionUser } from '@/lib/server-api';
 
 export const metadata: Metadata = {
   title: 'Ingresso guidato',
-  description: 'Entra in Tispetta con un percorso guidato: email, profilo core, primo shortlist.',
+  description: 'Entra in Tispetta con un percorso guidato: email, profilo personale, primi match, attivita opzionale.',
   robots: {
     index: false,
     follow: false,
@@ -27,7 +27,7 @@ export default async function StartPage() {
       <MagicLinkForm
         eyebrow="Ingresso guidato"
         title="Entra nel motore da un percorso piu corto"
-        lead="Lascia la tua email e ti portiamo direttamente nel profilo guidato: prima scegli se sei una persona fisica o un'attivita, poi arrivano solo le domande che cambiano davvero il matching."
+        lead="Lascia la tua email e ti portiamo direttamente nel profilo guidato: partiamo da te, mostriamo i primi match e aggiungiamo l attivita solo se ti serve."
         submitLabel="Invia link e continua"
         redirectTo="/onboarding?entry=apex"
       />
@@ -38,15 +38,15 @@ export default async function StartPage() {
             <CardTitle className="text-4xl leading-[0.95]">Non entri in un questionario infinito.</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 text-sm leading-7 text-slate-600">
-            <p>Prima distingui benefici personali e familiari da misure per attivita, freelance, startup o PMI.</p>
+            <p>Prima chiudi il profilo personale che puo spostare subito bonus, lavoro, famiglia e parte dei match d impresa.</p>
             <p>Dopo il primo salvataggio il motore ricalcola subito e ti mostra match, stato e campi mancanti con evidenze esplicite.</p>
-            <p>Le domande sensibili o progettuali compaiono solo se una famiglia di misure attiva dipende davvero da quelle risposte.</p>
+            <p>Se hai un attivita, una partita IVA o una societa, la aggiungi nello stesso profilo senza aprire un percorso separato.</p>
           </CardContent>
         </Card>
         <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
-          <MiniStep title="Chi sei" body="Persona fisica oppure attivita/impresa." />
-          <MiniStep title="Fatti stabili" body="Solo il core che sposta l'ammissibilita iniziale." />
-          <MiniStep title="Precisione" body="Chiudi solo le opportunita che valgono la pena." />
+          <MiniStep title="Profilo personale" body="Regione, lavoro, fascia di eta e nucleo: il minimo che serve per partire bene." />
+          <MiniStep title="Prime misure" body="Dopo il primo salvataggio vedi subito un feed leggibile e filtrabile." />
+          <MiniStep title="Attivita e precisione" body="Aggiungi impresa e dettagli solo quando servono davvero." />
         </div>
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-6 text-sm text-slate-600">
