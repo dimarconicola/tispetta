@@ -1,3 +1,5 @@
+import type { Route } from 'next';
+import Link from 'next/link';
 import { ArrowRight, CalendarDays, Euro, MapPin } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +32,8 @@ export function OpportunityCard({
   showSaveToggle?: boolean;
 }) {
   const theme = categoryTheme[opportunity.category] ?? 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-slate-500/10';
+  const targetHref = detailHref ?? `/opportunities/${opportunity.slug}`;
+  const isExternalHref = targetHref.startsWith('http://') || targetHref.startsWith('https://');
 
   return (
     <Card className={cn('group h-full overflow-hidden border shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl', theme)}>
@@ -85,13 +89,23 @@ export function OpportunityCard({
         ) : null}
       </CardContent>
       <CardFooter className="justify-between gap-3 pt-0">
-        <a
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 transition-colors hover:text-primary"
-          href={detailHref ?? `/opportunities/${opportunity.slug}`}
-        >
-          Apri dettaglio
-          <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-        </a>
+        {isExternalHref ? (
+          <a
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 transition-colors hover:text-primary"
+            href={targetHref}
+          >
+            Apri dettaglio
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+          </a>
+        ) : (
+          <Link
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 transition-colors hover:text-primary"
+            href={targetHref as Route}
+          >
+            Apri dettaglio
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        )}
         {showSaveToggle ? <SaveToggle opportunityId={opportunity.id} initialSaved={opportunity.is_saved} /> : null}
       </CardFooter>
     </Card>

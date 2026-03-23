@@ -48,8 +48,8 @@ test('impresa_onboarding_core_to_results', async ({ page, request }) => {
   await page.getByRole('button', { name: 'Salva il core e mostra i risultati' }).click();
 
   await expect(page).toHaveURL(/step=results/);
-  await expect(page.getByText('Hai gia una prima lettura spendibile')).toBeVisible();
-  await expect(page.getByText('I primi match sono gia leggibili')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /prima lettura spendibile/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /primi match/i })).toBeVisible();
 });
 
 test('persona_fisica_onboarding_core_to_results', async ({ page, request }) => {
@@ -60,6 +60,16 @@ test('persona_fisica_onboarding_core_to_results', async ({ page, request }) => {
   await page.getByRole('button', { name: /Persona fisica/i }).click();
 
   await expect(page.getByText('Hai scelto il percorso Persona fisica')).toBeVisible();
+  await expect(page.getByLabel('Qual e la tua situazione lavorativa principale?')).toBeVisible();
+  await expect(page.getByLabel("In quale fascia d'eta rientri?")).toBeVisible();
+  await expect(page.getByLabel("Com'e composto il tuo nucleo familiare?")).toBeVisible();
+  await expect(page.getByText('Per questo step non c e altro che sposti davvero i match.')).toHaveCount(0);
+
+  await page.locator('#employment_type').selectOption('dipendente');
+  await page.locator('#persona_fisica_age_band').selectOption('under_35');
+  await page.locator('#family_composition').selectOption('coppia_con_figli');
+  await page.locator('#figli_a_carico_count').selectOption('1');
+  await page.locator('#isee_bracket').selectOption('under_15k');
   await page.getByRole('button', { name: 'Salva il core e mostra i risultati' }).click();
 
   await expect(page).toHaveURL(/step=results/);
@@ -69,7 +79,7 @@ test('persona_fisica_onboarding_core_to_results', async ({ page, request }) => {
 
 test('anonymous_search_and_detail', async ({ page }) => {
   await page.goto('/search');
-  await expect(page.getByText('Intelligenza delle opportunita.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /intelligenza delle opportunita/i })).toBeVisible();
   await page.getByRole('textbox').fill('smart');
   await page.getByRole('button', { name: 'Cerca' }).click();
 

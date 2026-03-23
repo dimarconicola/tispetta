@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import Link from 'next/link';
 
 import { FilterChips } from '@/components/filter-chips';
@@ -90,8 +91,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <FilterChips items={CATEGORY_ITEMS} active={category || null} buildHref={buildHref} />
           <FilterChips items={STATUS_ITEMS} active={matchedStatus || null} buildHref={buildStatusHref} />
           <div className="flex flex-wrap gap-3">
-            <a
-              href={buildSortHref()}
+            <Link
+              href={buildSortHref() as Route}
               className={`inline-flex min-h-11 items-center justify-center rounded-full border px-5 text-sm font-medium transition-all duration-200 ${
                 sort === 'deadline'
                   ? 'border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/10'
@@ -99,7 +100,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               }`}
             >
               Ordina per scadenza
-            </a>
+            </Link>
             {query || category || matchedStatus || sort ? (
               <Link href="/search" className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-medium text-slate-600 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
                 Resetta filtri

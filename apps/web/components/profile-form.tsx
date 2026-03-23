@@ -1,8 +1,10 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BriefcaseBusiness, ChevronRight, CircleHelp, Sparkles, UserRound } from 'lucide-react';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +14,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
 import type { Profile, ProfileQuestion, ProfileQuestionResponse } from '@/lib/types';
 
 import { QuestionStepper } from './question-stepper';
@@ -73,6 +74,136 @@ const DEFAULT_GROUP_LABEL = {
   body: 'Informazioni ulteriori che possono affinare stato e priorita dei match.',
 };
 
+const PERSONA_CORE_BRIDGE_QUESTIONS: ProfileQuestion[] = [
+  {
+    key: 'employment_type',
+    label: 'Qual e la tua situazione lavorativa principale?',
+    step: 1,
+    kind: 'select',
+    required: true,
+    options: ['dipendente', 'autonomo', 'disoccupato', 'pensionato'],
+    helper_text: 'Determina quali famiglie di misure INPS e fiscali si applicano a te.',
+    audience: ['persona_fisica'],
+    module: 'core_entity',
+    sensitive: false,
+    depends_on: { profile_type: ['persona_fisica'] },
+    ask_when_measure_families: null,
+    why_needed: 'NASpI, ANF e regime forfettario dipendono direttamente dal tipo di rapporto lavorativo.',
+    coverage_weight: 0,
+    ambiguity_reduction_score: 0,
+    priority: 100,
+    impact_counts: {
+      clarification_opportunity_count: 0,
+      blocking_opportunity_count: 0,
+      upgrade_opportunity_count: 0,
+    },
+    blocking_opportunity_count: 0,
+    upgrade_opportunity_count: 0,
+  },
+  {
+    key: 'persona_fisica_age_band',
+    label: "In quale fascia d'eta rientri?",
+    step: 1,
+    kind: 'select',
+    required: true,
+    options: ['under_35', '35_55', 'over_55'],
+    helper_text: "Alcune misure come il bonus prima casa under 36 e le agevolazioni forfettarie dipendono dall'eta.",
+    audience: ['persona_fisica'],
+    module: 'core_entity',
+    sensitive: false,
+    depends_on: { profile_type: ['persona_fisica'] },
+    ask_when_measure_families: null,
+    why_needed: 'Molti benefici fiscali e contributivi hanno soglie anagrafiche esplicite.',
+    coverage_weight: 0,
+    ambiguity_reduction_score: 0,
+    priority: 95,
+    impact_counts: {
+      clarification_opportunity_count: 0,
+      blocking_opportunity_count: 0,
+      upgrade_opportunity_count: 0,
+    },
+    blocking_opportunity_count: 0,
+    upgrade_opportunity_count: 0,
+  },
+  {
+    key: 'family_composition',
+    label: "Com'e composto il tuo nucleo familiare?",
+    step: 1,
+    kind: 'select',
+    required: true,
+    options: ['single', 'coppia_senza_figli', 'coppia_con_figli', 'genitore_solo_con_figli'],
+    helper_text: 'Determina accesso a Assegno Unico, ANF, detrazioni per figli e bonus nido.',
+    audience: ['persona_fisica'],
+    module: 'core_entity',
+    sensitive: false,
+    depends_on: { profile_type: ['persona_fisica'] },
+    ask_when_measure_families: null,
+    why_needed: 'I benefici familiari dipendono dalla composizione del nucleo, non solo dal reddito.',
+    coverage_weight: 0,
+    ambiguity_reduction_score: 0,
+    priority: 90,
+    impact_counts: {
+      clarification_opportunity_count: 0,
+      blocking_opportunity_count: 0,
+      upgrade_opportunity_count: 0,
+    },
+    blocking_opportunity_count: 0,
+    upgrade_opportunity_count: 0,
+  },
+  {
+    key: 'figli_a_carico_count',
+    label: 'Quanti figli hai a carico?',
+    step: 1,
+    kind: 'select',
+    required: true,
+    options: ['0', '1', '2', '3_plus'],
+    helper_text: "Il numero di figli cambia l'importo di Assegno Unico, detrazioni e bonus nido.",
+    audience: ['persona_fisica'],
+    module: 'core_entity',
+    sensitive: false,
+    depends_on: { profile_type: ['persona_fisica'] },
+    ask_when_measure_families: null,
+    why_needed: 'Quasi tutte le misure familiari scalano per numero di figli.',
+    coverage_weight: 0,
+    ambiguity_reduction_score: 0,
+    priority: 85,
+    impact_counts: {
+      clarification_opportunity_count: 0,
+      blocking_opportunity_count: 0,
+      upgrade_opportunity_count: 0,
+    },
+    blocking_opportunity_count: 0,
+    upgrade_opportunity_count: 0,
+  },
+  {
+    key: 'isee_bracket',
+    label: 'Se lo sai gia, in quale fascia ISEE rientra il tuo nucleo?',
+    step: 1,
+    kind: 'select',
+    required: false,
+    options: ['under_15k', '15_25k', '25_40k', 'over_40k', 'non_determinato'],
+    helper_text: "Non blocca il percorso: se non l'hai sotto mano puoi lasciarlo vuoto e andare avanti.",
+    audience: ['persona_fisica'],
+    module: 'core_entity',
+    sensitive: true,
+    depends_on: { profile_type: ['persona_fisica'] },
+    ask_when_measure_families: null,
+    why_needed: "Molte misure INPS e fiscali hanno soglie ISEE esplicite che cambiano l'importo o l'accesso.",
+    coverage_weight: 0,
+    ambiguity_reduction_score: 0,
+    priority: 70,
+    impact_counts: {
+      clarification_opportunity_count: 0,
+      blocking_opportunity_count: 0,
+      upgrade_opportunity_count: 0,
+    },
+    blocking_opportunity_count: 0,
+    upgrade_opportunity_count: 0,
+  },
+];
+
+const PERSONA_CORE_BRIDGE_ORDER = PERSONA_CORE_BRIDGE_QUESTIONS.map((question) => question.key);
+
 export function ProfileForm({
   profile,
   questionPayload,
@@ -84,12 +215,21 @@ export function ProfileForm({
   currentStep: ViewStep;
   entry?: string;
 }) {
+  const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [localStep, setLocalStep] = useState<ViewStep>(currentStep);
   const [selectedProfileType, setSelectedProfileType] = useState<string | null>(resolveUserType(profile));
   const initialValues = useMemo(() => buildInitialValues(profile), [profile]);
   const { register, handleSubmit, watch, setValue } = useForm<FormValues>({ defaultValues: initialValues });
+
+  useEffect(() => {
+    setLocalStep(currentStep);
+  }, [currentStep]);
+
+  useEffect(() => {
+    setSelectedProfileType(resolveUserType(profile));
+  }, [profile]);
 
   const activeStep = localStep === 'gate' && selectedProfileType ? 'core_entity' : localStep;
   const watchedProfileType = (watch('profile_type') as string | undefined) || selectedProfileType || 'startup';
@@ -97,9 +237,19 @@ export function ProfileForm({
   const activeQuestions = useMemo(() => {
     if (activeStep === 'results' || activeStep === 'gate') return [];
     const rawQuestions = moduleMap.get(activeStep)?.questions ?? [];
-    return rawQuestions
+    const filteredQuestions = rawQuestions
       .filter((question) => !question.audience || question.audience.includes(watchedProfileType))
       .filter((question) => !(activeStep === 'core_entity' && question.key === 'profile_type'));
+    if (activeStep !== 'core_entity' || watchedProfileType !== 'persona_fisica') {
+      return filteredQuestions;
+    }
+    const questionsByKey = new Map(filteredQuestions.map((question) => [question.key, question]));
+    PERSONA_CORE_BRIDGE_QUESTIONS.forEach((question) => {
+      if (!questionsByKey.has(question.key)) {
+        questionsByKey.set(question.key, question);
+      }
+    });
+    return Array.from(questionsByKey.values()).sort((left, right) => personaQuestionOrder(left.key) - personaQuestionOrder(right.key));
   }, [activeStep, moduleMap, watchedProfileType]);
   const groupedQuestions = useMemo(() => groupQuestionsByIntent(activeQuestions), [activeQuestions]);
   const hasConditionalQuestions = Boolean((moduleMap.get('conditional_accuracy')?.questions ?? []).length);
@@ -122,10 +272,12 @@ export function ProfileForm({
             <button
               type="button"
               className={gateCardClass}
+              disabled={isSubmitting}
               onClick={() => {
                 setSelectedProfileType('persona_fisica');
                 setValue('profile_type', 'persona_fisica');
                 setLocalStep('core_entity');
+                setMessage(null);
               }}
             >
               <div className="flex items-center gap-3">
@@ -143,10 +295,12 @@ export function ProfileForm({
             <button
               type="button"
               className={gateCardClass}
+              disabled={isSubmitting}
               onClick={() => {
                 setSelectedProfileType('startup');
                 setValue('profile_type', 'startup');
                 setLocalStep('core_entity');
+                setMessage(null);
               }}
             >
               <div className="flex items-center gap-3">
@@ -186,13 +340,13 @@ export function ProfileForm({
                 Da qui in poi puoi scegliere quanta precisione aggiungere. Le domande successive servono a far salire i match da unclear o likely verso confirmed.
               </p>
               <div className="flex flex-wrap gap-3">
-                <a className="button" href={nextHref('results', hasConditionalQuestions, entry)}>
+                <Link className="button" href={nextHref('results', hasConditionalQuestions, entry) as Route}>
                   Migliora precisione
                   <ChevronRight className="size-4" />
-                </a>
-                <a className="button-secondary" href={`/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}`}>
+                </Link>
+                <Link className="button-secondary" href={`/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}` as Route}>
                   Vai ai risultati completi
-                </a>
+                </Link>
               </div>
             </div>
             <div className="grid gap-3 rounded-[1.75rem] border border-border/70 bg-slate-50/85 p-5 text-sm text-slate-600">
@@ -207,35 +361,35 @@ export function ProfileForm({
     );
   }
 
-  const copy = STEP_COPY[activeStep as Exclude<ViewStep, 'gate'>];
+  const copy = getStepCopy(activeStep as Exclude<ViewStep, 'gate'>, selectedProfileType);
 
   return (
     <form
       className="grid gap-6"
-      onSubmit={handleSubmit((values) => {
-        startTransition(async () => {
-          setMessage(null);
-          const currentQuestions = activeQuestions;
-          const normalizedFactValues = Object.fromEntries(
-            currentQuestions
-              .map((question) => [question.key, normalizeValue(question, values[question.key])])
-              .filter(([, value]) => value !== undefined)
-          );
-          if (!normalizedFactValues.profile_type && selectedProfileType) {
-            normalizedFactValues.profile_type = selectedProfileType;
-          }
-          const response = await fetch(`${API_URL}/v1/profile`, {
-            method: 'PUT',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fact_values: normalizedFactValues }),
-          });
-          if (!response.ok) {
-            setMessage('Aggiornamento non riuscito. Riprova tra qualche secondo.');
-            return;
-          }
-          window.location.assign(nextHref(activeStep, hasConditionalQuestions, entry));
+      onSubmit={handleSubmit(async (values) => {
+        setMessage(null);
+        setIsSubmitting(true);
+        const currentQuestions = activeQuestions;
+        const normalizedFactValues = Object.fromEntries(
+          currentQuestions
+            .map((question) => [question.key, normalizeValue(question, values[question.key])])
+            .filter(([, value]) => value !== undefined)
+        );
+        if (!normalizedFactValues.profile_type && selectedProfileType) {
+          normalizedFactValues.profile_type = selectedProfileType;
+        }
+        const response = await fetch(`${API_URL}/v1/profile`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fact_values: normalizedFactValues }),
         });
+        if (!response.ok) {
+          setMessage('Aggiornamento non riuscito. Riprova tra qualche secondo.');
+          setIsSubmitting(false);
+          return;
+        }
+        router.push(nextHref(activeStep, hasConditionalQuestions, entry) as Route);
       })}
     >
       <QuestionStepper current={activeStep} progress={progressPercent} />
@@ -255,7 +409,15 @@ export function ProfileForm({
 
       {activeStep === 'core_entity' ? (
         <div className="rounded-[1.75rem] border border-blue-100 bg-blue-50/80 px-5 py-4 text-sm leading-7 text-blue-950">
-          Hai scelto il percorso <strong>{selectedProfileType === 'persona_fisica' ? 'Persona fisica' : 'Attivita o impresa'}</strong>. Se vuoi cambiare ramo, torna indietro ricaricando questa pagina prima di salvare il core.
+          {selectedProfileType === 'persona_fisica' ? (
+            <>
+              Hai scelto il percorso <strong>Persona fisica</strong>. Qui chiudiamo subito lavoro, eta, nucleo e figli a carico. Se sai gia la fascia ISEE, aggiungila ora: rende piu precisi bonus familiari, detrazioni e misure INPS.
+            </>
+          ) : (
+            <>
+              Hai scelto il percorso <strong>Attivita o impresa</strong>. Qui chiudiamo il perimetro stabile che sposta davvero l ammissibilita iniziale: fase, forma, territorio, dimensione, settore e regime innovativo.
+            </>
+          )}
         </div>
       ) : null}
 
@@ -282,20 +444,21 @@ export function ProfileForm({
 
       {activeQuestions.length === 0 ? (
         <Card>
-          <CardContent className="py-8 text-sm text-slate-600">
-            Nessuna domanda attiva in questo step. Puoi proseguire direttamente ai risultati.
+          <CardContent className="grid gap-3 py-8 text-sm text-slate-600">
+            <p className="font-medium text-slate-900">Per questo step non c e altro che sposti davvero i match.</p>
+            <p>Puoi andare avanti: i risultati sono gia leggibili e le prossime domande compariranno solo se chiariscono opportunita vive.</p>
           </CardContent>
         </Card>
       ) : null}
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" className="min-w-[16rem]">
-          {isPending ? 'Salvataggio...' : submitLabel(activeStep, hasConditionalQuestions)}
+        <Button type="submit" className="min-w-[16rem]" disabled={isSubmitting}>
+          {isSubmitting ? 'Salvataggio e ricalcolo...' : submitLabel(activeStep, hasConditionalQuestions)}
         </Button>
         {activeStep !== 'core_entity' ? (
-          <a className="button-secondary" href={skipHref(entry)}>
+          <Link className="button-secondary" href={skipHref(entry) as Route}>
             Salta per ora
-          </a>
+          </Link>
         ) : null}
       </div>
       {message ? <div className="banner">{message}</div> : null}
@@ -429,6 +592,23 @@ function questionGroupKey(key: string): string {
     return 'personal_family';
   }
   return 'general';
+}
+
+function personaQuestionOrder(key: string): number {
+  const index = PERSONA_CORE_BRIDGE_ORDER.indexOf(key);
+  return index === -1 ? PERSONA_CORE_BRIDGE_ORDER.length + 100 : index;
+}
+
+function getStepCopy(step: Exclude<ViewStep, 'gate'>, profileType: string | null) {
+  if (step === 'core_entity' && profileType === 'persona_fisica') {
+    return {
+      eyebrow: 'Step 1',
+      title: 'Chiudi il perimetro personale che sposta davvero i bonus',
+      body: 'Partiamo da lavoro, fascia di eta, nucleo e figli a carico. Se conosci gia l ISEE, aggiungilo adesso: migliora subito i match familiari e reddituali, ma non ti blocca.',
+    };
+  }
+
+  return STEP_COPY[step];
 }
 
 function submitLabel(step: ViewStep, hasConditionalQuestions: boolean): string {

@@ -1,3 +1,5 @@
+import type { Route } from 'next';
+import Link from 'next/link';
 import { ArrowRight, Search, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -28,9 +30,9 @@ export function SearchBar({
       <div className="absolute inset-y-0 right-3 flex items-center gap-2">
         {defaultValue ? (
           <Button asChild size="icon" variant="ghost" className="size-10 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700">
-            <a href={action} aria-label="Pulisci ricerca">
+            <Link href={action as Route} aria-label="Pulisci ricerca">
               <X className="size-4" />
-            </a>
+            </Link>
           </Button>
         ) : null}
         <Button type="submit" className="h-11 px-5">
