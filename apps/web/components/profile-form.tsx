@@ -221,7 +221,7 @@ export function ProfileForm({
   const [localStep, setLocalStep] = useState<ViewStep>(currentStep);
   const [selectedProfileType, setSelectedProfileType] = useState<string | null>(resolveUserType(profile));
   const initialValues = useMemo(() => buildInitialValues(profile), [profile]);
-  const { register, handleSubmit, watch, setValue } = useForm<FormValues>({ defaultValues: initialValues });
+  const { register, handleSubmit, watch, setValue, reset } = useForm<FormValues>({ defaultValues: initialValues });
 
   useEffect(() => {
     setLocalStep(currentStep);
@@ -230,6 +230,12 @@ export function ProfileForm({
   useEffect(() => {
     setSelectedProfileType(resolveUserType(profile));
   }, [profile]);
+
+  useEffect(() => {
+    reset(initialValues);
+    setMessage(null);
+    setIsSubmitting(false);
+  }, [initialValues, reset]);
 
   const activeStep = localStep === 'gate' && selectedProfileType ? 'core_entity' : localStep;
   const watchedProfileType = (watch('profile_type') as string | undefined) || selectedProfileType || 'startup';
@@ -259,7 +265,7 @@ export function ProfileForm({
   if (activeStep === 'gate' && !selectedProfileType) {
     return (
       <div className="grid gap-6">
-        <QuestionStepper current="gate" progress={6} />
+        <QuestionStepper current="gate" progress={6} hrefForStep={(stepKey) => hrefForStep(stepKey, entry, selectedProfileType, hasConditionalQuestions)} />
         <Card>
           <CardHeader className="gap-3">
             <Badge variant="soft" className="w-fit">Step 0</Badge>
@@ -323,7 +329,7 @@ export function ProfileForm({
   if (activeStep === 'results') {
     return (
       <div className="grid gap-6">
-        <QuestionStepper current="results" progress={progressPercent} />
+        <QuestionStepper current="results" progress={progressPercent} hrefForStep={(stepKey) => hrefForStep(stepKey, entry, selectedProfileType, hasConditionalQuestions)} />
         <Card>
           <CardHeader className="gap-3">
             <Badge variant="soft" className="w-fit">{STEP_COPY.results.eyebrow}</Badge>
@@ -337,7 +343,7 @@ export function ProfileForm({
                 <span className="text-sm font-semibold">Il motore ha gia un perimetro serio.</span>
               </div>
               <p className="text-sm leading-7 text-slate-600">
-                Da qui in poi puoi scegliere quanta precisione aggiungere. Le domande successive servono a far salire i match da unclear o likely verso confirmed.
+                Da qui in poi scegli tu quanta precisione aggiungere. Le domande successive servono solo a chiarire i casi ancora aperti, non a sbloccare il prodotto.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link className="button" href={nextHref('results', hasConditionalQuestions, entry) as Route}>
@@ -350,10 +356,9 @@ export function ProfileForm({
               </div>
             </div>
             <div className="grid gap-3 rounded-[1.75rem] border border-border/70 bg-slate-50/85 p-5 text-sm text-slate-600">
-              <span className="eyebrow">Snapshot</span>
-              <span>Core risposto: {progress?.core_answered ?? 0}/{progress?.core_total ?? 0}</span>
-              <span>Blocchi chiaribili: {progress?.blocked_opportunity_count ?? 0}</span>
-              <span>Upgrade potenziali: {progress?.upgradable_opportunity_count ?? 0}</span>
+              <span className="eyebrow">Stato attuale</span>
+              <span>Core salvato: {progress?.core_answered ?? 0}/{progress?.core_total ?? 0}</span>
+              <span>Ora puoi vedere i risultati o continuare solo con le risposte piu utili.</span>
             </div>
           </CardContent>
         </Card>
@@ -392,7 +397,7 @@ export function ProfileForm({
         router.push(nextHref(activeStep, hasConditionalQuestions, entry) as Route);
       })}
     >
-      <QuestionStepper current={activeStep} progress={progressPercent} />
+      <QuestionStepper current={activeStep} progress={progressPercent} hrefForStep={(stepKey) => hrefForStep(stepKey, entry, selectedProfileType, hasConditionalQuestions)} />
 
       <Card>
         <CardHeader className="gap-3">
@@ -401,24 +406,58 @@ export function ProfileForm({
           <CardDescription className="max-w-3xl text-base leading-7">{copy.body}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
-          <Stat label="Domande attive" value={String(activeQuestions.length)} />
-          <Stat label="Blocchi chiaribili" value={String(sumQuestionMetric(activeQuestions, 'blocking_opportunity_count'))} />
-          <Stat label="Upgrade potenziali" value={String(sumQuestionMetric(activeQuestions, 'upgrade_opportunity_count'))} />
+          <NarrativeStat
+            label="Percorso"
+            value={selectedProfileType === 'persona_fisica' ? 'Persona fisica' : 'Attivita o impresa'}
+            body={selectedProfileType === 'persona_fisica' ? 'Bonus personali, familiari e lavoro.' : 'Freelance, startup, PMI, crediti e incentivi.'}
+          />
+          <NarrativeStat
+            label="Questo step"
+            value={activeQuestions.length > 0 ? `${activeQuestions.length} risposte utili` : 'Niente da aggiungere'}
+            body={activeQuestions.length > 0 ? 'Ti chiediamo solo il minimo che cambia davvero la lettura dei risultati.' : 'Puoi passare oltre senza perdere contesto.'}
+          />
+          <NarrativeStat
+            label="Poi"
+            value={nextStepLabel(activeStep, hasConditionalQuestions)}
+            body="Dopo il salvataggio resti nel flusso e puoi sempre tornare ai passaggi gia chiusi."
+          />
         </CardContent>
       </Card>
 
       {activeStep === 'core_entity' ? (
-        <div className="rounded-[1.75rem] border border-blue-100 bg-blue-50/80 px-5 py-4 text-sm leading-7 text-blue-950">
-          {selectedProfileType === 'persona_fisica' ? (
-            <>
-              Hai scelto il percorso <strong>Persona fisica</strong>. Qui chiudiamo subito lavoro, eta, nucleo e figli a carico. Se sai gia la fascia ISEE, aggiungila ora: rende piu precisi bonus familiari, detrazioni e misure INPS.
-            </>
-          ) : (
-            <>
-              Hai scelto il percorso <strong>Attivita o impresa</strong>. Qui chiudiamo il perimetro stabile che sposta davvero l ammissibilita iniziale: fase, forma, territorio, dimensione, settore e regime innovativo.
-            </>
-          )}
-        </div>
+        <Card>
+          <CardContent className="grid gap-4 py-5">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={profileModeButtonClass(selectedProfileType === 'persona_fisica')}
+                disabled={isSubmitting}
+                onClick={() => switchProfileType('persona_fisica', setSelectedProfileType, setValue, setLocalStep, setMessage)}
+              >
+                Persona fisica
+              </button>
+              <button
+                type="button"
+                className={profileModeButtonClass(selectedProfileType !== 'persona_fisica')}
+                disabled={isSubmitting}
+                onClick={() => switchProfileType('startup', setSelectedProfileType, setValue, setLocalStep, setMessage)}
+              >
+                Attivita o impresa
+              </button>
+            </div>
+            <div className="rounded-[1.5rem] border border-blue-100 bg-blue-50/80 px-5 py-4 text-sm leading-7 text-blue-950">
+              {selectedProfileType === 'persona_fisica' ? (
+                <>
+                  Hai scelto il percorso <strong>Persona fisica</strong>. Qui chiudiamo subito lavoro, eta, nucleo e figli a carico. Se sai gia la fascia ISEE, aggiungila ora: migliora la precisione, ma non ti blocca.
+                </>
+              ) : (
+                <>
+                  Hai scelto il percorso <strong>Attivita o impresa</strong>. Qui chiudiamo il perimetro stabile che sposta davvero l ammissibilita iniziale: fase, forma, territorio, dimensione, settore e regime innovativo.
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
 
       {groupedQuestions.map(([groupKey, questions]) => {
@@ -482,7 +521,6 @@ function QuestionField({
         </div>
         <div className="flex flex-wrap gap-2">
           {question.sensitive ? <Badge variant="outline">Sensibile</Badge> : null}
-          {(question.upgrade_opportunity_count ?? 0) > 0 ? <Badge variant="soft">{question.upgrade_opportunity_count} upgrade</Badge> : null}
         </div>
       </div>
 
@@ -515,9 +553,6 @@ function QuestionField({
             <CircleHelp className="mt-0.5 size-4 shrink-0 text-slate-400" />
             <span>{question.sensitive ? 'Perche lo chiediamo adesso: ' : 'Perche lo chiediamo: '}{question.why_needed}</span>
           </div>
-        ) : null}
-        {question.ask_when_measure_families?.length ? (
-          <p>Misure che dipendono da questa risposta: {question.ask_when_measure_families.join(', ')}.</p>
         ) : null}
       </div>
     </div>
@@ -611,6 +646,49 @@ function getStepCopy(step: Exclude<ViewStep, 'gate'>, profileType: string | null
   return STEP_COPY[step];
 }
 
+function hrefForStep(
+  stepKey: string,
+  entry: string | undefined,
+  profileType: string | null,
+  hasConditionalQuestions: boolean
+): Route | null {
+  if (stepKey === 'gate') return profileType ? null : buildOnboardingHref(undefined, entry);
+  if (!profileType) return null;
+  if (stepKey === 'core_entity') return buildOnboardingHref(undefined, entry);
+  if (stepKey === 'results') return buildOnboardingHref('results', entry);
+  if (stepKey === 'strategic_intent') return buildOnboardingHref('strategic', entry);
+  if (stepKey === 'conditional_accuracy') return hasConditionalQuestions ? buildOnboardingHref('conditional', entry) : null;
+  return null;
+}
+
+function buildOnboardingHref(step: 'results' | 'strategic' | 'conditional' | undefined, entry?: string): Route {
+  const search = new URLSearchParams();
+  if (step) search.set('step', step);
+  if (entry) search.set('entry', entry);
+  const suffix = search.toString();
+  return (`/onboarding${suffix ? `?${suffix}` : ''}`) as Route;
+}
+
+function nextStepLabel(step: ViewStep, hasConditionalQuestions: boolean) {
+  if (step === 'core_entity') return 'Prime opportunita';
+  if (step === 'results') return 'Precisione facoltativa';
+  if (step === 'strategic_intent') return hasConditionalQuestions ? 'Chiusura finale' : 'Catalogo e shortlist';
+  return 'Catalogo e shortlist';
+}
+
+function switchProfileType(
+  nextType: string,
+  setSelectedProfileType: (value: string | null) => void,
+  setValue: ReturnType<typeof useForm<FormValues>>['setValue'],
+  setLocalStep: (value: ViewStep) => void,
+  setMessage: (value: string | null) => void
+) {
+  setSelectedProfileType(nextType);
+  setValue('profile_type', nextType);
+  setLocalStep('core_entity');
+  setMessage(null);
+}
+
 function submitLabel(step: ViewStep, hasConditionalQuestions: boolean): string {
   if (step === 'core_entity') return 'Salva il core e mostra i risultati';
   if (step === 'strategic_intent') return hasConditionalQuestions ? 'Salva e passa alla chiusura finale' : 'Salva e vai ai risultati';
@@ -629,18 +707,24 @@ function skipHref(entry?: string): string {
   return `/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}`;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function NarrativeStat({ label, value, body }: { label: string; value: string; body: string }) {
   return (
     <div className="rounded-[1.5rem] border border-border/70 bg-slate-50/85 p-4 shadow-sm">
       <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</span>
-      <p className="mt-2 font-heading text-3xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 font-heading text-2xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{body}</p>
     </div>
   );
 }
 
-function sumQuestionMetric(questions: ProfileQuestion[], field: 'blocking_opportunity_count' | 'upgrade_opportunity_count') {
-  return questions.reduce((sum, question) => sum + (question[field] ?? 0), 0);
-}
-
 const gateCardClass =
   'grid gap-4 rounded-[1.75rem] border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg';
+
+function profileModeButtonClass(active: boolean) {
+  return [
+    'inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-medium transition-all duration-200',
+    active
+      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
+  ].join(' ');
+}

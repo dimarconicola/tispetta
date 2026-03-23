@@ -73,7 +73,7 @@ test('persona_fisica_onboarding_core_to_results', async ({ page, request }) => {
   await page.getByRole('button', { name: 'Salva il core e mostra i risultati' }).click();
 
   await expect(page).toHaveURL(/step=results/);
-  await expect(page.getByText('Le risposte che sbloccano piu opportunita')).toBeVisible();
+  await expect(page.getByText('Se vuoi migliorare il profilo, parti da qui')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Apri il catalogo completo' })).toBeVisible();
 });
 
