@@ -63,6 +63,24 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
   const preview = opportunities.slice(0, 3);
   const appStartUrl = `https://${APP_HOST}/start`;
   const appSearchUrl = `https://${APP_HOST}/search`;
+  const audienceItems = [
+    {
+      title: 'Persone e famiglie',
+      body: 'Bonus, detrazioni e misure personali che dipendono da lavoro, nucleo, figli e territorio.',
+    },
+    {
+      title: 'Freelance',
+      body: 'Partita IVA, autoimpiego e opportunita che non richiedono una societa strutturata.',
+    },
+    {
+      title: 'Startup e founder',
+      body: 'Stato innovativo, incentivi di avvio, percorsi Invitalia e condizioni societarie esplicite.',
+    },
+    {
+      title: 'PMI operative',
+      body: 'Assunzioni, export, crediti e investimenti con vincoli leggibili e fonti verificabili.',
+    },
+  ];
 
   return (
     <div className="landing-page">
@@ -71,11 +89,12 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
           <a href="#hero" className="landing-brand">Tispetta</a>
           <div className="landing-nav__links">
             <a href="#metodo">Metodo</a>
+            <a href="#per-chi">Per chi</a>
             <a href="#percorso">Percorso</a>
             <a href="#copertura">Copertura</a>
           </div>
           <div className="landing-nav__actions">
-            <a href={appSearchUrl} className="landing-link-secondary">Catalogo</a>
+            <a href={appSearchUrl} className="landing-link-secondary">Catalogo live</a>
             <a href={appStartUrl} className="landing-link-primary">Inizia guidato</a>
           </div>
         </div>
@@ -94,15 +113,22 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
           </div>
           <div className="landing-hero__bottom">
             <p className="landing-lead">
-              Tispetta legge norme, decreti e circolari e le trasforma in opportunita strutturate, criteri espliciti e match spiegabili.
+              Tispetta legge norme, decreti, circolari e pagine operative e le trasforma in opportunita strutturate, criteri espliciti e match spiegabili.
             </p>
-            <div className="landing-hero__cta">
-              <a href={appStartUrl} className="landing-link-primary landing-link-primary--light">
-                Inizia dal profilo guidato
-              </a>
-              <a href={appSearchUrl} className="landing-link-outline">
-                Esplora il catalogo <ArrowRight className="size-4" />
-              </a>
+            <div className="landing-hero__actions">
+              <div className="landing-hero__cta">
+                <a href={appStartUrl} className="landing-link-primary landing-link-primary--light">
+                  Inizia dal profilo guidato
+                </a>
+                <a href={appSearchUrl} className="landing-link-outline">
+                  Vedi il catalogo live <ArrowRight className="size-4" />
+                </a>
+              </div>
+              <div className="landing-hero__meta">
+                <span>Fonti ufficiali</span>
+                <span>Profilo guidato</span>
+                <span>Feed unico personale e impresa</span>
+              </div>
             </div>
           </div>
         </div>
@@ -147,7 +173,7 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
         <div className="landing-backdrop landing-backdrop-story" aria-hidden="true" />
         <div className="landing-shell landing-grid landing-grid-story">
           <div className="landing-story__copy">
-            <p className="landing-kicker landing-kicker-muted">Percorso reale, non marketing vuoto</p>
+            <p className="landing-kicker landing-kicker-muted">Il prodotto, non la promessa</p>
             <h3>
               Parti da te, vedi le prime misure, poi aggiungi solo la precisione che cambia davvero i risultati.
             </h3>
@@ -182,6 +208,24 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
         </div>
       </section>
 
+      <section id="per-chi" className="landing-section landing-section-light">
+        <div className="landing-shell landing-stack-lg">
+          <div className="landing-stack-sm">
+            <p className="landing-kicker landing-kicker-dark">Per chi</p>
+            <h2 className="landing-title">Un solo ingresso, casi diversi.</h2>
+          </div>
+          <div className="landing-audience-grid">
+            {audienceItems.map((item) => (
+              <article key={item.title} className="landing-audience-card">
+                <span className="landing-audience-card__eyebrow">Tispetta</span>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section id="percorso" className="landing-section landing-section-light">
         <div className="landing-shell landing-stack-lg">
           <div className="landing-grid landing-grid-intro">
@@ -210,7 +254,7 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
               </div>
               <div className="landing-walkthrough__step">
                 <span>03</span>
-                <h3>Attivita solo se c e</h3>
+                <h3>Attivita solo se c&apos;e</h3>
                 <p>Partita IVA, startup o PMI entrano dopo, nello stesso profilo e nello stesso feed.</p>
               </div>
             </div>
@@ -244,9 +288,14 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
               <p className="landing-kicker landing-kicker-muted">Preview live</p>
               <h3 className="landing-subtitle">Tre schede tratte dal catalogo attuale</h3>
             </div>
-            <a href={appSearchUrl} className="landing-link-outline landing-link-outline--light">
-              Esplora tutto il catalogo
-            </a>
+            <div className="landing-preview-head__actions">
+              <a href={appSearchUrl} className="landing-link-outline landing-link-outline--light">
+                Esplora tutto il catalogo
+              </a>
+              <a href={appStartUrl} className="landing-link-primary landing-link-primary--light">
+                Inizia guidato
+              </a>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -267,6 +316,7 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
           <div className="landing-brand">Tispetta</div>
           <div className="landing-footer__links">
             <a href="#metodo">Metodo</a>
+            <a href="#per-chi">Per chi</a>
             <a href="#percorso">Percorso</a>
             <a href="#copertura">Copertura</a>
             <a href={appSearchUrl}>Catalogo</a>
