@@ -28,7 +28,7 @@ export function ApexLanding({ appBaseUrl }: ApexLandingProps) {
             </a>
             <a
               href={startUrl}
-              className="rounded-sm bg-[var(--color-gray-50-ivory)] px-4 py-2 text-sm font-medium text-[var(--color-gray-950-ink)] transition-opacity hover:opacity-90"
+              className="rounded-sm bg-[#fafaf9] px-4 py-2 text-sm font-medium text-[#0f0e0d] transition-opacity hover:opacity-90"
             >
               Inizia guidato
             </a>
@@ -81,7 +81,7 @@ export function ApexLanding({ appBaseUrl }: ApexLandingProps) {
             >
               <a
                 href={startUrl}
-                className="flex w-full items-center justify-center rounded-sm bg-[var(--text-primary)] px-5 py-2.5 text-sm font-medium text-[var(--background-primary)] transition-opacity hover:opacity-90 sm:w-auto"
+                className="flex w-full items-center justify-center rounded-sm bg-[#fafaf9] px-5 py-2.5 text-sm font-medium text-[#0f0e0d] transition-opacity hover:opacity-90 sm:w-auto"
               >
                 Inizia dal profilo guidato
               </a>
