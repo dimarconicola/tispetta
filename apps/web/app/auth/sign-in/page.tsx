@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 import { MagicLinkForm } from '@/components/magic-link-form';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getSessionUser } from '@/lib/server-api';
 
 export const metadata: Metadata = {
   title: 'Accedi',
@@ -14,7 +16,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  const user = await getSessionUser().catch(() => null);
+  if (user) {
+    redirect('/onboarding');
+  }
+
   const isLocalEnvironment = process.env.NODE_ENV !== 'production';
 
   return (

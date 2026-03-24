@@ -27,14 +27,17 @@ function NavLink({
   href,
   children,
   emphasized = false,
+  prefetch,
 }: {
   href: ComponentProps<typeof Link>['href'];
   children: ReactNode;
   emphasized?: boolean;
+  prefetch?: boolean;
 }) {
   return (
     <Link
       href={href}
+      prefetch={prefetch}
       className={cn(
         'inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-medium transition-all duration-200',
         emphasized
@@ -71,10 +74,10 @@ export function Topbar({ user, variant = 'app' }: TopbarProps) {
       <Brand href="/" />
       <nav className="nav">
         <NavLink href="/search">Cerca</NavLink>
-        <NavLink href="/saved">Salvate</NavLink>
-        <NavLink href="/onboarding">Profilo</NavLink>
-        <NavLink href="/settings">Notifiche</NavLink>
-        {user?.role === 'admin' ? <NavLink href="/admin/measure-families">Admin</NavLink> : null}
+        <NavLink href="/saved" prefetch={false}>Salvate</NavLink>
+        <NavLink href="/onboarding" prefetch={false}>Profilo</NavLink>
+        <NavLink href="/settings" prefetch={false}>Notifiche</NavLink>
+        {user?.role === 'admin' ? <NavLink href="/admin/measure-families" prefetch={false}>Admin</NavLink> : null}
         {user ? (
           <>
             <form action="/api/auth/sign-out" method="post">
