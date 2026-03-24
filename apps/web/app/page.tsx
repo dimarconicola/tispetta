@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import type { Metadata } from 'next';
+import { ArrowRight } from 'lucide-react';
 
 import { FilterChips } from '@/components/filter-chips';
 import { OpportunityCard } from '@/components/opportunity-card';
@@ -22,12 +23,12 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
       title: 'Tispetta | Incentivi italiani letti come un prodotto',
       description:
-        'Tispetta trasforma norme, decreti, pagine operative e FAQ istituzionali in una superficie leggibile per startup, freelance, famiglie e PMI.',
+        'Tispetta legge norme, decreti e circolari e le trasforma in opportunita strutturate, criteri espliciti e match spiegabili.',
       alternates: { canonical: 'https://tispetta.eu/' },
       openGraph: {
         title: 'Tispetta | Incentivi italiani letti come un prodotto',
         description:
-          'Una superficie chiara per capire incentivi, crediti, bonus e agevolazioni italiane senza perdersi tra fonti sparse.',
+          'Una superficie chiara per capire incentivi, crediti e agevolazioni italiane senza perdersi tra fonti sparse.',
         url: 'https://tispetta.eu/',
       },
       twitter: {
@@ -64,93 +65,214 @@ function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunit
   const appSearchUrl = `https://${APP_HOST}/search`;
 
   return (
-    <div className="grid gap-8 pb-10">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] xl:items-stretch">
-        <div className="grid gap-6 rounded-[2.25rem] border border-slate-200 bg-white/88 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
-          <Badge variant="soft" className="w-fit">Mercato reale, fonti ufficiali, lettura operativa</Badge>
-          <div className="grid gap-4">
-            <h1 className="font-heading text-5xl font-semibold tracking-tight text-slate-950 sm:text-7xl">
-              Ogni bonus, detrazione e incentivo che ti riguarda. <span className="text-gradient">In un posto solo.</span>
+    <div className="landing-page">
+      <nav className="landing-nav">
+        <div className="landing-nav__inner">
+          <a href="#hero" className="landing-brand">Tispetta</a>
+          <div className="landing-nav__links">
+            <a href="#metodo">Metodo</a>
+            <a href="#percorso">Percorso</a>
+            <a href="#copertura">Copertura</a>
+          </div>
+          <div className="landing-nav__actions">
+            <a href={appSearchUrl} className="landing-link-secondary">Catalogo</a>
+            <a href={appStartUrl} className="landing-link-primary">Inizia guidato</a>
+          </div>
+        </div>
+      </nav>
+
+      <section id="hero" className="landing-section landing-section-dark landing-hero">
+        <div className="landing-backdrop landing-backdrop-hero" aria-hidden="true" />
+        <div className="landing-shell landing-hero__content">
+          <div className="landing-hero__headline">
+            <p className="landing-kicker">Italy-first opportunity intelligence</p>
+            <h1>
+              Incentivi italiani.
+              <br />
+              <span>Letti come un prodotto.</span>
             </h1>
-            <p className="max-w-3xl text-lg leading-8 text-slate-500">
-              Tispetta legge norme, decreti, circolari e pagine operative e le trasforma in opportunita strutturate, criteri espliciti e match spiegabili.
-              Per privati, famiglie, freelance e PMI.
+          </div>
+          <div className="landing-hero__bottom">
+            <p className="landing-lead">
+              Tispetta legge norme, decreti e circolari e le trasforma in opportunita strutturate, criteri espliciti e match spiegabili.
             </p>
+            <div className="landing-hero__cta">
+              <a href={appStartUrl} className="landing-link-primary landing-link-primary--light">
+                Inizia dal profilo guidato
+              </a>
+              <a href={appSearchUrl} className="landing-link-outline">
+                Esplora il catalogo <ArrowRight className="size-4" />
+              </a>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a href={appStartUrl} className="button">
-              Inizia dal profilo guidato
-            </a>
-            <a href={appSearchUrl} className="button-secondary">
-              Vedi il catalogo live
-            </a>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Metric value={String(opportunities.length || 42)} label="opportunita pubbliche strutturate" />
-            <Metric value="<=8" label="domande core prima dei primi match" />
-            <Metric value="8" label="domini istituzionali monitorati" />
-          </div>
-        </div>
-
-        <Card id="metodo" className="overflow-hidden bg-slate-950 text-white shadow-[0_30px_80px_rgba(15,23,42,0.2)]">
-          <CardHeader className="gap-3 pb-4">
-            <Badge variant="soft" className="w-fit bg-white/10 text-white">Perche e diverso</Badge>
-            <CardTitle className="text-4xl leading-[0.95] text-white">Non un motore di ricerca di bandi.</CardTitle>
-            <CardDescription className="text-base leading-7 text-slate-300">
-              Il punto non e trovare piu pagine. Il punto e capire prima cosa e vivo, cosa richiede stato societario, cosa dipende da un progetto e cosa resta ambiguo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 text-sm text-slate-300">
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">Base legale, pagine operative, FAQ e criteri sono tenuti insieme nello stesso record.</div>
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">Il matching e deterministico, con campi mancanti espliciti e nessuna eleggibilita inventata.</div>
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">L&apos;ingresso nell&apos;app e guidato: prima il core, poi la precisione che serve davvero.</div>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section id="accesso" className="grid gap-5 rounded-[2rem] border border-slate-200 bg-white/88 p-6 shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="grid gap-4">
-          <Badge variant="outline" className="w-fit">Ingresso</Badge>
-          <h2 className="font-heading text-4xl font-semibold tracking-tight text-slate-950">Dal sito entri in un percorso guidato, non in un form generico.</h2>
-          <p className="max-w-2xl text-base leading-7 text-slate-500">
-            Parti sempre da te. Chiudi il profilo personale, vedi subito i primi match e aggiungi l attivita solo se esiste davvero.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <StepCard index="01" title="Email e sessione" body="Niente password: il link ti riporta direttamente nel flusso giusto." />
-          <StepCard index="02" title="Profilo personale prima" body="Lavoro, fascia di eta, regione e nucleo fanno partire il feed subito con una base leggibile." />
-          <StepCard index="03" title="Attivita solo se c e" body="Partita IVA, startup o PMI entrano dopo, nello stesso profilo e nello stesso feed." />
         </div>
       </section>
 
-      <section id="per-chi" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <AudienceCard eyebrow="Dipendente e Famiglia" title="Per chi ha diritti ma non li conosce" body="Assegno Unico, bonus nido, detrazioni figli, NASpI, casa e altri benefici personali." />
-        <AudienceCard eyebrow="Founder" title="Per chi apre o struttura una startup" body="Stato innovativo, finestra di costituzione, Invitalia, crediti e percorsi di crescita." />
-        <AudienceCard eyebrow="Freelance" title="Per chi lavora in proprio" body="Partita IVA, autoimpiego, agevolazioni leggere, bonus mirati e misure che non richiedono una PMI strutturata." />
-        <AudienceCard eyebrow="PMI" title="Per chi gestisce una macchina operativa" body="Assunzioni, export, crediti d'imposta e investimenti digitali o energetici con vincoli espliciti." />
-      </section>
-
-      <section id="copertura" className="grid gap-5">
-        <div className="flex items-end justify-between gap-3">
+      <section id="metodo" className="landing-section landing-section-light">
+        <div className="landing-shell landing-grid landing-grid-method">
           <div>
-            <p className="eyebrow">Preview live</p>
-            <h2 className="section-title">Tre schede tratte dal catalogo attuale</h2>
+            <h2 className="landing-title">Non un motore di ricerca di bandi.</h2>
           </div>
-          <a href={appSearchUrl} className="button-secondary">
-            Esplora tutto il catalogo
-          </a>
-        </div>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {preview.map((opportunity) => (
-            <OpportunityCard
-              key={opportunity.id}
-              opportunity={opportunity}
-              detailHref={`https://${APP_HOST}/opportunities/${opportunity.slug}`}
-              showSaveToggle={false}
-            />
-          ))}
+          <div className="landing-stack-lg">
+            <p className="landing-copy-xl">
+              Il punto non e trovare piu pagine. Il punto e capire prima cosa e vivo, cosa richiede stato societario, cosa dipende da un progetto e cosa resta ambiguo.
+            </p>
+            <div className="landing-stack-md">
+              {[
+                {
+                  title: 'Analisi normativa',
+                  desc: 'Decodifichiamo il linguaggio burocratico in criteri binari e requisiti leggibili.',
+                },
+                {
+                  title: 'Matching deterministico',
+                  desc: 'Il profilo viene incrociato con opportunita strutturate senza eleggibilita inventata.',
+                },
+                {
+                  title: 'Fonti verificabili',
+                  desc: 'Ogni scheda resta collegata a fonti ufficiali, stato e dati operativi controllabili.',
+                },
+              ].map((feature, index) => (
+                <div key={feature.title} className="landing-rule">
+                  <span className="landing-rule__index">0{index + 1}</span>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
+
+      <section id="storie" className="landing-section landing-section-dark landing-story">
+        <div className="landing-backdrop landing-backdrop-story" aria-hidden="true" />
+        <div className="landing-shell landing-grid landing-grid-story">
+          <div className="landing-story__copy">
+            <p className="landing-kicker landing-kicker-muted">Percorso reale, non marketing vuoto</p>
+            <h3>
+              Parti da te, vedi le prime misure, poi aggiungi solo la precisione che cambia davvero i risultati.
+            </h3>
+            <p>
+              Il profilo personale e sempre la base. L&apos;attivita entra solo se esiste. Il catalogo resta unico e puoi filtrarlo tra personale e impresa senza cambiare percorso.
+            </p>
+            <div className="landing-story__stats">
+              <div>
+                <strong>{String(opportunities.length || 42)}</strong>
+                <span>opportunita pubbliche gia strutturate</span>
+              </div>
+              <div>
+                <strong>{'<=8'}</strong>
+                <span>domande core prima dei primi match</span>
+              </div>
+            </div>
+          </div>
+          <div className="landing-story__panel">
+            <div className="landing-story__card">
+              <span className="landing-story__eyebrow">Profilo personale</span>
+              <strong>La base parte sempre da lavoro, eta, regione e nucleo.</strong>
+            </div>
+            <div className="landing-story__card">
+              <span className="landing-story__eyebrow">Prime misure</span>
+              <strong>Vedi subito i match piu promettenti prima di completare tutto.</strong>
+            </div>
+            <div className="landing-story__card">
+              <span className="landing-story__eyebrow">Attivita opzionale</span>
+              <strong>Freelance, startup o PMI si aggiungono dopo, nello stesso feed.</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="percorso" className="landing-section landing-section-light">
+        <div className="landing-shell landing-stack-lg">
+          <div className="landing-grid landing-grid-intro">
+            <div>
+              <h2 className="landing-title">Dal sito entri in un percorso guidato, non in un form generico.</h2>
+            </div>
+            <div className="landing-align-end">
+              <p className="landing-copy-xl">
+                Parti sempre da te. Chiudi il profilo personale, vedi subito i primi match e aggiungi l&apos;attivita solo se esiste davvero.
+              </p>
+            </div>
+          </div>
+
+          <div className="landing-walkthrough">
+            <div className="landing-walkthrough__track" />
+            <div className="landing-walkthrough__grid">
+              <div className="landing-walkthrough__step">
+                <span>01</span>
+                <h3>Email e sessione</h3>
+                <p>Niente password: il link ti riporta direttamente nel flusso giusto.</p>
+              </div>
+              <div className="landing-walkthrough__step">
+                <span>02</span>
+                <h3>Profilo personale prima</h3>
+                <p>Lavoro, fascia di eta, regione e nucleo fanno partire il feed con una base leggibile.</p>
+              </div>
+              <div className="landing-walkthrough__step">
+                <span>03</span>
+                <h3>Attivita solo se c e</h3>
+                <p>Partita IVA, startup o PMI entrano dopo, nello stesso profilo e nello stesso feed.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="copertura" className="landing-section landing-section-dark landing-coverage">
+        <div className="landing-backdrop landing-backdrop-coverage" aria-hidden="true" />
+        <div className="landing-shell landing-stack-lg">
+          <div className="landing-stack-sm">
+            <p className="landing-kicker landing-kicker-muted">Copertura</p>
+            <h2 className="landing-title landing-title-light">Copertura nazionale con fonti ufficiali come base.</h2>
+          </div>
+
+          <div className="landing-stats-grid">
+            {[
+              { value: String(opportunities.length || 42), label: 'opportunita pubbliche live' },
+              { value: '8', label: 'domini istituzionali monitorati' },
+              { value: '1', label: 'catalogo unico tra personale e impresa' },
+            ].map((stat) => (
+              <div key={stat.label} className="landing-stat">
+                <div className="landing-stat__value">{stat.value}</div>
+                <div className="landing-stat__label">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="landing-preview-head">
+            <div>
+              <p className="landing-kicker landing-kicker-muted">Preview live</p>
+              <h3 className="landing-subtitle">Tre schede tratte dal catalogo attuale</h3>
+            </div>
+            <a href={appSearchUrl} className="landing-link-outline landing-link-outline--light">
+              Esplora tutto il catalogo
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {preview.map((opportunity) => (
+              <OpportunityCard
+                key={opportunity.id}
+                opportunity={opportunity}
+                detailHref={`https://${APP_HOST}/opportunities/${opportunity.slug}`}
+                showSaveToggle={false}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <footer className="landing-footer">
+        <div className="landing-shell landing-footer__inner">
+          <div className="landing-brand">Tispetta</div>
+          <div className="landing-footer__links">
+            <a href="#metodo">Metodo</a>
+            <a href="#percorso">Percorso</a>
+            <a href="#copertura">Copertura</a>
+            <a href={appSearchUrl}>Catalogo</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -315,30 +437,6 @@ function Metric({ value, label }: { value: string; label: string }) {
       <strong className="block font-heading text-3xl font-semibold text-slate-950">{value}</strong>
       <span className="mt-2 block text-sm leading-6 text-slate-500">{label}</span>
     </div>
-  );
-}
-
-function StepCard({ index, title, body }: { index: string; title: string; body: string }) {
-  return (
-    <Card>
-      <CardHeader className="gap-2 pb-3">
-        <Badge variant="outline" className="w-fit">{index}</Badge>
-        <CardTitle className="text-xl">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm leading-6 text-slate-600">{body}</CardContent>
-    </Card>
-  );
-}
-
-function AudienceCard({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
-  return (
-    <Card>
-      <CardHeader className="gap-2 pb-3">
-        <Badge variant="outline" className="w-fit">{eyebrow}</Badge>
-        <CardTitle className="text-2xl">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm leading-6 text-slate-600">{body}</CardContent>
-    </Card>
   );
 }
 

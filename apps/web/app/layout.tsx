@@ -110,10 +110,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="it">
       <body className={`${bodyFont.variable} ${headingFont.variable}`}>
-        <main className="page-shell">
-          <Topbar user={user} variant={experience.marketingHost ? 'marketing' : 'app'} />
-          {children}
-        </main>
+        {experience.marketingHost ? (
+          children
+        ) : (
+          <main className="page-shell">
+            <Topbar user={user} variant="app" />
+            {children}
+          </main>
+        )}
         <BuildFooter variant={experience.marketingHost ? 'marketing' : 'app'} apiHealth={apiHealth} />
         {experience.gaMeasurementId ? (
           <>
