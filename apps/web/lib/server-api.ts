@@ -76,8 +76,15 @@ export async function getProfile(): Promise<Profile | null> {
   return apiFetch<Profile>('/v1/profile');
 }
 
-export async function getProfileQuestions(): Promise<ProfileQuestionResponse | null> {
-  return apiFetch<ProfileQuestionResponse>('/v1/profile/questions');
+export async function getProfileQuestions(params?: { step?: string; module?: string }): Promise<ProfileQuestionResponse | null> {
+  const search = new URLSearchParams();
+  if (params?.step) {
+    search.set('step', params.step);
+  }
+  if (params?.module) {
+    search.set('module', params.module);
+  }
+  return apiFetch<ProfileQuestionResponse>(`/v1/profile/questions${search.toString() ? `?${search.toString()}` : ''}`);
 }
 
 export async function getOpportunities(params?: Record<string, string | boolean | undefined>): Promise<OpportunityCard[]> {

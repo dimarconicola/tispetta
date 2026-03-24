@@ -23,6 +23,7 @@ def get_opportunities(
     matched_status: str | None = Query(default=None),
     saved_only: bool = Query(default=False),
     scope: str | None = Query(default=None),
+    limit: int | None = Query(default=None, ge=1, le=50),
     db: Session = Depends(get_db),
     user=Depends(get_optional_current_user),
 ) -> list[OpportunityCard]:
@@ -34,6 +35,7 @@ def get_opportunities(
         matched_status=matched_status,
         saved_only=saved_only,
         scope=scope,
+        limit=limit,
     )
     return [OpportunityCard.model_validate(item) for item in items]
 

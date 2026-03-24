@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
-const API_BASE_URL = process.env.PLAYWRIGHT_API_URL ?? 'http://localhost:8000';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL ?? 'http://localhost:8100';
 
 function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
@@ -28,56 +28,93 @@ test('start_magic_link_login_flow', async ({ page }) => {
   await page.getByRole('link', { name: 'Apri link di anteprima' }).click();
 
   await expect(page).toHaveURL(/\/onboarding\?entry=apex/);
-  await expect(page.getByRole('heading', { name: /partiamo dal tuo profilo personale/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /partiamo da te/i }).first()).toBeVisible();
 });
 
-test('impresa_onboarding_core_to_results', async ({ page, request }) => {
-  const email = uniqueEmail('onboarding');
+test('impresa_onboarding_wizard_to_results', async ({ page, request }) => {
+  const email = uniqueEmail('onboarding-business');
   await loginViaApi(page, request, email, '/onboarding?entry=apex');
 
-  await expect(page.getByRole('heading', { name: /partiamo dal tuo profilo personale/i })).toBeVisible();
-  await page.locator('#main_operating_region').selectOption('Lombardia');
+  await page.locator('#main_operating_region').selectOption({ label: 'Lombardia' });
+  await expect(page.locator('#main_operating_region')).toHaveValue('Lombardia');
   await page.locator('#employment_type').selectOption('autonomo');
   await page.locator('#persona_fisica_age_band').selectOption('under_35');
   await page.locator('#family_composition').selectOption('single');
   await page.locator('#figli_a_carico_count').selectOption('0');
-  await page.getByRole('button', { name: /Startup o nuova impresa/i }).click();
+  await page.getByRole('button', { name: 'Salva e continua' }).click();
+
+  await expect(page).toHaveURL(/step=business_context/);
+  await expect(page.getByRole('heading', { name: /hai anche un attivita da aggiungere/i })).toBeVisible();
+  await page.getByRole('button', { name: /ho o sto aprendo un attivita/i }).click();
+  await page.getByRole('button', { name: /startup o nuova impresa/i }).click();
+  await page.getByRole('button', { name: 'Salva e continua' }).click();
+
+  await expect(page).toHaveURL(/step=business_core/);
   await page.locator('#activity_stage').selectOption('incorporated_business');
   await page.locator('#legal_form_bucket').selectOption('srl');
   await page.locator('#company_age_or_formation_window').selectOption('1-3y');
   await page.locator('#size_band').selectOption('micro');
   await page.locator('#sector_macro_category').selectOption('digitale');
   await page.locator('#innovation_regime_status').selectOption('startup_innovativa');
-  await page.getByRole('button', { name: 'Salva il core e mostra i risultati' }).click();
+  await page.getByRole('button', { name: 'Salva e mostra le prime misure' }).click();
 
-  await expect(page).toHaveURL(/step=results/);
-  await expect(page.getByRole('heading', { name: /prima lettura spendibile/i })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /primi match/i })).toBeVisible();
+  await expect(page).toHaveURL(/step=results_checkpoint/);
+  await expect(page.getByRole('heading', { name: /adesso hai gia un primo set leggibile/i })).toBeVisible();
 });
 
-test('persona_fisica_onboarding_core_to_results', async ({ page, request }) => {
-  const email = uniqueEmail('persona');
+test('persona_fisica_onboarding_wizard_to_results', async ({ page, request }) => {
+  const email = uniqueEmail('onboarding-personal');
   await loginViaApi(page, request, email, '/onboarding?entry=apex');
 
-  await expect(page.getByRole('heading', { name: /partiamo dal tuo profilo personale/i })).toBeVisible();
-  await expect(page.getByText('Questa parte vale per tutti')).toBeVisible();
-  await expect(page.getByLabel('Qual e la tua situazione lavorativa principale?')).toBeVisible();
-  await expect(page.getByLabel("In quale fascia d'eta rientri?")).toBeVisible();
-  await expect(page.getByLabel("Com'e composto il tuo nucleo familiare?")).toBeVisible();
-  await expect(page.getByText('Aggiungi anche la tua attivita, se esiste')).toBeVisible();
-  await expect(page.getByText('Nessuna attivita aggiunta per ora.')).toBeVisible();
-
-  await page.locator('#main_operating_region').selectOption('Sicilia');
+  await page.locator('#main_operating_region').selectOption({ label: 'Sicilia' });
+  await expect(page.locator('#main_operating_region')).toHaveValue('Sicilia');
   await page.locator('#employment_type').selectOption('dipendente');
   await page.locator('#persona_fisica_age_band').selectOption('under_35');
   await page.locator('#family_composition').selectOption('coppia_con_figli');
   await page.locator('#figli_a_carico_count').selectOption('1');
   await page.locator('#isee_bracket').selectOption('under_15k');
-  await page.getByRole('button', { name: 'Salva il core e mostra i risultati' }).click();
+  await page.getByRole('button', { name: 'Salva e continua' }).click();
 
-  await expect(page).toHaveURL(/step=results/);
-  await expect(page.getByText('Se vuoi migliorare il profilo, parti da qui')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Apri il catalogo completo' })).toBeVisible();
+  await expect(page).toHaveURL(/step=business_context/);
+  await page.getByRole('button', { name: /non ho attivita/i }).click();
+  await page.getByRole('button', { name: 'Salva e mostra le prime misure' }).click();
+
+  await expect(page).toHaveURL(/step=results_checkpoint/);
+  await expect(page.getByText('Cosa puoi chiarire dopo')).toBeVisible();
+});
+
+test('strategic_module_does_not_navigate_on_select_change', async ({ page, request }) => {
+  const email = uniqueEmail('onboarding-strategic');
+  await loginViaApi(page, request, email, '/onboarding?entry=apex');
+
+  await page.locator('#main_operating_region').selectOption({ label: 'Lombardia' });
+  await expect(page.locator('#main_operating_region')).toHaveValue('Lombardia');
+  await page.locator('#employment_type').selectOption('autonomo');
+  await page.locator('#persona_fisica_age_band').selectOption('under_35');
+  await page.locator('#family_composition').selectOption('single');
+  await page.locator('#figli_a_carico_count').selectOption('0');
+  await page.getByRole('button', { name: 'Salva e continua' }).click();
+
+  await page.getByRole('button', { name: /ho o sto aprendo un attivita/i }).click();
+  await page.getByRole('button', { name: /startup o nuova impresa/i }).click();
+  await page.getByRole('button', { name: 'Salva e continua' }).click();
+
+  await page.locator('#activity_stage').selectOption('incorporated_business');
+  await page.locator('#legal_form_bucket').selectOption('srl');
+  await page.locator('#company_age_or_formation_window').selectOption('1-3y');
+  await page.locator('#size_band').selectOption('micro');
+  await page.locator('#sector_macro_category').selectOption('digitale');
+  await page.locator('#innovation_regime_status').selectOption('startup_innovativa');
+  await page.getByRole('button', { name: 'Salva e mostra le prime misure' }).click();
+
+  await page.getByRole('button', { name: /continua con le domande utili/i }).click();
+  await expect(page).toHaveURL(/step=strategic_modules/);
+  const currentUrl = page.url();
+  const firstSelect = page.locator('select').first();
+  await firstSelect.selectOption({ index: 1 });
+  await expect(page).toHaveURL(currentUrl);
+  await page.getByRole('button', { name: /salva e continua/i }).click();
+  await expect(page).not.toHaveURL(currentUrl);
 });
 
 test('anonymous_search_and_detail', async ({ page }) => {

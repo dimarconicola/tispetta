@@ -9,7 +9,7 @@ import { getSessionUser } from '@/lib/server-api';
 
 export const metadata: Metadata = {
   title: 'Ingresso guidato',
-  description: 'Entra in Tispetta con un percorso guidato: email, profilo personale, primi match, attivita opzionale.',
+  description: 'Entra in Tispetta con un percorso guidato: profilo personale, attivita opzionale, prime misure e approfondimenti utili.',
   robots: {
     index: false,
     follow: false,
@@ -39,14 +39,14 @@ export default async function StartPage() {
           </CardHeader>
           <CardContent className="grid gap-3 text-sm leading-7 text-slate-600">
             <p>Prima chiudi il profilo personale che puo spostare subito bonus, lavoro, famiglia e parte dei match d impresa.</p>
-            <p>Dopo il primo salvataggio il motore ricalcola subito e ti mostra match, stato e campi mancanti con evidenze esplicite.</p>
-            <p>Se hai un attivita, una partita IVA o una societa, la aggiungi nello stesso profilo senza aprire un percorso separato.</p>
+            <p>Poi decidi se aggiungere anche un attivita. Se non ti serve, vai direttamente alle prime misure.</p>
+            <p>Gli approfondimenti successivi compaiono uno alla volta e solo quando chiariscono davvero risultati live.</p>
           </CardContent>
         </Card>
         <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
           <MiniStep title="Profilo personale" body="Regione, lavoro, fascia di eta e nucleo: il minimo che serve per partire bene." />
-          <MiniStep title="Prime misure" body="Dopo il primo salvataggio vedi subito un feed leggibile e filtrabile." />
-          <MiniStep title="Attivita e precisione" body="Aggiungi impresa e dettagli solo quando servono davvero." />
+          <MiniStep title="Attivita opzionale" body="Se hai una partita IVA o un impresa, la aggiungi nello stesso profilo." />
+          <MiniStep title="Prime misure" body="Dopo il primo blocco vedi subito cosa emerge e decidi se affinare." />
         </div>
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-6 text-sm text-slate-600">

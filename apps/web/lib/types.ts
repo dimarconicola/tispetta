@@ -75,6 +75,10 @@ export type ProfileQuestionModule = {
 export type ProfileQuestionResponse = {
   recommended_step: string;
   progress_summary: {
+    personal_answered: number;
+    personal_total: number;
+    business_answered: number;
+    business_total: number;
     core_answered: number;
     core_total: number;
     strategic_answered: number;
@@ -86,6 +90,38 @@ export type ProfileQuestionResponse = {
     upgradable_opportunity_count: number;
   };
   modules: ProfileQuestionModule[];
+  journey: {
+    steps: { key: string; label: string; status: 'locked' | 'available' | 'completed' }[];
+    current_step: string;
+    next_step: string | null;
+    has_business_context: boolean;
+    active_module_key: string | null;
+  };
+  personal_core_questions: ProfileQuestion[];
+  business_context: {
+    answered: boolean;
+    enabled: boolean;
+    profile_type: string | null;
+  };
+  business_core_questions: ProfileQuestion[];
+  strategic_modules: {
+    key: string;
+    title: string;
+    description: string;
+    why_this_module_matters?: string | null;
+    questions: ProfileQuestion[];
+    clarification_count: number;
+    upgrade_count: number;
+  }[];
+  results_summary: {
+    ready: boolean;
+    total_matches: number;
+    blocked_count: number;
+    profile_state: string;
+    top_matches: OpportunityCard[];
+    why_now: string[];
+    next_focus_labels: string[];
+  };
 };
 
 export type MatchQuestionHint = {

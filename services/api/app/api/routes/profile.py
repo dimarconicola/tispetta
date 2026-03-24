@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_optional_current_user
@@ -27,5 +27,10 @@ def put_profile(payload: ProfilePayload, db: Session = Depends(get_db), user=Dep
 
 
 @router.get('/questions', response_model=ProfileQuestionResponse)
-def get_questions(db: Session = Depends(get_db), user=Depends(get_optional_current_user)) -> ProfileQuestionResponse:
-    return ProfileQuestionResponse.model_validate(get_profile_questions(db, user))
+def get_questions(
+    step: str | None = Query(default=None),
+    module: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    user=Depends(get_optional_current_user),
+) -> ProfileQuestionResponse:
+    return ProfileQuestionResponse.model_validate(get_profile_questions(db, user, requested_step=step, requested_module=module))

@@ -2,10 +2,11 @@
 
 import type { Route } from 'next';
 import Link from 'next/link';
-import { BriefcaseBusiness, ChevronRight, CircleHelp, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, CheckCircle2, CircleHelp, Sparkles, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { OpportunityCard } from '@/components/opportunity-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,214 +20,33 @@ import { QuestionStepper } from './question-stepper';
 
 const API_URL = '/api/proxy';
 
-type ViewStep = 'core_entity' | 'results' | 'strategic_intent' | 'conditional_accuracy';
+type OnboardingStepKey =
+  | 'personal_core'
+  | 'business_context'
+  | 'business_core'
+  | 'results_checkpoint'
+  | 'strategic_modules'
+  | 'final_next_actions';
 
 type FormValues = Record<string, string | boolean | null>;
 
-const STEP_COPY: Record<ViewStep, { eyebrow: string; title: string; body: string }> = {
-  core_entity: {
-    eyebrow: 'Step 1',
-    title: 'Partiamo dal tuo profilo personale',
-    body: 'Chiudiamo prima i dati che contano per te come persona. Se hai gia un attivita o stai per aprirla, aggiungiamo anche quel perimetro nello stesso profilo.',
-  },
-  results: {
-    eyebrow: 'Step 2',
-    title: 'Hai gia una prima lettura spendibile',
-    body: 'Ora sai gia cosa sta emergendo. Il resto serve a chiudere le ambiguita, non a sbloccare il prodotto.',
-  },
-  strategic_intent: {
-    eyebrow: 'Step 3',
-    title: 'Migliora precisione e coverage',
-    body: 'Qui apri solo i moduli che corrispondono a progetti reali: assunzioni, export, investimenti digitali o energia.',
-  },
-  conditional_accuracy: {
-    eyebrow: 'Step 4',
-    title: 'Chiudi solo i blocchi veri',
-    body: 'Le domande finali compaiono solo quando una misura attiva dipende davvero da questa risposta.',
-  },
-};
-
-const PERSONAL_CORE_PRIMARY_KEYS = [
-  'main_operating_region',
-  'employment_type',
-  'persona_fisica_age_band',
-  'family_composition',
-  'figli_a_carico_count',
-  'isee_bracket',
-];
-
-const BUSINESS_CORE_KEYS = [
-  'activity_stage',
-  'legal_form_bucket',
-  'company_age_or_formation_window',
-  'size_band',
-  'sector_macro_category',
-  'innovation_regime_status',
-];
-
 const BUSINESS_TYPE_OPTIONS = [
-  { value: null, label: 'Solo profilo personale', body: 'Niente partita IVA o impresa da aggiungere per ora.' },
-  { value: 'freelancer', label: 'Freelance o partita IVA', body: 'Professionista, autonomo o attivita individuale.' },
-  { value: 'startup', label: 'Startup o nuova impresa', body: 'Stai aprendo o hai una realta giovane e in crescita.' },
-  { value: 'sme', label: 'PMI o societa attiva', body: 'Hai gia una struttura operativa o una societa avviata.' },
-];
-
-const GROUP_LABELS: Record<string, { title: string; body: string }> = {
-  hiring: {
-    title: 'Assunzioni',
-    body: 'Serve solo per incentivi occupazionali e bonus legati al profilo del lavoratore target.',
-  },
-  export: {
-    title: 'Export e mercati',
-    body: 'Domande che chiariscono se le famiglie SIMEST e simili sono davvero rilevanti per te.',
-  },
-  digital_energy: {
-    title: 'Digitale, energia e investimenti',
-    body: 'Usate per Transizione 4.0 / 5.0 e misure progettuali, non per il matching di base.',
-  },
-  personal_family: {
-    title: 'Benefici personali e familiari',
-    body: 'Dati che compaiono solo per misure personali, familiari o fiscali specifiche.',
-  },
-  general: {
-    title: 'Dettagli aggiuntivi',
-    body: 'Informazioni ulteriori che possono affinare stato e priorita dei match.',
-  },
-};
-const DEFAULT_GROUP_LABEL = {
-  title: 'Dettagli aggiuntivi',
-  body: 'Informazioni ulteriori che possono affinare stato e priorita dei match.',
-};
-
-const PERSONA_CORE_BRIDGE_QUESTIONS: ProfileQuestion[] = [
   {
-    key: 'employment_type',
-    label: 'Qual e la tua situazione lavorativa principale?',
-    step: 1,
-    kind: 'select',
-    required: true,
-    options: ['dipendente', 'autonomo', 'disoccupato', 'pensionato'],
-    helper_text: 'Determina quali famiglie di misure INPS e fiscali si applicano a te.',
-    audience: ['persona_fisica'],
-    module: 'core_entity',
-    sensitive: false,
-    depends_on: { profile_type: ['persona_fisica'] },
-    ask_when_measure_families: null,
-    why_needed: 'NASpI, ANF e regime forfettario dipendono direttamente dal tipo di rapporto lavorativo.',
-    coverage_weight: 0,
-    ambiguity_reduction_score: 0,
-    priority: 100,
-    impact_counts: {
-      clarification_opportunity_count: 0,
-      blocking_opportunity_count: 0,
-      upgrade_opportunity_count: 0,
-    },
-    blocking_opportunity_count: 0,
-    upgrade_opportunity_count: 0,
+    value: 'freelancer',
+    label: 'Freelance o partita IVA',
+    body: 'Professionista, autonomo o attivita individuale.',
   },
   {
-    key: 'persona_fisica_age_band',
-    label: "In quale fascia d'eta rientri?",
-    step: 1,
-    kind: 'select',
-    required: true,
-    options: ['under_35', '35_55', 'over_55'],
-    helper_text: "Alcune misure come il bonus prima casa under 36 e le agevolazioni forfettarie dipendono dall'eta.",
-    audience: ['persona_fisica'],
-    module: 'core_entity',
-    sensitive: false,
-    depends_on: { profile_type: ['persona_fisica'] },
-    ask_when_measure_families: null,
-    why_needed: 'Molti benefici fiscali e contributivi hanno soglie anagrafiche esplicite.',
-    coverage_weight: 0,
-    ambiguity_reduction_score: 0,
-    priority: 95,
-    impact_counts: {
-      clarification_opportunity_count: 0,
-      blocking_opportunity_count: 0,
-      upgrade_opportunity_count: 0,
-    },
-    blocking_opportunity_count: 0,
-    upgrade_opportunity_count: 0,
+    value: 'startup',
+    label: 'Startup o nuova impresa',
+    body: 'Stai aprendo o hai una realta giovane e in crescita.',
   },
   {
-    key: 'family_composition',
-    label: "Com'e composto il tuo nucleo familiare?",
-    step: 1,
-    kind: 'select',
-    required: true,
-    options: ['single', 'coppia_senza_figli', 'coppia_con_figli', 'genitore_solo_con_figli'],
-    helper_text: 'Determina accesso a Assegno Unico, ANF, detrazioni per figli e bonus nido.',
-    audience: ['persona_fisica'],
-    module: 'core_entity',
-    sensitive: false,
-    depends_on: { profile_type: ['persona_fisica'] },
-    ask_when_measure_families: null,
-    why_needed: 'I benefici familiari dipendono dalla composizione del nucleo, non solo dal reddito.',
-    coverage_weight: 0,
-    ambiguity_reduction_score: 0,
-    priority: 90,
-    impact_counts: {
-      clarification_opportunity_count: 0,
-      blocking_opportunity_count: 0,
-      upgrade_opportunity_count: 0,
-    },
-    blocking_opportunity_count: 0,
-    upgrade_opportunity_count: 0,
-  },
-  {
-    key: 'figli_a_carico_count',
-    label: 'Quanti figli hai a carico?',
-    step: 1,
-    kind: 'select',
-    required: true,
-    options: ['0', '1', '2', '3_plus'],
-    helper_text: "Il numero di figli cambia l'importo di Assegno Unico, detrazioni e bonus nido.",
-    audience: ['persona_fisica'],
-    module: 'core_entity',
-    sensitive: false,
-    depends_on: { profile_type: ['persona_fisica'] },
-    ask_when_measure_families: null,
-    why_needed: 'Quasi tutte le misure familiari scalano per numero di figli.',
-    coverage_weight: 0,
-    ambiguity_reduction_score: 0,
-    priority: 85,
-    impact_counts: {
-      clarification_opportunity_count: 0,
-      blocking_opportunity_count: 0,
-      upgrade_opportunity_count: 0,
-    },
-    blocking_opportunity_count: 0,
-    upgrade_opportunity_count: 0,
-  },
-  {
-    key: 'isee_bracket',
-    label: 'Se lo sai gia, in quale fascia ISEE rientra il tuo nucleo?',
-    step: 1,
-    kind: 'select',
-    required: false,
-    options: ['under_15k', '15_25k', '25_40k', 'over_40k', 'non_determinato'],
-    helper_text: "Non blocca il percorso: se non l'hai sotto mano puoi lasciarlo vuoto e andare avanti.",
-    audience: ['persona_fisica'],
-    module: 'core_entity',
-    sensitive: true,
-    depends_on: { profile_type: ['persona_fisica'] },
-    ask_when_measure_families: null,
-    why_needed: "Molte misure INPS e fiscali hanno soglie ISEE esplicite che cambiano l'importo o l'accesso.",
-    coverage_weight: 0,
-    ambiguity_reduction_score: 0,
-    priority: 70,
-    impact_counts: {
-      clarification_opportunity_count: 0,
-      blocking_opportunity_count: 0,
-      upgrade_opportunity_count: 0,
-    },
-    blocking_opportunity_count: 0,
-    upgrade_opportunity_count: 0,
+    value: 'sme',
+    label: 'PMI o societa attiva',
+    body: 'Hai gia una struttura operativa o una societa avviata.',
   },
 ];
-
-const PERSONA_CORE_BRIDGE_ORDER = PERSONA_CORE_BRIDGE_QUESTIONS.map((question) => question.key);
 
 const OPTION_LABELS_IT: Record<string, string> = {
   not_started: 'Non ancora avviata',
@@ -270,33 +90,68 @@ const OPTION_LABELS_IT: Record<string, string> = {
   over_40k: 'Oltre 40.000 EUR',
   non_determinato: 'Non determinato',
   '3_plus': '3 o piu',
+  persona_fisica: 'Profilo personale',
+  digitale: 'Digitale',
+  manifattura: 'Manifattura',
+  servizi: 'Servizi',
+  turismo: 'Turismo',
+  energia: 'Energia',
+  agritech: 'Agritech',
 };
+
+const BUSINESS_FACT_KEYS_TO_CLEAR = [
+  'activity_stage',
+  'legal_form_bucket',
+  'company_age_or_formation_window',
+  'size_band',
+  'sector_macro_category',
+  'innovation_regime_status',
+  'hiring_interest',
+  'export_investment_intent',
+  'digital_transition_project',
+  'energy_transition_project',
+  'women_led_majority',
+  'founder_age_band',
+  'unemployment_status_at_start',
+  'no_prior_permanent_employment',
+  'target_hire_age_band',
+  'target_hire_gender_priority',
+  'target_hire_disadvantaged_status',
+  'target_market_scope',
+  'energy_reduction_goal',
+  'filed_balance_sheets_count',
+  'patent_ip_intent',
+];
 
 export function ProfileForm({
   profile,
   questionPayload,
-  currentStep,
   entry,
 }: {
   profile: Profile | null;
   questionPayload: ProfileQuestionResponse | null;
-  currentStep: ViewStep;
   entry?: string;
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [localStep, setLocalStep] = useState<ViewStep>(currentStep);
-  const [selectedBusinessType, setSelectedBusinessType] = useState<string | null>(resolveBusinessType(profile));
   const initialValues = useMemo(() => buildInitialValues(profile), [profile]);
-  const { register, handleSubmit, setValue, reset } = useForm<FormValues>({ defaultValues: initialValues });
-
-  useEffect(() => {
-    setLocalStep(currentStep);
-  }, [currentStep]);
-
-  useEffect(() => {
-    setSelectedBusinessType(resolveBusinessType(profile));
-  }, [profile]);
+  const { register, handleSubmit, reset } = useForm<FormValues>({ defaultValues: initialValues });
+  const currentStep = (questionPayload?.journey.current_step ?? 'personal_core') as OnboardingStepKey;
+  const steps = questionPayload?.journey.steps ?? [];
+  const progressPercent = computeWizardProgress(questionPayload);
+  const currentModule = useMemo(() => {
+    if (!questionPayload?.strategic_modules?.length) return null;
+    return (
+      questionPayload.strategic_modules.find((module) => module.key === questionPayload.journey.active_module_key) ??
+      questionPayload.strategic_modules[0]
+    );
+  }, [questionPayload]);
+  const [businessMode, setBusinessMode] = useState<'none' | 'enabled'>(() =>
+    questionPayload?.business_context.enabled ? 'enabled' : 'none'
+  );
+  const [selectedBusinessType, setSelectedBusinessType] = useState<string>(
+    questionPayload?.business_context.profile_type ?? resolveBusinessType(profile) ?? 'startup'
+  );
 
   useEffect(() => {
     reset(initialValues);
@@ -304,104 +159,101 @@ export function ProfileForm({
     setIsSubmitting(false);
   }, [initialValues, reset]);
 
-  const activeStep = localStep;
-  const activeProfileTypes = useMemo(
-    () => buildActiveProfileTypes(selectedBusinessType),
-    [selectedBusinessType]
-  );
-  const moduleMap = useMemo(() => new Map((questionPayload?.modules ?? []).map((module) => [module.key, module])), [questionPayload]);
-  const activeQuestions = useMemo(() => {
-    if (activeStep === 'results') return [];
-    const rawQuestions = moduleMap.get(activeStep)?.questions ?? [];
-    if (activeStep !== 'core_entity') {
-      return rawQuestions.filter((question) => questionMatchesContexts(question, activeProfileTypes));
-    }
+  useEffect(() => {
+    setBusinessMode(questionPayload?.business_context.enabled ? 'enabled' : 'none');
+    setSelectedBusinessType(questionPayload?.business_context.profile_type ?? resolveBusinessType(profile) ?? 'startup');
+  }, [profile, questionPayload]);
 
-    const rawQuestionsByKey = new Map(rawQuestions.map((question) => [question.key, question]));
-    const questionsByKey = new Map<string, ProfileQuestion>();
-    for (const question of rawQuestions) {
-      if (question.key === 'profile_type') continue;
-      if (BUSINESS_CORE_KEYS.includes(question.key) && !selectedBusinessType) continue;
-      if (!questionMatchesContexts(question, activeProfileTypes)) continue;
-      questionsByKey.set(question.key, prepareQuestion(question));
-    }
-    for (const key of PERSONAL_CORE_PRIMARY_KEYS) {
-      const existing =
-        questionsByKey.get(key) ??
-        (rawQuestionsByKey.get(key) ? prepareQuestion(rawQuestionsByKey.get(key) as ProfileQuestion) : undefined) ??
-        PERSONA_CORE_BRIDGE_QUESTIONS.find((question) => question.key === key);
-      if (existing) {
-        questionsByKey.set(key, existing);
-      }
-    }
-    return Array.from(questionsByKey.values()).sort((left, right) => coreQuestionOrder(left.key) - coreQuestionOrder(right.key));
-  }, [activeProfileTypes, activeStep, moduleMap, selectedBusinessType]);
-  const personalCoreQuestions = useMemo(
-    () => activeQuestions.filter((question) => PERSONAL_CORE_PRIMARY_KEYS.includes(question.key)),
-    [activeQuestions]
-  );
-  const businessCoreQuestions = useMemo(
-    () => activeQuestions.filter((question) => BUSINESS_CORE_KEYS.includes(question.key)),
-    [activeQuestions]
-  );
-  const groupedQuestions = useMemo(() => groupQuestionsByIntent(activeQuestions), [activeQuestions]);
-  const hasConditionalQuestions = Boolean((moduleMap.get('conditional_accuracy')?.questions ?? []).length);
-  const progress = questionPayload?.progress_summary;
-  const progressPercent = progress ? Math.min(100, Math.max(8, progress.completeness_score)) : 8;
-  const visibleStepperSteps = useMemo(
-    () => buildVisibleStepperSteps(moduleMap),
-    [moduleMap]
-  );
-  const advanceToNextStep = () => {
-    const nextStep = nextViewStep(activeStep, hasConditionalQuestions);
-    const destination = nextHref(activeStep, hasConditionalQuestions, entry) as Route;
-    setLocalStep(nextStep);
-    setMessage(null);
-    window.location.assign(destination);
-  };
+  const personalQuestions = questionPayload?.personal_core_questions ?? [];
+  const businessQuestions = questionPayload?.business_core_questions ?? [];
+  const currentQuestions = currentStep === 'personal_core'
+    ? personalQuestions
+    : currentStep === 'business_core'
+      ? businessQuestions
+      : currentStep === 'strategic_modules'
+        ? currentModule?.questions ?? []
+        : [];
 
-  if (activeStep === 'results') {
+  const primaryHref = questionPayload
+    ? computePrimaryHref(currentStep, questionPayload, entry, businessMode)
+    : buildOnboardingHref('personal_core', undefined, entry);
+  const backHref = questionPayload ? computeBackHref(currentStep, questionPayload, entry) : undefined;
+
+  if (!questionPayload) {
     return (
-      <div className="grid gap-6">
-        <QuestionStepper
-          current="results"
-          progress={progressPercent}
-          hrefForStep={(stepKey) => hrefForStep(stepKey, entry, hasConditionalQuestions)}
-          visibleSteps={visibleStepperSteps}
-        />
+      <Card>
+        <CardContent className="py-10 text-sm leading-7 text-slate-600">
+          Non riusciamo a caricare il percorso in questo momento. Ricarica la pagina tra un attimo.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (currentStep === 'results_checkpoint') {
+    return (
+      <div className="grid gap-5">
+        <QuestionStepper current={currentStep} progress={progressPercent} steps={steps} />
         <Card>
           <CardHeader className="gap-3">
-            <Badge variant="soft" className="w-fit">{STEP_COPY.results.eyebrow}</Badge>
-            <CardTitle className="text-4xl leading-[0.95]">{STEP_COPY.results.title}</CardTitle>
-            <CardDescription className="max-w-2xl text-base leading-7">{STEP_COPY.results.body}</CardDescription>
+            <Badge variant="soft" className="w-fit">Prime misure</Badge>
+            <CardTitle className="text-4xl leading-[0.95]">Adesso hai gia un primo set leggibile.</CardTitle>
+            <CardDescription className="max-w-3xl text-base leading-7">
+              Il profilo iniziale e sufficiente per farti vedere cosa emerge adesso. Da qui in poi puoi solo migliorare precisione e dettaglio.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <div className="grid gap-4 rounded-[1.75rem] border border-border/70 bg-white/80 p-5">
+          <CardContent className="grid gap-5">
+            <div className="grid gap-4 rounded-[1.6rem] border border-border/70 bg-slate-50/85 p-5">
               <div className="flex items-center gap-2 text-primary">
                 <Sparkles className="size-4" />
-                <span className="text-sm font-semibold">Il motore ha gia un perimetro serio.</span>
+                <span className="text-sm font-semibold">{questionPayload.results_summary.profile_state}</span>
               </div>
               <p className="text-sm leading-7 text-slate-600">
-                Da qui in poi scegli tu quanta precisione aggiungere. Le domande successive servono solo a chiarire i casi ancora aperti, non a sbloccare il prodotto.
+                {questionPayload.results_summary.total_matches > 0
+                  ? `Stiamo gia mostrando ${questionPayload.results_summary.total_matches} opportunita ordinate in modo coerente con il tuo profilo.`
+                  : 'Il profilo e salvato. Il riepilogo dei match si sta riallineando con i dati appena registrati.'}
               </p>
-              <div className="flex flex-wrap gap-3">
-                <button type="button" className="button" onClick={advanceToNextStep}>
-                  Migliora precisione
-                  <ChevronRight className="size-4" />
-                </button>
-                <Link className="button-secondary" href={`/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}` as Route}>
-                  Vai ai risultati completi
-                </Link>
+            </div>
+
+            {questionPayload.results_summary.top_matches.length ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {questionPayload.results_summary.top_matches.map((opportunity) => (
+                  <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[1.5rem] border border-blue-100 bg-blue-50/80 p-5 text-sm leading-7 text-blue-950">
+                Le prime misure stanno arrivando. Ricarica tra un attimo oppure apri il catalogo completo.
+              </div>
+            )}
+
+            <div className="grid gap-3 rounded-[1.6rem] border border-border/70 bg-white/85 p-5">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Cosa puoi chiarire dopo</span>
+              <div className="flex flex-wrap gap-2">
+                {questionPayload.results_summary.next_focus_labels.length ? (
+                  questionPayload.results_summary.next_focus_labels.map((label) => (
+                    <Badge key={label} variant="outline">{label}</Badge>
+                  ))
+                ) : (
+                  <Badge variant="outline">Nessun passaggio extra obbligatorio</Badge>
+                )}
               </div>
             </div>
-            <div className="grid gap-3 rounded-[1.75rem] border border-border/70 bg-slate-50/85 p-5 text-sm text-slate-600">
-              <span className="eyebrow">Stato attuale</span>
-              <span>{resultsSnapshotLabel(progress)}</span>
-              <span>
-                {progress && progress.core_total > 0
-                  ? 'Ora puoi vedere i risultati o continuare solo con le risposte piu utili.'
-                  : 'Stiamo riallineando il riepilogo con i dati appena salvati.'}
-              </span>
+
+            <div className="flex flex-wrap gap-3">
+              {questionPayload.strategic_modules.length ? (
+                <button type="button" className="button" onClick={() => window.location.assign(primaryHref)}>
+                  Continua con le domande utili
+                  <ArrowRight className="size-4" />
+                </button>
+              ) : (
+                <Link className="button" href={buildSearchHref(entry) as Route}>
+                  Vai al catalogo
+                  <ArrowRight className="size-4" />
+                </Link>
+              )}
+              <Link className="button-secondary" href={buildSearchHref(entry) as Route}>
+                Apri il catalogo completo
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -409,51 +261,85 @@ export function ProfileForm({
     );
   }
 
-  const copy = getStepCopy(activeStep);
+  if (currentStep === 'final_next_actions') {
+    return (
+      <div className="grid gap-5">
+        <QuestionStepper current={currentStep} progress={progressPercent} steps={steps} />
+        <Card>
+          <CardHeader className="gap-3">
+            <Badge variant="soft" className="w-fit">Passaggio completato</Badge>
+            <CardTitle className="text-4xl leading-[0.95]">Il profilo e gia utilizzabile.</CardTitle>
+            <CardDescription className="max-w-3xl text-base leading-7">
+              Hai chiuso i passaggi essenziali. Puoi tornare qui quando vuoi per rivedere il profilo oppure continuare nel catalogo live.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5">
+            <div className="grid gap-3 rounded-[1.6rem] border border-emerald-200 bg-emerald-50/80 p-5 text-sm leading-7 text-emerald-950">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="size-4" />
+                <span className="font-semibold">{questionPayload.results_summary.profile_state}</span>
+              </div>
+              <p>
+                Hai un feed unico che mette insieme opportunita personali e, se presenti, anche quelle per la tua attivita.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link className="button" href={buildSearchHref(entry) as Route}>
+                Vai al catalogo
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link className="button-secondary" href={'/saved' as Route}>
+                Apri le salvate
+              </Link>
+              <Link className="button-secondary" href={buildOnboardingHref('personal_core', undefined, entry)}>
+                Rivedi il profilo
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const copy = stepCopy(currentStep, currentModule?.title);
 
   return (
     <form
-      className="grid gap-6"
+      className="grid gap-5"
       onSubmit={handleSubmit(async (values) => {
         setMessage(null);
         setIsSubmitting(true);
-        const currentQuestions = activeQuestions;
-        const normalizedFactValues: Record<string, string | boolean | null> = Object.fromEntries(
-          currentQuestions
-            .map((question) => [question.key, normalizeValue(question, values[question.key])])
-            .filter(([, value]) => value !== undefined)
-        );
-        normalizedFactValues.profile_type = selectedBusinessType ?? 'persona_fisica';
-        if (!selectedBusinessType) {
-          for (const key of BUSINESS_FACT_KEYS_TO_CLEAR) {
-            normalizedFactValues[key] = null;
-          }
-        }
+        const payload = buildPayloadForStep({
+          currentStep,
+          currentQuestions,
+          values,
+          businessMode,
+          selectedBusinessType,
+          profile,
+        });
+
         const response = await fetch(`${API_URL}/v1/profile`, {
           method: 'PUT',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fact_values: normalizedFactValues }),
+          body: JSON.stringify(payload),
         });
+
         if (!response.ok) {
           if (response.status === 401) {
-            window.location.assign('/auth/sign-in');
+            window.location.assign('/auth/sign-in?reason=session-expired');
             return;
           }
           setMessage('Aggiornamento non riuscito. Riprova tra qualche secondo.');
           setIsSubmitting(false);
           return;
         }
+
         setIsSubmitting(false);
-        advanceToNextStep();
+        window.location.assign(primaryHref);
       })}
     >
-      <QuestionStepper
-        current={activeStep}
-        progress={progressPercent}
-        hrefForStep={(stepKey) => hrefForStep(stepKey, entry, hasConditionalQuestions)}
-        visibleSteps={visibleStepperSteps}
-      />
+      <QuestionStepper current={currentStep} progress={progressPercent} steps={steps} />
 
       <Card>
         <CardHeader className="gap-3">
@@ -464,161 +350,184 @@ export function ProfileForm({
         <CardContent className="grid gap-4 sm:grid-cols-3">
           <NarrativeStat
             label="Profilo personale"
-            value="Sempre attivo"
-            body="Ogni match parte da te: lavoro, fascia di eta, regione e nucleo possono cambiare l'esito."
-            actionHref={activeStep === 'core_entity' ? undefined : buildOnboardingHref(undefined, entry)}
-            actionLabel={activeStep === 'core_entity' ? undefined : 'Rivedi il core'}
-          />
-          <NarrativeStat
-            label="Questo passaggio"
-            value={activeQuestions.length > 0 ? `${activeQuestions.length} risposte da chiudere` : 'Gia completo'}
-            body={
-              activeQuestions.length > 0
-                ? 'Qui restano solo le risposte che servono davvero a questo passaggio.'
-                : 'Non ci sono altre domande utili qui. Puoi continuare o tornare ai risultati.'
-            }
+            value={`${questionPayload.progress_summary.personal_answered}/${questionPayload.progress_summary.personal_total}`}
+            body="Questa parte resta sempre il punto di partenza. Regione, lavoro, fascia di eta e nucleo cambiano molti esiti."
           />
           <NarrativeStat
             label="Attivita"
-            value={selectedBusinessType ? businessTypeLabel(selectedBusinessType) : 'Non aggiunta'}
-            body={
-              selectedBusinessType
-                ? 'Il feed tiene insieme opportunita personali e per la tua attivita.'
-                : 'Se ti serve, la aggiungi dal core del profilo senza cambiare percorso.'
+            value={
+              questionPayload.business_context.answered
+                ? questionPayload.business_context.enabled
+                  ? businessTypeLabel(questionPayload.business_context.profile_type)
+                  : 'Non aggiunta'
+                : 'Da confermare'
             }
-            actionHref={activeStep === 'core_entity' ? undefined : buildOnboardingHref(undefined, entry)}
-            actionLabel={activeStep === 'core_entity' ? undefined : selectedBusinessType ? 'Rivedi attivita' : 'Aggiungi attivita'}
+            body="La aggiungi solo se ti serve. Il feed puo tenere insieme opportunita personali e d impresa."
+          />
+          <NarrativeStat
+            label="Prime misure"
+            value={String(questionPayload.results_summary.total_matches)}
+            body="Dopo i passaggi iniziali il riepilogo si aggiorna subito e puoi continuare solo se vuoi piu precisione."
           />
         </CardContent>
       </Card>
 
-      {activeStep === 'core_entity' ? (
-        <>
-          <Card>
-            <CardHeader className="gap-3">
-              <div className="flex items-center gap-3">
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-primary">
-                  <UserRound className="size-5" />
-                </span>
-                <div className="grid gap-1">
-                  <Badge variant="outline" className="w-fit">Profilo personale</Badge>
-                  <CardTitle className="text-2xl">Questa parte vale per tutti</CardTitle>
-                </div>
+      {currentStep === 'personal_core' ? (
+        <Card>
+          <CardHeader className="gap-3">
+            <div className="flex items-center gap-3">
+              <span className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-primary">
+                <UserRound className="size-5" />
+              </span>
+              <div className="grid gap-1">
+                <Badge variant="outline" className="w-fit">Profilo personale</Badge>
+                <CardTitle className="text-2xl">Partiamo da te</CardTitle>
               </div>
-              <CardDescription className="max-w-3xl text-base leading-7">
-                Prima raccogliamo i dati che possono cambiare bonus personali, familiari, lavoro e anche parte dei match per attivita. La tua regione principale resta qui dentro, cosi il feed parte comunque da te.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-5 md:grid-cols-2">
-              {personalCoreQuestions.map((question) => (
-                <QuestionField key={question.key} question={question} register={register} />
-              ))}
-            </CardContent>
-          </Card>
+            </div>
+            <CardDescription className="max-w-3xl text-base leading-7">
+              Chiudiamo prima i dati che spostano davvero risultati personali, familiari, lavoro e parte dei match per attivita.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5 md:grid-cols-2">
+            {personalQuestions.map((question) => (
+              <QuestionField key={question.key} question={question} register={register} />
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
-          <Card>
-            <CardHeader className="gap-3">
-              <div className="flex items-center gap-3">
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
-                  <BriefcaseBusiness className="size-5" />
-                </span>
-                <div className="grid gap-1">
-                  <Badge variant="soft" className="w-fit">Attivita opzionale</Badge>
-                  <CardTitle className="text-2xl">Aggiungi anche la tua attivita, se esiste</CardTitle>
-                </div>
+      {currentStep === 'business_context' ? (
+        <Card>
+          <CardHeader className="gap-3">
+            <div className="flex items-center gap-3">
+              <span className="flex size-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
+                <BriefcaseBusiness className="size-5" />
+              </span>
+              <div className="grid gap-1">
+                <Badge variant="outline" className="w-fit">Attivita</Badge>
+                <CardTitle className="text-2xl">Hai anche un attivita da aggiungere?</CardTitle>
               </div>
-              <CardDescription className="max-w-3xl text-base leading-7">
-                Se hai una partita IVA, una startup o una PMI, il feed puo tenere insieme opportunita personali e per impresa. Se non ti serve, lasci tutto sul solo profilo personale.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-5">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            </div>
+            <CardDescription className="max-w-3xl text-base leading-7">
+              Se hai una partita IVA, una startup o una societa, la aggiungiamo nello stesso profilo. Se non ti serve, vai subito alle prime misure.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5">
+            <div className="grid gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                className={modeCardClass(businessMode === 'none')}
+                onClick={() => {
+                  setBusinessMode('none');
+                  setMessage(null);
+                }}
+              >
+                <span className="text-base font-semibold text-slate-950">Non ho attivita</span>
+                <span className="text-sm leading-6 text-slate-600">Resto sul profilo personale e passo subito alle prime misure.</span>
+              </button>
+              <button
+                type="button"
+                className={modeCardClass(businessMode === 'enabled')}
+                onClick={() => {
+                  setBusinessMode('enabled');
+                  setMessage(null);
+                }}
+              >
+                <span className="text-base font-semibold text-slate-950">Ho o sto aprendo un attivita</span>
+                <span className="text-sm leading-6 text-slate-600">Aggiungo un perimetro business nello stesso profilo senza cambiare percorso.</span>
+              </button>
+            </div>
+
+            {businessMode === 'enabled' ? (
+              <div className="grid gap-3 md:grid-cols-3">
                 {BUSINESS_TYPE_OPTIONS.map((option) => (
                   <button
-                    key={option.label}
+                    key={option.value}
                     type="button"
-                    className={profileModeCardClass(selectedBusinessType === option.value)}
-                    disabled={isSubmitting}
-                    onClick={() => switchBusinessType(option.value, setSelectedBusinessType, setValue, setMessage)}
+                    className={modeCardClass(selectedBusinessType === option.value)}
+                    onClick={() => {
+                      setSelectedBusinessType(option.value);
+                      setMessage(null);
+                    }}
                   >
                     <span className="text-sm font-semibold text-slate-950">{option.label}</span>
                     <span className="text-sm leading-6 text-slate-600">{option.body}</span>
                   </button>
                 ))}
               </div>
-              {selectedBusinessType ? (
-                <>
-                  <div className="rounded-[1.5rem] border border-violet-100 bg-violet-50/80 px-5 py-4 text-sm leading-7 text-violet-950">
-                    Hai aggiunto <strong>{businessTypeLabel(selectedBusinessType)}</strong>. Ora chiudiamo solo i dati d impresa che spostano davvero l ammissibilita iniziale.
-                  </div>
-                  {businessCoreQuestions.length > 0 ? (
-                    <div className="grid gap-5 md:grid-cols-2">
-                      {businessCoreQuestions.map((question) => (
-                        <QuestionField key={question.key} question={question} register={register} />
-                      ))}
-                    </div>
-                  ) : null}
-                </>
-              ) : (
-                <div className="rounded-[1.5rem] border border-border/70 bg-slate-50/80 px-5 py-4 text-sm leading-7 text-slate-600">
-                  Nessuna attivita aggiunta per ora. Vai avanti con il tuo profilo personale e, se ti serve, torna qui quando vuoi.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </>
-      ) : null}
-
-      {activeStep !== 'core_entity'
-        ? groupedQuestions.map(([groupKey, questions]) => {
-        const groupMeta = GROUP_LABELS[groupKey] ?? DEFAULT_GROUP_LABEL;
-        return (
-          <Card key={groupKey}>
-            <CardHeader className="gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{groupMeta.title}</Badge>
-                {questions.some((question) => question.sensitive) ? <Badge variant="soft">Sensibile solo se serve</Badge> : null}
-              </div>
-              <CardTitle className="text-2xl">{groupMeta.title}</CardTitle>
-              <CardDescription>{groupMeta.body}</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-5 md:grid-cols-2">
-              {questions.map((question) => (
-                <QuestionField key={question.key} question={question} register={register} />
-              ))}
-            </CardContent>
-          </Card>
-        );
-        })
-        : null}
-
-      {activeQuestions.length === 0 ? (
-        <Card>
-          <CardContent className="grid gap-3 py-8 text-sm text-slate-600">
-            <p className="font-medium text-slate-900">Questo passaggio e gia a posto.</p>
-            <p>Non ci sono altre risposte da chiudere qui. Puoi proseguire subito oppure tornare ai risultati quando vuoi.</p>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
 
+      {currentStep === 'business_core' ? (
+        <Card>
+          <CardHeader className="gap-3">
+            <Badge variant="soft" className="w-fit">Dati attivita</Badge>
+            <CardTitle className="text-2xl">Chiudiamo solo le informazioni essenziali.</CardTitle>
+            <CardDescription className="max-w-3xl text-base leading-7">
+              Queste risposte servono a filtrare le misure per freelance, startup o PMI. Il resto verra solo dopo, se ha davvero senso.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5 md:grid-cols-2">
+            {businessQuestions.map((question) => (
+              <QuestionField key={question.key} question={question} register={register} />
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {currentStep === 'strategic_modules' && currentModule ? (
+        <Card>
+          <CardHeader className="gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">{currentModule.title}</Badge>
+              {currentModule.questions.some((question) => question.sensitive) ? <Badge variant="soft">Solo se serve</Badge> : null}
+            </div>
+            <CardTitle className="text-2xl">{currentModule.title}</CardTitle>
+            <CardDescription className="max-w-3xl text-base leading-7">
+              {currentModule.description}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5">
+            <div className="rounded-[1.5rem] border border-border/70 bg-slate-50/80 px-5 py-4 text-sm leading-7 text-slate-600">
+              {currentModule.why_this_module_matters}
+            </div>
+            <div className="grid gap-5 md:grid-cols-2">
+              {currentModule.questions.map((question) => (
+                <QuestionField key={question.key} question={question} register={register} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {message ? <div className="banner">{message}</div> : null}
+
       <div className="flex flex-wrap gap-3">
-        {activeQuestions.length > 0 ? (
-          <Button type="submit" className="min-w-[16rem]" disabled={isSubmitting}>
-            {isSubmitting ? 'Salvataggio e ricalcolo...' : submitLabel(activeStep, hasConditionalQuestions)}
-          </Button>
-        ) : (
-          <button type="button" className="button" onClick={advanceToNextStep}>
-            {emptyStepPrimaryLabel(activeStep, hasConditionalQuestions)}
-            <ChevronRight className="size-4" />
-          </button>
-        )}
-        {activeStep !== 'core_entity' ? (
-          <Link className="button-secondary" href={skipHref(entry) as Route}>
-            Vai ai risultati adesso
+        {backHref ? (
+          <Link className="button-secondary" href={backHref}>
+            <ArrowLeft className="size-4" />
+            Indietro
           </Link>
         ) : null}
+
+        {(currentStep === 'personal_core' || currentStep === 'business_context' || currentStep === 'business_core' || currentStep === 'strategic_modules') ? (
+          <Button
+            type="submit"
+            className="min-w-[15rem]"
+            disabled={isSubmitting || (currentStep === 'business_context' && businessMode === 'enabled' && !selectedBusinessType)}
+          >
+            {isSubmitting ? 'Salvataggio in corso...' : submitLabel(currentStep, Boolean(currentModule), businessMode)}
+          </Button>
+        ) : null}
+
+        {currentStep === 'strategic_modules' ? (
+          <button type="button" className="button-secondary" onClick={() => window.location.assign(primaryHref)}>
+            Salta questo modulo
+          </button>
+        ) : null}
       </div>
-      {message ? <div className="banner">{message}</div> : null}
     </form>
   );
 }
@@ -637,9 +546,7 @@ function QuestionField({
           <Label htmlFor={question.key}>{question.label}</Label>
           {question.helper_text ? <p className="text-sm leading-6 text-slate-600">{question.helper_text}</p> : null}
         </div>
-        <div className="flex flex-wrap gap-2">
-          {question.sensitive ? <Badge variant="outline">Sensibile</Badge> : null}
-        </div>
+        {question.sensitive ? <Badge variant="outline">Sensibile</Badge> : null}
       </div>
 
       {question.kind === 'boolean' ? (
@@ -665,14 +572,12 @@ function QuestionField({
         <Input id={question.key} {...register(question.key)} />
       )}
 
-      <div className="grid gap-2 text-sm text-slate-500">
-        {question.why_needed ? (
-          <div className="flex gap-2 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-3">
-            <CircleHelp className="mt-0.5 size-4 shrink-0 text-slate-400" />
-            <span>{question.sensitive ? 'Perche lo chiediamo adesso: ' : 'Perche lo chiediamo: '}{question.why_needed}</span>
-          </div>
-        ) : null}
-      </div>
+      {question.why_needed ? (
+        <div className="flex gap-2 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-500">
+          <CircleHelp className="mt-0.5 size-4 shrink-0 text-slate-400" />
+          <span>{question.sensitive ? 'Perche lo chiediamo adesso: ' : 'Perche lo chiediamo: '}{question.why_needed}</span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -701,6 +606,57 @@ function buildInitialValues(profile: Profile | null): FormValues {
   return values;
 }
 
+function buildPayloadForStep({
+  currentStep,
+  currentQuestions,
+  values,
+  businessMode,
+  selectedBusinessType,
+  profile,
+}: {
+  currentStep: OnboardingStepKey;
+  currentQuestions: ProfileQuestion[];
+  values: FormValues;
+  businessMode: 'none' | 'enabled';
+  selectedBusinessType: string;
+  profile: Profile | null;
+}) {
+  const normalizedFactValues: Record<string, string | boolean | null> = {};
+  for (const question of currentQuestions) {
+    const normalized = normalizeValue(question, values[question.key]);
+    if (normalized !== undefined) {
+      normalizedFactValues[question.key] = normalized;
+    }
+  }
+
+  if (currentStep === 'personal_core') {
+    normalizedFactValues.profile_type = resolveBusinessType(profile) ?? 'persona_fisica';
+    return { fact_values: normalizedFactValues };
+  }
+
+  if (currentStep === 'business_context') {
+    if (businessMode === 'enabled') {
+      return {
+        business_exists: true,
+        fact_values: {
+          profile_type: selectedBusinessType,
+        },
+      };
+    }
+    for (const key of BUSINESS_FACT_KEYS_TO_CLEAR) {
+      normalizedFactValues[key] = null;
+    }
+    normalizedFactValues.profile_type = 'persona_fisica';
+    return {
+      business_exists: false,
+      fact_values: normalizedFactValues,
+    };
+  }
+
+  normalizedFactValues.profile_type = resolveBusinessType(profile) ?? 'persona_fisica';
+  return { fact_values: normalizedFactValues };
+}
+
 function normalizeBooleanField(current: string | boolean | null | undefined, fallback: boolean | null | undefined) {
   if (current !== undefined && current !== null && current !== '') return current;
   if (fallback === true) return 'true';
@@ -717,12 +673,6 @@ function normalizeValue(question: ProfileQuestion, value: string | boolean | nul
   return value;
 }
 
-function formatOptionLabel(option: string): string {
-  const translated = OPTION_LABELS_IT[option];
-  if (translated) return translated;
-  return option.replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
 function resolveUserType(profile: Profile | null): string | null {
   const factValues = (profile?.fact_values ?? {}) as Record<string, unknown>;
   return (factValues.profile_type as string | undefined) ?? profile?.user_type ?? 'persona_fisica';
@@ -733,207 +683,166 @@ function resolveBusinessType(profile: Profile | null): string | null {
   return profileType && profileType !== 'persona_fisica' ? profileType : null;
 }
 
-function buildActiveProfileTypes(businessType: string | null): string[] {
-  return businessType ? ['persona_fisica', businessType] : ['persona_fisica'];
+function computeWizardProgress(payload: ProfileQuestionResponse | null) {
+  const visibleSteps = payload?.journey.steps.filter((step) => step.status !== 'locked') ?? [];
+  const currentStep = payload?.journey.current_step;
+  if (!visibleSteps.length || !currentStep) return 10;
+  const index = visibleSteps.findIndex((step) => step.key === currentStep);
+  return Math.round(((Math.max(index, 0) + 1) / visibleSteps.length) * 100);
 }
 
-function groupQuestionsByIntent(questions: ProfileQuestion[]): [string, ProfileQuestion[]][] {
-  const buckets = new Map<string, ProfileQuestion[]>();
-  for (const question of questions) {
-    const key = questionGroupKey(question.key);
-    const bucket = buckets.get(key) ?? [];
-    bucket.push(question);
-    buckets.set(key, bucket);
+function computePrimaryHref(
+  step: OnboardingStepKey,
+  payload: ProfileQuestionResponse,
+  entry?: string,
+  businessMode: 'none' | 'enabled' = payload.business_context.enabled ? 'enabled' : 'none'
+): string {
+  if (step === 'personal_core') {
+    return buildOnboardingHref('business_context', undefined, entry);
   }
-  return Array.from(buckets.entries()).sort((left, right) => left[0].localeCompare(right[0]));
+  if (step === 'business_context') {
+    return businessMode === 'enabled'
+      ? buildOnboardingHref('business_core', undefined, entry)
+      : buildOnboardingHref('results_checkpoint', undefined, entry);
+  }
+  if (step === 'business_core') {
+    return buildOnboardingHref('results_checkpoint', undefined, entry);
+  }
+  if (step === 'results_checkpoint') {
+    if (payload.strategic_modules.length) {
+      return buildOnboardingHref('strategic_modules', payload.strategic_modules[0]?.key, entry);
+    }
+    return buildOnboardingHref('final_next_actions', undefined, entry);
+  }
+  if (step === 'strategic_modules') {
+    const currentIndex = payload.strategic_modules.findIndex((module) => module.key === payload.journey.active_module_key);
+    const nextModule = payload.strategic_modules[currentIndex + 1];
+    if (nextModule) {
+      return buildOnboardingHref('strategic_modules', nextModule.key, entry);
+    }
+    return buildOnboardingHref('final_next_actions', undefined, entry);
+  }
+  return buildSearchHref(entry);
 }
 
-function prepareQuestion(question: ProfileQuestion): ProfileQuestion {
-  if (question.key !== 'main_operating_region') return question;
+function computeBackHref(step: OnboardingStepKey, payload: ProfileQuestionResponse, entry?: string): Route | undefined {
+  if (step === 'business_context') {
+    return buildOnboardingHref('personal_core', undefined, entry);
+  }
+  if (step === 'business_core') {
+    return buildOnboardingHref('business_context', undefined, entry);
+  }
+  if (step === 'results_checkpoint') {
+    return buildOnboardingHref(payload.journey.has_business_context ? 'business_core' : 'business_context', undefined, entry);
+  }
+  if (step === 'strategic_modules') {
+    const currentIndex = payload.strategic_modules.findIndex((module) => module.key === payload.journey.active_module_key);
+    if (currentIndex > 0) {
+      return buildOnboardingHref('strategic_modules', payload.strategic_modules[currentIndex - 1]?.key, entry);
+    }
+    return buildOnboardingHref('results_checkpoint', undefined, entry);
+  }
+  if (step === 'final_next_actions') {
+    if (payload.strategic_modules.length) {
+      return buildOnboardingHref(
+        'strategic_modules',
+        payload.strategic_modules[payload.strategic_modules.length - 1]?.key,
+        entry
+      );
+    }
+    return buildOnboardingHref('results_checkpoint', undefined, entry);
+  }
+  return undefined;
+}
+
+function buildOnboardingHref(step: OnboardingStepKey, module: string | undefined, entry?: string): Route {
+  const search = new URLSearchParams();
+  search.set('step', step);
+  if (module) {
+    search.set('module', module);
+  }
+  if (entry) {
+    search.set('entry', entry);
+  }
+  return (`/onboarding?${search.toString()}`) as Route;
+}
+
+function buildSearchHref(entry?: string): Route {
+  return (`/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}`) as Route;
+}
+
+function submitLabel(step: OnboardingStepKey, hasStrategicModule: boolean, businessMode: 'none' | 'enabled') {
+  if (step === 'personal_core') return 'Salva e continua';
+  if (step === 'business_context') return businessMode === 'enabled' ? 'Salva e continua' : 'Salva e mostra le prime misure';
+  if (step === 'business_core') return 'Salva e mostra le prime misure';
+  if (step === 'strategic_modules') return hasStrategicModule ? 'Salva e continua' : 'Vai avanti';
+  return 'Salva e continua';
+}
+
+function stepCopy(step: OnboardingStepKey, currentModuleTitle?: string) {
+  if (step === 'personal_core') {
+    return {
+      eyebrow: 'Profilo personale',
+      title: 'Partiamo da te',
+      body: 'Chiudiamo prima le informazioni che spostano davvero misure personali, familiari e parte del matching per eventuali attivita.',
+    };
+  }
+  if (step === 'business_context') {
+    return {
+      eyebrow: 'Attivita',
+      title: 'Decidiamo solo se serve aggiungerla',
+      body: 'Qui scegli se restare sul solo profilo personale oppure portare dentro anche una partita IVA, una startup o una PMI.',
+    };
+  }
+  if (step === 'business_core') {
+    return {
+      eyebrow: 'Dati attivita',
+      title: 'Chiudiamo il minimo indispensabile',
+      body: 'Bastano poche risposte per filtrare correttamente misure da freelance, startup o impresa.',
+    };
+  }
+  if (step === 'strategic_modules') {
+    return {
+      eyebrow: currentModuleTitle ?? 'Approfondimenti',
+      title: currentModuleTitle ?? 'Domande utili solo se servono',
+      body: 'Queste risposte migliorano precisione e conferma dei match, ma non rimettono in discussione il percorso principale.',
+    };
+  }
   return {
-    ...question,
-    label: 'Qual e la tua regione principale?',
-    helper_text:
-      'Usiamo una sola regione di riferimento per partire. Ci aiuta subito sia sui benefici personali sia sulle misure legate alla tua attivita.',
-    why_needed:
-      'Molte opportunita dipendono da dove vivi o operi principalmente. Per ora la usiamo come riferimento unico per tenere il percorso semplice.',
+    eyebrow: 'Profilo',
+    title: 'Percorso guidato',
+    body: 'Continua dal punto giusto per te.',
   };
 }
 
-function questionGroupKey(key: string): string {
-  if (key.startsWith('target_hire_') || key === 'hiring_interest') return 'hiring';
-  if (key.includes('export') || key.includes('market')) return 'export';
-  if (key.includes('digital') || key.includes('energy') || key.includes('patent') || key.includes('balance')) return 'digital_energy';
-  if (key.includes('family') || key.includes('isee') || key.includes('figli') || key.includes('persona_fisica') || key.includes('home_ownership') || key.includes('employment')) {
-    return 'personal_family';
-  }
-  return 'general';
+function formatOptionLabel(option: string): string {
+  return OPTION_LABELS_IT[option] ?? option.replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function coreQuestionOrder(key: string): number {
-  const personalIndex = PERSONAL_CORE_PRIMARY_KEYS.indexOf(key);
-  if (personalIndex !== -1) return personalIndex;
-  const businessIndex = BUSINESS_CORE_KEYS.indexOf(key);
-  if (businessIndex !== -1) return PERSONAL_CORE_PRIMARY_KEYS.length + businessIndex + 10;
-  const personaBridgeIndex = PERSONA_CORE_BRIDGE_ORDER.indexOf(key);
-  return personaBridgeIndex === -1 ? 999 : PERSONAL_CORE_PRIMARY_KEYS.length + BUSINESS_CORE_KEYS.length + personaBridgeIndex + 20;
+function businessTypeLabel(value: string | null | undefined): string {
+  if (!value) return 'Non aggiunta';
+  return BUSINESS_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? formatOptionLabel(value);
 }
-
-function getStepCopy(step: ViewStep) {
-  return STEP_COPY[step];
-}
-
-function hrefForStep(
-  stepKey: string,
-  entry: string | undefined,
-  hasConditionalQuestions: boolean
-): Route | null {
-  if (stepKey === 'core_entity') return buildOnboardingHref(undefined, entry);
-  if (stepKey === 'results') return buildOnboardingHref('results', entry);
-  if (stepKey === 'strategic_intent') return buildOnboardingHref('strategic', entry);
-  if (stepKey === 'conditional_accuracy') return hasConditionalQuestions ? buildOnboardingHref('conditional', entry) : null;
-  return null;
-}
-
-function buildOnboardingHref(step: 'results' | 'strategic' | 'conditional' | undefined, entry?: string): Route {
-  const search = new URLSearchParams();
-  if (step) search.set('step', step);
-  if (entry) search.set('entry', entry);
-  const suffix = search.toString();
-  return (`/onboarding${suffix ? `?${suffix}` : ''}`) as Route;
-}
-
-function switchBusinessType(
-  nextType: string | null,
-  setSelectedBusinessType: (value: string | null) => void,
-  setValue: ReturnType<typeof useForm<FormValues>>['setValue'],
-  setMessage: (value: string | null) => void
-) {
-  setSelectedBusinessType(nextType);
-  setValue('profile_type', nextType ?? 'persona_fisica');
-  setMessage(null);
-}
-
-function submitLabel(step: ViewStep, hasConditionalQuestions: boolean): string {
-  if (step === 'core_entity') return 'Salva il core e mostra i risultati';
-  if (step === 'strategic_intent') return hasConditionalQuestions ? 'Salva e passa alla chiusura finale' : 'Salva e vai ai risultati';
-  return 'Aggiorna e vai ai risultati';
-}
-
-function nextHref(step: ViewStep, hasConditionalQuestions: boolean, entry?: string): string {
-  const suffix = entry ? `?entry=${encodeURIComponent(entry)}` : '';
-  if (step === 'core_entity') return `/onboarding?step=results${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
-  if (step === 'results') return `/onboarding?step=strategic${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
-  if (step === 'strategic_intent' && hasConditionalQuestions) return `/onboarding?step=conditional${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
-  return `/search${suffix}`;
-}
-
-function nextViewStep(step: ViewStep, hasConditionalQuestions: boolean): ViewStep {
-  if (step === 'core_entity') return 'results';
-  if (step === 'results') return 'strategic_intent';
-  if (step === 'strategic_intent' && hasConditionalQuestions) return 'conditional_accuracy';
-  return 'results';
-}
-
-function skipHref(entry?: string): string {
-  return `/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}`;
-}
-
-function emptyStepPrimaryLabel(step: ViewStep, hasConditionalQuestions: boolean): string {
-  if (step === 'strategic_intent' && hasConditionalQuestions) return 'Continua ai dettagli finali';
-  return 'Continua';
-}
-
-function questionMatchesContexts(question: ProfileQuestion, activeProfileTypes: string[]): boolean {
-  if (!question.audience || question.audience.length === 0) return true;
-  return question.audience.some((audience) => activeProfileTypes.includes(audience));
-}
-
-function businessTypeLabel(value: string): string {
-  if (value === 'freelancer') return 'Freelance o partita IVA';
-  if (value === 'startup') return 'Startup o nuova impresa';
-  if (value === 'sme') return 'PMI o societa attiva';
-  return formatOptionLabel(value);
-}
-
-function resultsSnapshotLabel(
-  progress:
-    | {
-        core_answered: number;
-        core_total: number;
-      }
-    | undefined
-): string {
-  if (!progress || progress.core_total === 0) {
-    return 'Riepilogo in aggiornamento';
-  }
-  return `Core salvato: ${progress.core_answered}/${progress.core_total}`;
-}
-
-function buildVisibleStepperSteps(moduleMap: Map<string, { questions: ProfileQuestion[] }>) {
-  const steps: string[] = ['core_entity', 'results'];
-  if ((moduleMap.get('strategic_intent')?.questions ?? []).length > 0) {
-    steps.push('strategic_intent');
-  }
-  if ((moduleMap.get('conditional_accuracy')?.questions ?? []).length > 0) {
-    steps.push('conditional_accuracy');
-  }
-  return steps;
-}
-
-const BUSINESS_FACT_KEYS_TO_CLEAR = [
-  'activity_stage',
-  'legal_form_bucket',
-  'company_age_or_formation_window',
-  'size_band',
-  'sector_macro_category',
-  'innovation_regime_status',
-  'hiring_interest',
-  'export_investment_intent',
-  'digital_transition_project',
-  'energy_transition_project',
-  'women_led_majority',
-  'founder_age_band',
-  'unemployment_status_at_start',
-  'no_prior_permanent_employment',
-  'target_hire_age_band',
-  'target_hire_gender_priority',
-  'target_hire_disadvantaged_status',
-  'target_market_scope',
-  'energy_reduction_goal',
-  'filed_balance_sheets_count',
-  'patent_ip_intent',
-];
 
 function NarrativeStat({
   label,
   value,
   body,
-  actionHref,
-  actionLabel,
 }: {
   label: string;
   value: string;
   body: string;
-  actionHref?: Route;
-  actionLabel?: string;
 }) {
   return (
     <div className="grid gap-3 rounded-[1.5rem] border border-border/70 bg-slate-50/85 p-4 shadow-sm">
       <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</span>
-      <p className="mt-2 font-heading text-2xl font-semibold text-slate-950">{value}</p>
+      <p className="font-heading text-2xl font-semibold text-slate-950">{value}</p>
       <p className="text-sm leading-6 text-slate-600">{body}</p>
-      {actionHref && actionLabel ? (
-        <Link href={actionHref} className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary/80">
-          {actionLabel}
-          <ChevronRight className="size-4" />
-        </Link>
-      ) : null}
     </div>
   );
 }
 
-function profileModeCardClass(active: boolean) {
+function modeCardClass(active: boolean) {
   return [
     'grid gap-2 rounded-[1.5rem] border bg-white px-4 py-4 text-left transition-all duration-200',
     active

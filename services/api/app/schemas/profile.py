@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from app.schemas.common import ApiModel
+from app.schemas.opportunity import OpportunityCard
 
 
 class ProfileQuestionImpactCounts(ApiModel):
@@ -41,6 +42,10 @@ class ProfileQuestionModule(ApiModel):
 
 
 class ProfileQuestionProgress(ApiModel):
+    personal_answered: int = 0
+    personal_total: int = 0
+    business_answered: int = 0
+    business_total: int = 0
     core_answered: int = 0
     core_total: int = 0
     strategic_answered: int = 0
@@ -52,10 +57,56 @@ class ProfileQuestionProgress(ApiModel):
     upgradable_opportunity_count: int = 0
 
 
+class OnboardingStep(ApiModel):
+    key: str
+    label: str
+    status: str
+
+
+class OnboardingJourney(ApiModel):
+    steps: list[OnboardingStep]
+    current_step: str
+    next_step: str | None = None
+    has_business_context: bool = False
+    active_module_key: str | None = None
+
+
+class ProfileBusinessContext(ApiModel):
+    answered: bool = False
+    enabled: bool = False
+    profile_type: str | None = None
+
+
+class StrategicModule(ApiModel):
+    key: str
+    title: str
+    description: str
+    why_this_module_matters: str | None = None
+    questions: list[ProfileQuestion]
+    clarification_count: int = 0
+    upgrade_count: int = 0
+
+
+class ProfileResultsSummary(ApiModel):
+    ready: bool = False
+    total_matches: int = 0
+    blocked_count: int = 0
+    profile_state: str
+    top_matches: list[OpportunityCard] = []
+    why_now: list[str] = []
+    next_focus_labels: list[str] = []
+
+
 class ProfileQuestionResponse(ApiModel):
     recommended_step: str
     progress_summary: ProfileQuestionProgress
     modules: list[ProfileQuestionModule]
+    journey: OnboardingJourney
+    personal_core_questions: list[ProfileQuestion]
+    business_context: ProfileBusinessContext
+    business_core_questions: list[ProfileQuestion]
+    strategic_modules: list[StrategicModule]
+    results_summary: ProfileResultsSummary
 
 
 class ProfilePayload(BaseModel):

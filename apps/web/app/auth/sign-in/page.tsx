@@ -16,17 +16,28 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
   const user = await getSessionUser().catch(() => null);
   if (user) {
     redirect('/onboarding');
   }
 
   const isLocalEnvironment = process.env.NODE_ENV !== 'production';
+  const reason = Array.isArray(params.reason) ? params.reason[0] : params.reason;
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-      <MagicLinkForm />
+      <div className="grid gap-4">
+        {reason === 'session-expired' ? (
+          <div className="banner">La sessione e scaduta. Ti inviamo un nuovo magic link per riprendere dal punto giusto.</div>
+        ) : null}
+        <MagicLinkForm />
+      </div>
       <div className="grid gap-4">
         <Card>
           <CardHeader className="gap-3">

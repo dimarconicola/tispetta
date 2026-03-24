@@ -30,6 +30,8 @@ def list_opportunities(
     matched_status: str | None = None,
     saved_only: bool = False,
     scope: str | None = None,
+    limit: int | None = None,
+    question_payload: dict | None = None,
 ) -> list[dict]:
     stmt: Select[tuple[Opportunity]] = (
         select(Opportunity)
@@ -65,7 +67,7 @@ def list_opportunities(
             )
             for evaluation in evaluations:
                 latest_evaluations_by_match_id.setdefault(evaluation.match_id, evaluation)
-        question_lookup = flatten_question_lookup(get_profile_questions(db, user))
+        question_lookup = flatten_question_lookup(question_payload or get_profile_questions(db, user))
 
     payloads: list[dict] = []
     for opportunity in opportunities:
@@ -114,6 +116,8 @@ def list_opportunities(
             freshness_bucket(item['last_checked_at']),
         )
     )
+    if limit is not None:
+        return payloads[:limit]
     return payloads
 
 

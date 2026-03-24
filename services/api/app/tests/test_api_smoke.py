@@ -29,13 +29,22 @@ def test_public_catalog_endpoints() -> None:
     questions = client.get('/v1/profile/questions')
     assert questions.status_code == 200
     question_payload = questions.json()
-    assert {'recommended_step', 'progress_summary', 'modules'} <= set(question_payload)
+    assert {
+        'recommended_step',
+        'progress_summary',
+        'modules',
+        'journey',
+        'personal_core_questions',
+        'business_context',
+        'business_core_questions',
+        'strategic_modules',
+        'results_summary',
+    } <= set(question_payload)
     all_questions = [question for module in question_payload['modules'] for question in module['questions']]
     assert len(all_questions) >= 8
     assert {'module', 'sensitive', 'coverage_weight', 'ambiguity_reduction_score', 'priority', 'impact_counts'} <= set(all_questions[0])
     assert sum(1 for question in all_questions if question['required']) <= 8
     assert {
-        'profile_type',
         'activity_stage',
         'legal_form_bucket',
         'main_operating_region',
@@ -44,6 +53,16 @@ def test_public_catalog_endpoints() -> None:
         'sector_macro_category',
         'innovation_regime_status',
     } <= {question['key'] for question in all_questions}
+    assert question_payload['journey']['current_step'] == 'personal_core'
+    assert question_payload['journey']['steps'][0]['key'] == 'personal_core'
+    assert {question['key'] for question in question_payload['personal_core_questions']} >= {
+        'main_operating_region',
+        'employment_type',
+        'persona_fisica_age_band',
+        'family_composition',
+        'figli_a_carico_count',
+    }
+    assert question_payload['business_context']['answered'] is False
 
     opportunities = client.get('/v1/opportunities')
     assert opportunities.status_code == 200
@@ -51,6 +70,10 @@ def test_public_catalog_endpoints() -> None:
     assert len(opportunity_payload) >= 35
     assert any(item['slug'] == 'smart_start_italia' for item in opportunity_payload)
     assert {'why_now', 'blocking_question_keys', 'match_reasons', 'blocking_missing_labels', 'opportunity_scope'} <= set(opportunity_payload[0])
+
+    limited_opportunities = client.get('/v1/opportunities?limit=3')
+    assert limited_opportunities.status_code == 200
+    assert len(limited_opportunities.json()) == 3
 
     detail = client.get('/v1/opportunities/smart_start_italia')
     assert detail.status_code == 200
@@ -139,6 +162,52 @@ def test_authenticated_catalog_surfaces_match_explanations() -> None:
     assert detail_payload['match_breakdown']['status'] == first['match_status']
     assert isinstance(detail_payload['match_breakdown']['next_best_questions'], list)
     assert detail_payload['opportunity_scope'] in {'personal', 'business', 'hybrid'}
+
+
+def test_onboarding_questions_clamp_requested_step_and_unlock_business_path() -> None:
+    request = client.post('/v1/auth/request-magic-link', json={'email': 'wizard@example.com'})
+    token = parse_qs(urlparse(request.json()['preview_url']).query)['token'][0]
+    exchange = client.post('/v1/auth/exchange-magic-link', json={'token': token})
+    headers = {'X-Session-Token': exchange.json()['session_token']}
+
+    clamped = client.get('/v1/profile/questions?step=strategic_modules&module=hiring', headers=headers)
+    assert clamped.status_code == 200
+    assert clamped.json()['journey']['current_step'] == 'personal_core'
+
+    update = client.put(
+        '/v1/profile',
+        headers=headers,
+        json={
+            'fact_values': {
+                'main_operating_region': 'Lombardia',
+                'employment_type': 'dipendente',
+                'persona_fisica_age_band': 'under_35',
+                'family_composition': 'single',
+                'figli_a_carico_count': '0',
+            }
+        },
+    )
+    assert update.status_code == 200
+
+    business_context = client.get('/v1/profile/questions?step=business_context', headers=headers)
+    assert business_context.status_code == 200
+    assert business_context.json()['journey']['current_step'] == 'business_context'
+
+    enable_business = client.put(
+        '/v1/profile',
+        headers=headers,
+        json={
+            'business_exists': True,
+            'fact_values': {
+                'profile_type': 'startup',
+            },
+        },
+    )
+    assert enable_business.status_code == 200
+
+    business_core = client.get('/v1/profile/questions?step=business_core', headers=headers)
+    assert business_core.status_code == 200
+    assert business_core.json()['journey']['current_step'] == 'business_core'
 
 
 def test_admin_bootstrap_endpoints() -> None:
