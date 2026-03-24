@@ -395,16 +395,28 @@ export function ProfileForm({
             label="Profilo personale"
             value="Sempre attivo"
             body="Ogni match parte da te: lavoro, fascia di eta, regione e nucleo possono cambiare l'esito."
+            actionHref={activeStep === 'core_entity' ? undefined : buildOnboardingHref(undefined, entry)}
+            actionLabel={activeStep === 'core_entity' ? undefined : 'Rivedi il core'}
           />
           <NarrativeStat
-            label="Questo step"
-            value={activeQuestions.length > 0 ? `${activeQuestions.length} risposte utili` : 'Niente da aggiungere'}
-            body={activeQuestions.length > 0 ? 'Ti chiediamo solo il minimo che cambia davvero la lettura dei risultati.' : 'Puoi passare oltre senza perdere contesto.'}
+            label="Questo passaggio"
+            value={activeQuestions.length > 0 ? `${activeQuestions.length} risposte da chiudere` : 'Gia completo'}
+            body={
+              activeQuestions.length > 0
+                ? 'Qui restano solo le risposte che servono davvero a questo passaggio.'
+                : 'Non ci sono altre domande utili qui. Puoi continuare o tornare ai risultati.'
+            }
           />
           <NarrativeStat
             label="Attivita"
             value={selectedBusinessType ? businessTypeLabel(selectedBusinessType) : 'Non aggiunta'}
-            body={selectedBusinessType ? 'Il feed terra insieme opportunita personali e per la tua attivita.' : 'Se serve, la aggiungi qui senza cambiare percorso.'}
+            body={
+              selectedBusinessType
+                ? 'Il feed tiene insieme opportunita personali e per la tua attivita.'
+                : 'Se ti serve, la aggiungi dal core del profilo senza cambiare percorso.'
+            }
+            actionHref={activeStep === 'core_entity' ? undefined : buildOnboardingHref(undefined, entry)}
+            actionLabel={activeStep === 'core_entity' ? undefined : selectedBusinessType ? 'Rivedi attivita' : 'Aggiungi attivita'}
           />
         </CardContent>
       </Card>
@@ -512,19 +524,26 @@ export function ProfileForm({
       {activeQuestions.length === 0 ? (
         <Card>
           <CardContent className="grid gap-3 py-8 text-sm text-slate-600">
-            <p className="font-medium text-slate-900">Qui non c e altro che cambi davvero i risultati.</p>
-            <p>Puoi andare avanti: i match sono gia leggibili e le prossime domande compaiono solo quando stringono casi ancora aperti.</p>
+            <p className="font-medium text-slate-900">Questo passaggio e gia a posto.</p>
+            <p>Non ci sono altre risposte utili qui. Puoi continuare nel flusso oppure tornare subito ai risultati senza perdere contesto.</p>
           </CardContent>
         </Card>
       ) : null}
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" className="min-w-[16rem]" disabled={isSubmitting}>
-          {isSubmitting ? 'Salvataggio e ricalcolo...' : submitLabel(activeStep, hasConditionalQuestions)}
-        </Button>
+        {activeQuestions.length > 0 ? (
+          <Button type="submit" className="min-w-[16rem]" disabled={isSubmitting}>
+            {isSubmitting ? 'Salvataggio e ricalcolo...' : submitLabel(activeStep, hasConditionalQuestions)}
+          </Button>
+        ) : (
+          <Link className="button" href={nextHref(activeStep, hasConditionalQuestions, entry) as Route}>
+            {emptyStepPrimaryLabel(activeStep, hasConditionalQuestions)}
+            <ChevronRight className="size-4" />
+          </Link>
+        )}
         {activeStep !== 'core_entity' ? (
           <Link className="button-secondary" href={skipHref(entry) as Route}>
-            Salta per ora
+            Vai ai risultati adesso
           </Link>
         ) : null}
       </div>
@@ -740,6 +759,11 @@ function skipHref(entry?: string): string {
   return `/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}`;
 }
 
+function emptyStepPrimaryLabel(step: ViewStep, hasConditionalQuestions: boolean): string {
+  if (step === 'strategic_intent' && hasConditionalQuestions) return 'Continua ai dettagli finali';
+  return 'Continua';
+}
+
 function questionMatchesContexts(question: ProfileQuestion, activeProfileTypes: string[]): boolean {
   if (!question.audience || question.audience.length === 0) return true;
   return question.audience.some((audience) => activeProfileTypes.includes(audience));
@@ -776,12 +800,30 @@ const BUSINESS_FACT_KEYS_TO_CLEAR = [
   'patent_ip_intent',
 ];
 
-function NarrativeStat({ label, value, body }: { label: string; value: string; body: string }) {
+function NarrativeStat({
+  label,
+  value,
+  body,
+  actionHref,
+  actionLabel,
+}: {
+  label: string;
+  value: string;
+  body: string;
+  actionHref?: Route;
+  actionLabel?: string;
+}) {
   return (
-    <div className="rounded-[1.5rem] border border-border/70 bg-slate-50/85 p-4 shadow-sm">
+    <div className="grid gap-3 rounded-[1.5rem] border border-border/70 bg-slate-50/85 p-4 shadow-sm">
       <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</span>
       <p className="mt-2 font-heading text-2xl font-semibold text-slate-950">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{body}</p>
+      <p className="text-sm leading-6 text-slate-600">{body}</p>
+      {actionHref && actionLabel ? (
+        <Link href={actionHref} className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary/80">
+          {actionLabel}
+          <ChevronRight className="size-4" />
+        </Link>
+      ) : null}
     </div>
   );
 }
