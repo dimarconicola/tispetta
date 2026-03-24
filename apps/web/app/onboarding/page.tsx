@@ -19,15 +19,19 @@ export default async function OnboardingPage({
     redirect(isMarketingEntry ? '/start' : '/auth/sign-in');
   }
 
-  const [profile, questionPayload, opportunities] = await Promise.all([
-    getProfile().catch(() => null),
-    getProfileQuestions().catch(() => null),
-    getOpportunities().catch(() => []),
+  const [profileResult, questionPayloadResult, opportunitiesResult] = await Promise.allSettled([
+    getProfile(),
+    getProfileQuestions(),
+    getOpportunities(),
   ]);
+  const profile = profileResult.status === 'fulfilled' ? profileResult.value : null;
+  const questionPayload = questionPayloadResult.status === 'fulfilled' ? questionPayloadResult.value : null;
+  const opportunities = opportunitiesResult.status === 'fulfilled' ? opportunitiesResult.value : null;
+  const hasFreshResults = opportunitiesResult.status === 'fulfilled';
 
   const requestedStep = Array.isArray(params.step) ? params.step[0] : params.step;
   const currentStep = resolveCurrentStep(questionPayload?.recommended_step, requestedStep, profile);
-  const topMatches = opportunities.slice(0, currentStep === 'results' ? 4 : 2);
+  const topMatches = (opportunities ?? []).slice(0, currentStep === 'results' ? 4 : 2);
   const highlightedQuestions = selectHighlightedQuestions(questionPayload, currentStep, profile);
 
   return (
@@ -42,13 +46,27 @@ export default async function OnboardingPage({
                 <p className="eyebrow">Prime opportunita</p>
                 <h2 className="section-title">I primi match sono gia leggibili</h2>
               </div>
-              <span className="text-sm text-slate-500">{topMatches.length} in evidenza</span>
+              <span className="text-sm text-slate-500">
+                {hasFreshResults ? `${topMatches.length} in evidenza` : 'Riepilogo in aggiornamento'}
+              </span>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {topMatches.map((opportunity) => (
-                <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-              ))}
-            </div>
+            {hasFreshResults ? (
+              topMatches.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {topMatches.map((opportunity) => (
+                    <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[1.75rem] border border-border/70 bg-white/85 p-5 text-sm leading-7 text-slate-600 shadow-sm">
+                  Non ci sono ancora schede in evidenza da mostrarti qui. Vai al catalogo completo e continua a rifinire il profilo da li.
+                </div>
+              )
+            ) : (
+              <div className="rounded-[1.75rem] border border-blue-100 bg-blue-50/80 p-5 text-sm leading-7 text-blue-950 shadow-sm">
+                Stiamo ancora ricalcolando il riepilogo con i dati appena salvati. Ricarica tra un attimo e vedrai i primi match aggiornati.
+              </div>
+            )}
           </section>
         ) : null}
       </div>

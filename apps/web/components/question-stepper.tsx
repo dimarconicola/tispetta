@@ -16,11 +16,17 @@ export function QuestionStepper({
   current,
   progress,
   hrefForStep,
+  visibleSteps,
 }: {
   current: string;
   progress: number;
   hrefForStep?: (stepKey: string) => Route | null;
+  visibleSteps?: string[];
 }) {
+  const renderedSteps = visibleSteps?.length
+    ? STEP_LABELS.filter((step) => visibleSteps.includes(step.key))
+    : STEP_LABELS;
+
   return (
     <div className="grid gap-4 rounded-[1.75rem] border border-border/70 bg-white/80 p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3 text-sm">
@@ -29,9 +35,9 @@ export function QuestionStepper({
       </div>
       <Progress value={progress} />
       <div className="grid gap-2 sm:grid-cols-4 sm:gap-3">
-        {STEP_LABELS.map((step, index) => {
+        {renderedSteps.map((step, index) => {
           const active = step.key === current;
-          const completed = index < STEP_LABELS.findIndex((item) => item.key === current);
+          const completed = index < renderedSteps.findIndex((item) => item.key === current);
           const href = hrefForStep?.(step.key) ?? null;
           const className = cn(
             'flex items-center gap-2 rounded-2xl border px-3 py-3 text-xs font-medium transition-colors',

@@ -23,7 +23,7 @@ import type {
   SurveyCoverageSnapshot,
 } from './types';
 
-const API_TIMEOUT_MS = 4_000;
+const API_TIMEOUT_MS = 10_000;
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
   const cookieStore = await cookies();

@@ -350,6 +350,10 @@ export function ProfileForm({
   const hasConditionalQuestions = Boolean((moduleMap.get('conditional_accuracy')?.questions ?? []).length);
   const progress = questionPayload?.progress_summary;
   const progressPercent = progress ? Math.min(100, Math.max(8, progress.completeness_score)) : 8;
+  const visibleStepperSteps = useMemo(
+    () => buildVisibleStepperSteps(moduleMap),
+    [moduleMap]
+  );
   const advanceToNextStep = () => {
     const nextStep = nextViewStep(activeStep, hasConditionalQuestions);
     const destination = nextHref(activeStep, hasConditionalQuestions, entry) as Route;
@@ -362,7 +366,12 @@ export function ProfileForm({
   if (activeStep === 'results') {
     return (
       <div className="grid gap-6">
-        <QuestionStepper current="results" progress={progressPercent} hrefForStep={(stepKey) => hrefForStep(stepKey, entry, hasConditionalQuestions)} />
+        <QuestionStepper
+          current="results"
+          progress={progressPercent}
+          hrefForStep={(stepKey) => hrefForStep(stepKey, entry, hasConditionalQuestions)}
+          visibleSteps={visibleStepperSteps}
+        />
         <Card>
           <CardHeader className="gap-3">
             <Badge variant="soft" className="w-fit">{STEP_COPY.results.eyebrow}</Badge>
@@ -390,8 +399,12 @@ export function ProfileForm({
             </div>
             <div className="grid gap-3 rounded-[1.75rem] border border-border/70 bg-slate-50/85 p-5 text-sm text-slate-600">
               <span className="eyebrow">Stato attuale</span>
-              <span>Core salvato: {progress?.core_answered ?? 0}/{progress?.core_total ?? 0}</span>
-              <span>Ora puoi vedere i risultati o continuare solo con le risposte piu utili.</span>
+              <span>{resultsSnapshotLabel(progress)}</span>
+              <span>
+                {progress && progress.core_total > 0
+                  ? 'Ora puoi vedere i risultati o continuare solo con le risposte piu utili.'
+                  : 'Stiamo riallineando il riepilogo con i dati appena salvati.'}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -434,7 +447,12 @@ export function ProfileForm({
         advanceToNextStep();
       })}
     >
-      <QuestionStepper current={activeStep} progress={progressPercent} hrefForStep={(stepKey) => hrefForStep(stepKey, entry, hasConditionalQuestions)} />
+      <QuestionStepper
+        current={activeStep}
+        progress={progressPercent}
+        hrefForStep={(stepKey) => hrefForStep(stepKey, entry, hasConditionalQuestions)}
+        visibleSteps={visibleStepperSteps}
+      />
 
       <Card>
         <CardHeader className="gap-3">
@@ -835,6 +853,31 @@ function businessTypeLabel(value: string): string {
   if (value === 'startup') return 'Startup o nuova impresa';
   if (value === 'sme') return 'PMI o societa attiva';
   return formatOptionLabel(value);
+}
+
+function resultsSnapshotLabel(
+  progress:
+    | {
+        core_answered: number;
+        core_total: number;
+      }
+    | undefined
+): string {
+  if (!progress || progress.core_total === 0) {
+    return 'Riepilogo in aggiornamento';
+  }
+  return `Core salvato: ${progress.core_answered}/${progress.core_total}`;
+}
+
+function buildVisibleStepperSteps(moduleMap: Map<string, { questions: ProfileQuestion[] }>) {
+  const steps: string[] = ['core_entity', 'results'];
+  if ((moduleMap.get('strategic_intent')?.questions ?? []).length > 0) {
+    steps.push('strategic_intent');
+  }
+  if ((moduleMap.get('conditional_accuracy')?.questions ?? []).length > 0) {
+    steps.push('conditional_accuracy');
+  }
+  return steps;
 }
 
 const BUSINESS_FACT_KEYS_TO_CLEAR = [
