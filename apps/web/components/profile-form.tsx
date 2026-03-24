@@ -2,7 +2,6 @@
 
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { BriefcaseBusiness, ChevronRight, CircleHelp, Sparkles, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -284,7 +283,6 @@ export function ProfileForm({
   currentStep: ViewStep;
   entry?: string;
 }) {
-  const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localStep, setLocalStep] = useState<ViewStep>(currentStep);
@@ -359,8 +357,7 @@ export function ProfileForm({
     const destination = nextHref(activeStep, hasConditionalQuestions, entry) as Route;
     setLocalStep(nextStep);
     setMessage(null);
-    router.replace(destination);
-    router.refresh();
+    window.location.assign(destination);
   };
 
   if (activeStep === 'results') {
@@ -439,6 +436,10 @@ export function ProfileForm({
           body: JSON.stringify({ fact_values: normalizedFactValues }),
         });
         if (!response.ok) {
+          if (response.status === 401) {
+            window.location.assign('/auth/sign-in');
+            return;
+          }
           setMessage('Aggiornamento non riuscito. Riprova tra qualche secondo.');
           setIsSubmitting(false);
           return;

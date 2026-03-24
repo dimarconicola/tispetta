@@ -26,21 +26,27 @@ export function QuestionStepper({
   const renderedSteps = visibleSteps?.length
     ? STEP_LABELS.filter((step) => visibleSteps.includes(step.key))
     : STEP_LABELS;
+  const columnsClass =
+    renderedSteps.length <= 2
+      ? 'sm:grid-cols-2'
+      : renderedSteps.length === 3
+        ? 'sm:grid-cols-3'
+        : 'sm:grid-cols-4';
 
   return (
-    <div className="grid gap-4 rounded-[1.75rem] border border-border/70 bg-white/80 p-5 shadow-sm">
+    <div className="grid gap-3 rounded-[1.5rem] border border-border/70 bg-white/80 p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="font-medium text-slate-900">Progressione</span>
         <span className="text-slate-500">{Math.round(progress)}%</span>
       </div>
       <Progress value={progress} />
-      <div className="grid gap-2 sm:grid-cols-4 sm:gap-3">
+      <div className={cn('grid gap-2', columnsClass)}>
         {renderedSteps.map((step, index) => {
           const active = step.key === current;
           const completed = index < renderedSteps.findIndex((item) => item.key === current);
           const href = hrefForStep?.(step.key) ?? null;
           const className = cn(
-            'flex items-center gap-2 rounded-2xl border px-3 py-3 text-xs font-medium transition-colors',
+            'flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-xs font-medium transition-colors',
             active && 'border-primary bg-blue-50 text-primary',
             completed && 'border-emerald-200 bg-emerald-50 text-emerald-700',
             !active && !completed && 'border-border bg-background text-muted-foreground',
