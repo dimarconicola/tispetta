@@ -1,15 +1,15 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import type { Metadata } from 'next';
-import { ArrowRight } from 'lucide-react';
 
+import { ApexLanding } from '@/components/apex-landing';
 import { FilterChips } from '@/components/filter-chips';
 import { OpportunityCard } from '@/components/opportunity-card';
 import { SearchBar } from '@/components/search-bar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getOpportunities, getProfile, getSessionUser } from '@/lib/server-api';
 import { APP_HOST, isApexLikeHost } from '@/lib/hosts';
+import { getOpportunities, getProfile, getSessionUser } from '@/lib/server-api';
 
 async function isMarketingRequest() {
   const headerStore = await headers();
@@ -58,274 +58,6 @@ const SCOPE_ITEMS = [
   { label: 'Personale', value: 'personal' },
   { label: 'Attivita', value: 'business' },
 ];
-
-function MarketingLandingPage({ opportunities }: { opportunities: HomeOpportunity[] }) {
-  const preview = opportunities.slice(0, 3);
-  const appStartUrl = `https://${APP_HOST}/start`;
-  const appSearchUrl = `https://${APP_HOST}/search`;
-  const audienceItems = [
-    {
-      title: 'Persone e famiglie',
-      body: 'Bonus, detrazioni e misure personali che dipendono da lavoro, nucleo, figli e territorio.',
-    },
-    {
-      title: 'Freelance',
-      body: 'Partita IVA, autoimpiego e opportunita che non richiedono una societa strutturata.',
-    },
-    {
-      title: 'Startup e founder',
-      body: 'Stato innovativo, incentivi di avvio, percorsi Invitalia e condizioni societarie esplicite.',
-    },
-    {
-      title: 'PMI operative',
-      body: 'Assunzioni, export, crediti e investimenti con vincoli leggibili e fonti verificabili.',
-    },
-  ];
-
-  return (
-    <div className="landing-page">
-      <nav className="landing-nav">
-        <div className="landing-nav__inner">
-          <a href="#hero" className="landing-brand">Tispetta</a>
-          <div className="landing-nav__links">
-            <a href="#metodo">Metodo</a>
-            <a href="#per-chi">Per chi</a>
-            <a href="#percorso">Percorso</a>
-            <a href="#copertura">Copertura</a>
-          </div>
-          <div className="landing-nav__actions">
-            <a href={appSearchUrl} className="landing-link-secondary">Catalogo live</a>
-            <a href={appStartUrl} className="landing-link-primary">Inizia guidato</a>
-          </div>
-        </div>
-      </nav>
-
-      <section id="hero" className="landing-section landing-section-dark landing-hero">
-        <div className="landing-backdrop landing-backdrop-hero" aria-hidden="true" />
-        <div className="landing-shell landing-hero__content">
-          <div className="landing-hero__headline">
-            <p className="landing-kicker">Italy-first opportunity intelligence</p>
-            <h1>
-              Incentivi italiani.
-              <br />
-              <span>Letti come un prodotto.</span>
-            </h1>
-          </div>
-          <div className="landing-hero__bottom">
-            <p className="landing-lead">
-              Tispetta legge norme, decreti, circolari e pagine operative e le trasforma in opportunita strutturate, criteri espliciti e match spiegabili.
-            </p>
-            <div className="landing-hero__actions">
-              <div className="landing-hero__cta">
-                <a href={appStartUrl} className="landing-link-primary landing-link-primary--light">
-                  Inizia dal profilo guidato
-                </a>
-                <a href={appSearchUrl} className="landing-link-outline">
-                  Vedi il catalogo live <ArrowRight className="size-4" />
-                </a>
-              </div>
-              <div className="landing-hero__meta">
-                <span>Fonti ufficiali</span>
-                <span>Profilo guidato</span>
-                <span>Feed unico personale e impresa</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="metodo" className="landing-section landing-section-light">
-        <div className="landing-shell landing-grid landing-grid-method">
-          <div>
-            <h2 className="landing-title">Non un motore di ricerca di bandi.</h2>
-          </div>
-          <div className="landing-stack-lg">
-            <p className="landing-copy-xl">
-              Il punto non e trovare piu pagine. Il punto e capire prima cosa e vivo, cosa richiede stato societario, cosa dipende da un progetto e cosa resta ambiguo.
-            </p>
-            <div className="landing-stack-md">
-              {[
-                {
-                  title: 'Analisi normativa',
-                  desc: 'Decodifichiamo il linguaggio burocratico in criteri binari e requisiti leggibili.',
-                },
-                {
-                  title: 'Matching deterministico',
-                  desc: 'Il profilo viene incrociato con opportunita strutturate senza eleggibilita inventata.',
-                },
-                {
-                  title: 'Fonti verificabili',
-                  desc: 'Ogni scheda resta collegata a fonti ufficiali, stato e dati operativi controllabili.',
-                },
-              ].map((feature, index) => (
-                <div key={feature.title} className="landing-rule">
-                  <span className="landing-rule__index">0{index + 1}</span>
-                  <h3>{feature.title}</h3>
-                  <p>{feature.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="storie" className="landing-section landing-section-dark landing-story">
-        <div className="landing-backdrop landing-backdrop-story" aria-hidden="true" />
-        <div className="landing-shell landing-grid landing-grid-story">
-          <div className="landing-story__copy">
-            <p className="landing-kicker landing-kicker-muted">Il prodotto, non la promessa</p>
-            <h3>
-              Parti da te, vedi le prime misure, poi aggiungi solo la precisione che cambia davvero i risultati.
-            </h3>
-            <p>
-              Il profilo personale e sempre la base. L&apos;attivita entra solo se esiste. Il catalogo resta unico e puoi filtrarlo tra personale e impresa senza cambiare percorso.
-            </p>
-            <div className="landing-story__stats">
-              <div>
-                <strong>{String(opportunities.length || 42)}</strong>
-                <span>opportunita pubbliche gia strutturate</span>
-              </div>
-              <div>
-                <strong>{'<=8'}</strong>
-                <span>domande core prima dei primi match</span>
-              </div>
-            </div>
-          </div>
-          <div className="landing-story__panel">
-            <div className="landing-story__card">
-              <span className="landing-story__eyebrow">Profilo personale</span>
-              <strong>La base parte sempre da lavoro, eta, regione e nucleo.</strong>
-            </div>
-            <div className="landing-story__card">
-              <span className="landing-story__eyebrow">Prime misure</span>
-              <strong>Vedi subito i match piu promettenti prima di completare tutto.</strong>
-            </div>
-            <div className="landing-story__card">
-              <span className="landing-story__eyebrow">Attivita opzionale</span>
-              <strong>Freelance, startup o PMI si aggiungono dopo, nello stesso feed.</strong>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="per-chi" className="landing-section landing-section-light">
-        <div className="landing-shell landing-stack-lg">
-          <div className="landing-stack-sm">
-            <p className="landing-kicker landing-kicker-dark">Per chi</p>
-            <h2 className="landing-title">Un solo ingresso, casi diversi.</h2>
-          </div>
-          <div className="landing-audience-grid">
-            {audienceItems.map((item) => (
-              <article key={item.title} className="landing-audience-card">
-                <span className="landing-audience-card__eyebrow">Tispetta</span>
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="percorso" className="landing-section landing-section-light">
-        <div className="landing-shell landing-stack-lg">
-          <div className="landing-grid landing-grid-intro">
-            <div>
-              <h2 className="landing-title">Dal sito entri in un percorso guidato, non in un form generico.</h2>
-            </div>
-            <div className="landing-align-end">
-              <p className="landing-copy-xl">
-                Parti sempre da te. Chiudi il profilo personale, vedi subito i primi match e aggiungi l&apos;attivita solo se esiste davvero.
-              </p>
-            </div>
-          </div>
-
-          <div className="landing-walkthrough">
-            <div className="landing-walkthrough__track" />
-            <div className="landing-walkthrough__grid">
-              <div className="landing-walkthrough__step">
-                <span>01</span>
-                <h3>Email e sessione</h3>
-                <p>Niente password: il link ti riporta direttamente nel flusso giusto.</p>
-              </div>
-              <div className="landing-walkthrough__step">
-                <span>02</span>
-                <h3>Profilo personale prima</h3>
-                <p>Lavoro, fascia di eta, regione e nucleo fanno partire il feed con una base leggibile.</p>
-              </div>
-              <div className="landing-walkthrough__step">
-                <span>03</span>
-                <h3>Attivita solo se c&apos;e</h3>
-                <p>Partita IVA, startup o PMI entrano dopo, nello stesso profilo e nello stesso feed.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="copertura" className="landing-section landing-section-dark landing-coverage">
-        <div className="landing-backdrop landing-backdrop-coverage" aria-hidden="true" />
-        <div className="landing-shell landing-stack-lg">
-          <div className="landing-stack-sm">
-            <p className="landing-kicker landing-kicker-muted">Copertura</p>
-            <h2 className="landing-title landing-title-light">Copertura nazionale con fonti ufficiali come base.</h2>
-          </div>
-
-          <div className="landing-stats-grid">
-            {[
-              { value: String(opportunities.length || 42), label: 'opportunita pubbliche live' },
-              { value: '8', label: 'domini istituzionali monitorati' },
-              { value: '1', label: 'catalogo unico tra personale e impresa' },
-            ].map((stat) => (
-              <div key={stat.label} className="landing-stat">
-                <div className="landing-stat__value">{stat.value}</div>
-                <div className="landing-stat__label">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="landing-preview-head">
-            <div>
-              <p className="landing-kicker landing-kicker-muted">Preview live</p>
-              <h3 className="landing-subtitle">Tre schede tratte dal catalogo attuale</h3>
-            </div>
-            <div className="landing-preview-head__actions">
-              <a href={appSearchUrl} className="landing-link-outline landing-link-outline--light">
-                Esplora tutto il catalogo
-              </a>
-              <a href={appStartUrl} className="landing-link-primary landing-link-primary--light">
-                Inizia guidato
-              </a>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {preview.map((opportunity) => (
-              <OpportunityCard
-                key={opportunity.id}
-                opportunity={opportunity}
-                detailHref={`https://${APP_HOST}/opportunities/${opportunity.slug}`}
-                showSaveToggle={false}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <footer className="landing-footer">
-        <div className="landing-shell landing-footer__inner">
-          <div className="landing-brand">Tispetta</div>
-          <div className="landing-footer__links">
-            <a href="#metodo">Metodo</a>
-            <a href="#per-chi">Per chi</a>
-            <a href="#percorso">Percorso</a>
-            <a href="#copertura">Copertura</a>
-            <a href={appSearchUrl}>Catalogo</a>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
 
 function ProductHomePage({
   profile,
@@ -498,12 +230,12 @@ export default async function HomePage({
   const params = await searchParams;
   const scope = typeof params.scope === 'string' ? params.scope : '';
   const marketingHost = await isMarketingRequest();
-  const opportunities = await getOpportunities({ scope: scope || undefined }).catch(() => []);
 
   if (marketingHost) {
-    return <MarketingLandingPage opportunities={opportunities} />;
+    return <ApexLanding appBaseUrl={`https://${APP_HOST}`} />;
   }
 
+  const opportunities = await getOpportunities({ scope: scope || undefined }).catch(() => []);
   const [user, profile] = await Promise.all([getSessionUser().catch(() => null), getProfile().catch(() => null)]);
 
   if (!user) {

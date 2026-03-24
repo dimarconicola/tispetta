@@ -104,7 +104,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const experience = resolveHostExperience(headerStore.get('host'));
   const [user, apiHealth] = await Promise.all([
     experience.marketingHost ? Promise.resolve(null) : getSessionUser().catch(() => null),
-    getApiHealthSummary(),
+    experience.marketingHost ? Promise.resolve(null) : getApiHealthSummary(),
   ]);
 
   return (
@@ -118,7 +118,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
           </main>
         )}
-        <BuildFooter variant={experience.marketingHost ? 'marketing' : 'app'} apiHealth={apiHealth} />
+        {experience.marketingHost ? null : <BuildFooter variant="app" apiHealth={apiHealth} />}
         {experience.gaMeasurementId ? (
           <>
             <Script
