@@ -229,6 +229,50 @@ const PERSONA_CORE_BRIDGE_QUESTIONS: ProfileQuestion[] = [
 
 const PERSONA_CORE_BRIDGE_ORDER = PERSONA_CORE_BRIDGE_QUESTIONS.map((question) => question.key);
 
+const OPTION_LABELS_IT: Record<string, string> = {
+  not_started: 'Non ancora avviata',
+  partita_iva_only: 'Partita IVA o attivita individuale',
+  incorporated_business: 'Societa gia costituita',
+  individual_professional: 'Libero professionista',
+  sole_proprietorship: 'Ditta individuale',
+  srl: 'SRL',
+  innovative_startup: 'Startup innovativa',
+  startup_innovativa: 'Startup innovativa',
+  pmi_innovativa: 'PMI innovativa',
+  cooperative: 'Cooperativa',
+  other: 'Altra forma',
+  not_sure: 'Non lo so ancora',
+  idea: 'Solo idea o progetto',
+  '0-12m': 'Meno di 12 mesi',
+  '1-3y': 'Da 1 a 3 anni',
+  '3-5y': 'Da 3 a 5 anni',
+  '5y+': 'Oltre 5 anni',
+  solo: 'Solo founder',
+  micro: 'Micro',
+  small: 'Piccola',
+  medium: 'Media',
+  none: 'Nessuno',
+  retail: 'Commercio',
+  creative: 'Creativo',
+  dipendente: 'Dipendente',
+  autonomo: 'Autonomo o freelance',
+  disoccupato: 'Disoccupato',
+  pensionato: 'Pensionato',
+  under_35: 'Under 35',
+  '35_55': 'Tra 35 e 55 anni',
+  over_55: 'Over 55',
+  single: 'Single',
+  coppia_senza_figli: 'Coppia senza figli',
+  coppia_con_figli: 'Coppia con figli',
+  genitore_solo_con_figli: 'Genitore solo con figli',
+  under_15k: 'Sotto 15.000 EUR',
+  '15_25k': 'Tra 15.000 e 25.000 EUR',
+  '25_40k': 'Tra 25.000 e 40.000 EUR',
+  over_40k: 'Oltre 40.000 EUR',
+  non_determinato: 'Non determinato',
+  '3_plus': '3 o piu',
+};
+
 export function ProfileForm({
   profile,
   questionPayload,
@@ -306,6 +350,14 @@ export function ProfileForm({
   const hasConditionalQuestions = Boolean((moduleMap.get('conditional_accuracy')?.questions ?? []).length);
   const progress = questionPayload?.progress_summary;
   const progressPercent = progress ? Math.min(100, Math.max(8, progress.completeness_score)) : 8;
+  const advanceToNextStep = () => {
+    const nextStep = nextViewStep(activeStep, hasConditionalQuestions);
+    const destination = nextHref(activeStep, hasConditionalQuestions, entry) as Route;
+    setLocalStep(nextStep);
+    setMessage(null);
+    router.replace(destination);
+    router.refresh();
+  };
 
   if (activeStep === 'results') {
     return (
@@ -327,10 +379,10 @@ export function ProfileForm({
                 Da qui in poi scegli tu quanta precisione aggiungere. Le domande successive servono solo a chiarire i casi ancora aperti, non a sbloccare il prodotto.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link className="button" href={nextHref('results', hasConditionalQuestions, entry) as Route}>
+                <button type="button" className="button" onClick={advanceToNextStep}>
                   Migliora precisione
                   <ChevronRight className="size-4" />
-                </Link>
+                </button>
                 <Link className="button-secondary" href={`/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}` as Route}>
                   Vai ai risultati completi
                 </Link>
@@ -379,7 +431,7 @@ export function ProfileForm({
           return;
         }
         setIsSubmitting(false);
-        router.push(nextHref(activeStep, hasConditionalQuestions, entry) as Route);
+        advanceToNextStep();
       })}
     >
       <QuestionStepper current={activeStep} progress={progressPercent} hrefForStep={(stepKey) => hrefForStep(stepKey, entry, hasConditionalQuestions)} />
@@ -525,7 +577,7 @@ export function ProfileForm({
         <Card>
           <CardContent className="grid gap-3 py-8 text-sm text-slate-600">
             <p className="font-medium text-slate-900">Questo passaggio e gia a posto.</p>
-            <p>Non ci sono altre risposte utili qui. Puoi continuare nel flusso oppure tornare subito ai risultati senza perdere contesto.</p>
+            <p>Non ci sono altre risposte da chiudere qui. Puoi proseguire subito oppure tornare ai risultati quando vuoi.</p>
           </CardContent>
         </Card>
       ) : null}
@@ -536,10 +588,10 @@ export function ProfileForm({
             {isSubmitting ? 'Salvataggio e ricalcolo...' : submitLabel(activeStep, hasConditionalQuestions)}
           </Button>
         ) : (
-          <Link className="button" href={nextHref(activeStep, hasConditionalQuestions, entry) as Route}>
+          <button type="button" className="button" onClick={advanceToNextStep}>
             {emptyStepPrimaryLabel(activeStep, hasConditionalQuestions)}
             <ChevronRight className="size-4" />
-          </Link>
+          </button>
         )}
         {activeStep !== 'core_entity' ? (
           <Link className="button-secondary" href={skipHref(entry) as Route}>
@@ -647,6 +699,8 @@ function normalizeValue(question: ProfileQuestion, value: string | boolean | nul
 }
 
 function formatOptionLabel(option: string): string {
+  const translated = OPTION_LABELS_IT[option];
+  if (translated) return translated;
   return option.replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
@@ -753,6 +807,13 @@ function nextHref(step: ViewStep, hasConditionalQuestions: boolean, entry?: stri
   if (step === 'results') return `/onboarding?step=strategic${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
   if (step === 'strategic_intent' && hasConditionalQuestions) return `/onboarding?step=conditional${entry ? `&entry=${encodeURIComponent(entry)}` : ''}`;
   return `/search${suffix}`;
+}
+
+function nextViewStep(step: ViewStep, hasConditionalQuestions: boolean): ViewStep {
+  if (step === 'core_entity') return 'results';
+  if (step === 'results') return 'strategic_intent';
+  if (step === 'strategic_intent' && hasConditionalQuestions) return 'conditional_accuracy';
+  return 'results';
 }
 
 function skipHref(entry?: string): string {
