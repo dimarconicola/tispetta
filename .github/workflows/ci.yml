@@ -47,4 +47,4 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: python3 -m pip install -e services/api
       - run: npx playwright install --with-deps chromium
-      - run: pnpm test:e2e:critical
+      - run: python3 qa/scripts/run_critical_e2e.py

@@ -22,6 +22,4 @@ jobs:
           python-version: '3.11'
       - run: pnpm install --frozen-lockfile
       - run: python3 -m pip install -e services/api
-      - run: python3 qa/scripts/check_data_integrity.py --reseed
-      - run: python3 qa/scripts/check_data_freshness.py --reseed
-      - run: python3 qa/scripts/check_link_health.py --reseed --sample-size 25
+      - run: pnpm test:nightly-data

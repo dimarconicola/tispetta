@@ -4,15 +4,10 @@
 
 This gate must pass before merging to `main`.
 
-Commands:
+Command:
 
 ```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-python3 qa/scripts/check_data_integrity.py --reseed
-python3 qa/scripts/check_data_freshness.py --reseed
-pnpm test:e2e:critical
+pnpm test:pr-gate
 ```
 
 Merge-blocking failures:
@@ -30,16 +25,10 @@ Merge-blocking failures:
 
 This gate must pass before every major release.
 
-Commands:
+Command:
 
 ```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-python3 qa/scripts/check_data_integrity.py --reseed
-python3 qa/scripts/check_data_freshness.py --reseed
-pnpm test:e2e:critical
-python3 qa/scripts/check_link_health.py --reseed --sample-size 25
+pnpm test:release-gate
 ```
 
 Additional manual review:
@@ -52,12 +41,10 @@ Additional manual review:
 
 This gate detects catalog drift and freshness regressions.
 
-Commands:
+Command:
 
 ```bash
-python3 qa/scripts/check_data_integrity.py --reseed
-python3 qa/scripts/check_data_freshness.py --reseed
-python3 qa/scripts/check_link_health.py --reseed --sample-size 25
+pnpm test:nightly-data
 ```
 
 Recommended alert thresholds:
