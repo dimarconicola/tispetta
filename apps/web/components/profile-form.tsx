@@ -3,7 +3,7 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BriefcaseBusiness, CheckCircle2, CircleHelp, Sparkles, UserRound } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { OpportunityCard } from '@/components/opportunity-card';
@@ -134,6 +134,7 @@ export function ProfileForm({
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasMountedRef = useRef(false);
   const initialValues = useMemo(() => buildInitialValues(profile), [profile]);
   const { register, handleSubmit, reset } = useForm<FormValues>({ defaultValues: initialValues });
   const currentStep = (questionPayload?.journey.current_step ?? 'personal_core') as OnboardingStepKey;
@@ -154,6 +155,10 @@ export function ProfileForm({
   );
 
   useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
     reset(initialValues);
     setMessage(null);
     setIsSubmitting(false);
