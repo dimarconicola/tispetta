@@ -88,8 +88,8 @@ export function OpportunityCard({
 
         {opportunity.blocking_missing_labels.length > 0 ? (
           <div className="grid gap-2 rounded-[1.4rem] border border-amber-200/70 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">Da chiarire</span>
-            <p className="m-0 wrap-anywhere">Rispondi prima su {opportunity.blocking_missing_labels.slice(0, 2).join(', ')}.</p>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">Da completare</span>
+            <p className="m-0 wrap-anywhere">Ti manca ancora: {opportunity.blocking_missing_labels.slice(0, 2).join(', ')}.</p>
           </div>
         ) : null}
       </CardContent>

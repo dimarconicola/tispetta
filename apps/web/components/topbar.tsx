@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -28,11 +31,13 @@ function NavLink({
   children,
   emphasized = false,
   prefetch,
+  active = false,
 }: {
   href: ComponentProps<typeof Link>['href'];
   children: ReactNode;
   emphasized?: boolean;
   prefetch?: boolean;
+  active?: boolean;
 }) {
   return (
     <Link
@@ -40,6 +45,7 @@ function NavLink({
       prefetch={prefetch}
       className={cn(
         'inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-medium transition-all duration-200',
+        active && !emphasized && 'border-primary/30 bg-blue-50 text-primary',
         emphasized
           ? 'border border-transparent bg-primary text-primary-foreground shadow-sm hover:-translate-y-0.5 hover:bg-primary/92'
           : 'border border-border bg-card text-muted-foreground hover:-translate-y-0.5 hover:border-border/90 hover:bg-accent/50 hover:text-foreground'
@@ -51,6 +57,8 @@ function NavLink({
 }
 
 export function Topbar({ user, variant = 'app' }: TopbarProps) {
+  const pathname = usePathname();
+
   if (variant === 'marketing') {
     return (
       <header className="topbar">
@@ -73,11 +81,11 @@ export function Topbar({ user, variant = 'app' }: TopbarProps) {
     <header className="topbar">
       <Brand href="/" />
       <nav className="nav">
-        <NavLink href="/search">Cerca</NavLink>
-        <NavLink href="/saved" prefetch={false}>Salvate</NavLink>
-        <NavLink href="/onboarding" prefetch={false}>Profilo</NavLink>
-        <NavLink href="/settings" prefetch={false}>Notifiche</NavLink>
-        {user?.role === 'admin' ? <NavLink href="/admin/measure-families" prefetch={false}>Admin</NavLink> : null}
+        <NavLink href="/search" active={pathname?.startsWith('/search')}>Cerca</NavLink>
+        <NavLink href="/saved" prefetch={false} active={pathname?.startsWith('/saved')}>Salvate</NavLink>
+        <NavLink href="/onboarding" prefetch={false} active={pathname?.startsWith('/onboarding')}>Profilo</NavLink>
+        <NavLink href="/settings" prefetch={false} active={pathname?.startsWith('/settings')}>Notifiche</NavLink>
+        {user?.role === 'admin' ? <NavLink href="/admin/measure-families" prefetch={false} active={pathname?.startsWith('/admin')}>Admin</NavLink> : null}
         {user ? (
           <>
             <form action="/api/auth/sign-out" method="post">

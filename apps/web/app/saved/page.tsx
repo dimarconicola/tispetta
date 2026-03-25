@@ -16,8 +16,8 @@ const STATUS_LABELS: Record<string, { eyebrow: string; title: string; body: stri
     body: 'Sono le schede piu solide con il profilo attuale.',
   },
   likely: {
-    eyebrow: 'Probabili',
-    title: 'Promettenti, ma ancora da chiudere',
+    eyebrow: 'Compatibili',
+    title: 'Coerenti, ma da rifinire',
     body: 'Hanno buon fit, ma puoi confermarle con poche risposte mirate.',
   },
   unclear: {
@@ -26,9 +26,9 @@ const STATUS_LABELS: Record<string, { eyebrow: string; title: string; body: stri
     body: 'Il motore non ha ancora i dati necessari per dare uno stato piu forte.',
   },
   not_eligible: {
-    eyebrow: 'Non idonee',
-    title: 'Non coerenti col profilo attuale',
-    body: 'Le tieni salvate per confronto, ma oggi il profilo non le supporta.',
+    eyebrow: 'Fuori profilo',
+    title: 'Oggi non risultano coerenti',
+    body: 'Le puoi tenere come promemoria, ma con i dati attuali non emergono come adatte.',
   },
 };
 
@@ -91,7 +91,7 @@ export default async function SavedPage({
           </CardHeader>
           <CardContent className="grid gap-2 text-sm text-slate-600">
             <span>{(grouped.confirmed ?? []).length} confermate</span>
-            <span>{(grouped.likely ?? []).length} probabili</span>
+            <span>{(grouped.likely ?? []).length} compatibili</span>
             <span>{(grouped.unclear ?? []).length} da chiarire</span>
           </CardContent>
         </Card>

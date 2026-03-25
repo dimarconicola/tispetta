@@ -21,6 +21,7 @@ export function QuestionStepper({
   steps: StepItem[];
 }) {
   const renderedSteps = steps.filter((step) => step.status !== 'locked');
+  const currentIndex = Math.max(renderedSteps.findIndex((step) => step.key === current), 0);
   const columnsClass =
     renderedSteps.length <= 2
       ? 'sm:grid-cols-2'
@@ -31,10 +32,10 @@ export function QuestionStepper({
           : 'sm:grid-cols-5';
 
   return (
-    <div className="grid gap-3 rounded-[1.35rem] border border-border/70 bg-white/85 p-4 shadow-sm">
+    <div className="grid gap-2 rounded-[1.25rem] border border-border/70 bg-white/85 p-3 shadow-sm">
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="font-medium text-slate-900">Percorso guidato</span>
-        <span className="text-slate-500">{Math.round(progress)}%</span>
+        <span className="text-slate-500">Passo {currentIndex + 1} di {renderedSteps.length}</span>
       </div>
       <Progress value={progress} />
       <div className={cn('grid gap-2', columnsClass)}>
@@ -45,7 +46,7 @@ export function QuestionStepper({
             <div
               key={step.key}
               className={cn(
-                'flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-medium',
+                'flex min-w-0 items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-medium',
                 isCurrent && 'border-primary bg-blue-50 text-primary',
                 isCompleted && 'border-emerald-200 bg-emerald-50 text-emerald-700',
                 !isCurrent && !isCompleted && 'border-border bg-background text-muted-foreground'
@@ -61,7 +62,7 @@ export function QuestionStepper({
               >
                 {isCompleted ? <Check className="size-3.5" /> : index + 1}
               </span>
-              <span>{step.label}</span>
+              <span className="truncate">{step.label}</span>
             </div>
           );
         })}

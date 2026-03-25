@@ -68,9 +68,9 @@ function ProductHomePage({
   opportunities: HomeOpportunity[];
   scope: string;
 }) {
-  const topMatches = opportunities.slice(0, 6);
-  const confirmed = opportunities.filter((item) => item.match_status === 'confirmed').slice(0, 3);
-  const likely = opportunities.filter((item) => item.match_status === 'likely').slice(0, 3);
+  const visibleMatches = opportunities.filter((item) => item.match_status !== 'not_eligible');
+  const confirmed = visibleMatches.filter((item) => item.match_status === 'confirmed').slice(0, 3);
+  const likely = visibleMatches.filter((item) => item.match_status === 'likely').slice(0, 3);
 
   return (
     <div className="grid gap-8 pb-10">
@@ -147,7 +147,7 @@ function ProductHomePage({
           </Link>
         </div>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {topMatches.map((opportunity) => (
+          {visibleMatches.slice(0, 6).map((opportunity) => (
             <OpportunityCard key={opportunity.id} opportunity={opportunity} />
           ))}
         </div>
@@ -204,7 +204,7 @@ function PublicProductHome({ opportunities }: { opportunities: HomeOpportunity[]
           </Link>
         </div>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {opportunities.slice(0, 6).map((opportunity) => (
+          {opportunities.filter((opportunity) => opportunity.match_status !== 'not_eligible').slice(0, 6).map((opportunity) => (
             <OpportunityCard key={opportunity.id} opportunity={opportunity} showSaveToggle={false} />
           ))}
         </div>

@@ -9,6 +9,7 @@ describe('utils', () => {
 
   it('translates statuses', () => {
     expect(statusLabel('confirmed')).toBe('Confermato');
-    expect(statusLabel('likely')).toBe('Probabile');
+    expect(statusLabel('likely')).toBe('Compatibile');
+    expect(statusLabel('not_eligible')).toBe('Fuori profilo');
   });
 });

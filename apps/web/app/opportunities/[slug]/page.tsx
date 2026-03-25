@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { ArrowUpRight, CalendarDays, Euro, FileText, ShieldCheck } from 'lucide-react';
+import { AlertCircle, ArrowUpRight, CalendarDays, Euro, FileText, ShieldCheck } from 'lucide-react';
 
 import { SaveToggle } from '@/components/save-toggle';
 import { StatusPill } from '@/components/status-pill';
@@ -102,9 +102,18 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           <Card>
             <CardHeader className="gap-3 pb-4">
               <Badge variant="soft" className="w-fit">Cosa blocca la conferma</Badge>
-              <CardTitle className="text-3xl">Le risposte da chiudere ora</CardTitle>
+              <CardTitle className="text-3xl">Che cosa ti manca per confermarla</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-slate-600">
+              {breakdown.status === 'not_eligible' ? (
+                <div className="flex gap-3 rounded-[1.4rem] border border-rose-200/80 bg-rose-50/80 px-4 py-3 text-rose-900">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                  <div className="grid gap-1">
+                    <p className="font-semibold">Con i dati attuali questa scheda resta fuori profilo.</p>
+                    <p className="leading-6 text-rose-900/80">Puoi comunque leggerla e tenerla salvata, ma oggi non emerge come coerente con il tuo profilo.</p>
+                  </div>
+                </div>
+              ) : null}
               {breakdown.blocking_missing_facts.length > 0 ? (
                 breakdown.blocking_missing_facts.map((fact) => (
                   <div key={fact.key} className="rounded-[1.4rem] border border-amber-200/70 bg-amber-50/70 px-4 py-3">
@@ -170,7 +179,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         <Card>
           <CardHeader className="gap-3 pb-4">
             <Badge variant="soft" className="w-fit">Fonti ufficiali</Badge>
-            <CardTitle className="text-3xl">Link da verificare direttamente</CardTitle>
+            <CardTitle className="text-3xl">Apri le fonti ufficiali</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 text-sm text-slate-600">
             {opportunity.official_links.map((link) => (
@@ -181,7 +190,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 rel="noreferrer"
                 className="inline-flex items-center justify-between gap-3 rounded-[1.4rem] border border-border/70 bg-white px-4 py-3 transition-colors hover:border-primary/40 hover:text-primary"
               >
-                <span className="truncate">{link}</span>
+                <span className="truncate">{humanizeOfficialLink(link)}</span>
                 <ArrowUpRight className="size-4 shrink-0" />
               </a>
             ))}
@@ -208,4 +217,15 @@ function scopeLabel(scope: 'personal' | 'business' | 'hybrid') {
   if (scope === 'personal') return 'Per persona';
   if (scope === 'business') return 'Per attivita';
   return 'Persona + attivita';
+}
+
+function humanizeOfficialLink(value: string) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, '');
+    const path = url.pathname === '/' ? '' : url.pathname.replace(/\/$/, '');
+    return path ? `${host}${path}` : host;
+  } catch {
+    return value;
+  }
 }

@@ -129,8 +129,8 @@ test('anonymous_search_and_detail', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/opportunities\//);
   await expect(page.getByText('Perche emerge adesso')).toBeVisible();
-  await expect(page.getByText('Fonti ufficiali')).toBeVisible();
-  await expect(page.locator('a[href^="https://"]').filter({ hasText: 'https://' }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: /apri le fonti ufficiali/i })).toBeVisible();
+  await expect(page.locator('a[href^="https://"]').first()).toBeVisible();
 });
 
 test('authenticated_save_and_saved_page', async ({ page, request }) => {

@@ -20,11 +20,11 @@ export function statusLabel(status: string | null | undefined): string {
     case 'confirmed':
       return 'Confermato';
     case 'likely':
-      return 'Probabile';
+      return 'Compatibile';
     case 'unclear':
       return 'Da chiarire';
     case 'not_eligible':
-      return 'Non idoneo';
+      return 'Fuori profilo';
     default:
       return 'Da valutare';
   }

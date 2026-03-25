@@ -49,7 +49,7 @@ const BUSINESS_TYPE_OPTIONS = [
 ];
 
 const OPTION_LABELS_IT: Record<string, string> = {
-  not_started: 'Non ancora avviata',
+  not_started: 'Idea o attivita non ancora aperta',
   partita_iva_only: 'Partita IVA o attivita individuale',
   incorporated_business: 'Societa gia costituita',
   individual_professional: 'Libero professionista',
@@ -351,7 +351,7 @@ export function ProfileForm({
           <NarrativeStat
             label="Profilo personale"
             value={`${questionPayload.progress_summary.personal_answered}/${questionPayload.progress_summary.personal_total}`}
-            body="Questa parte resta sempre il punto di partenza. Regione, lavoro, fascia di eta e nucleo cambiano molti esiti."
+            body="Questa parte resta sempre la base. Regione, lavoro, fascia di eta e nucleo spostano molti esiti."
           />
           <NarrativeStat
             label="Attivita"
@@ -362,12 +362,12 @@ export function ProfileForm({
                   : 'Non aggiunta'
                 : 'Da confermare'
             }
-            body="La aggiungi solo se ti serve. Il feed puo tenere insieme opportunita personali e d impresa."
+            body="La aggiungi solo se ti serve. Il feed tiene insieme opportunita personali e, se serve, anche d impresa."
           />
           <NarrativeStat
             label="Prime misure"
             value={String(questionPayload.results_summary.total_matches)}
-            body="Dopo i passaggi iniziali il riepilogo si aggiorna subito e puoi continuare solo se vuoi piu precisione."
+            body="Dopo i passaggi iniziali vedi un primo riepilogo. Gli approfondimenti dopo sono opzionali."
           />
         </CardContent>
       </Card>
@@ -385,7 +385,7 @@ export function ProfileForm({
               </div>
             </div>
             <CardDescription className="max-w-3xl text-base leading-7">
-              Chiudiamo prima i dati che spostano davvero risultati personali, familiari, lavoro e parte dei match per attivita.
+              Partiamo dalle informazioni personali che incidono davvero sui risultati. L attivita, se serve, arriva subito dopo.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-5 md:grid-cols-2">
@@ -844,9 +844,9 @@ function NarrativeStat({
 
 function modeCardClass(active: boolean) {
   return [
-    'grid gap-2 rounded-[1.5rem] border bg-white px-4 py-4 text-left transition-all duration-200',
+    'grid gap-2 rounded-[1.5rem] border bg-white px-4 py-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
     active
-      ? 'border-primary bg-blue-50 text-slate-900 shadow-sm'
+      ? 'border-primary bg-blue-50 text-slate-950 shadow-sm ring-1 ring-primary/20'
       : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50',
   ].join(' ');
 }

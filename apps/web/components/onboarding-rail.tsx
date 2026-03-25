@@ -1,8 +1,8 @@
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 import type { ProfileQuestionResponse } from '@/lib/types';
 
-import { OpportunityCard } from './opportunity-card';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
@@ -12,7 +12,6 @@ export function OnboardingRail({
   payload: ProfileQuestionResponse | null;
 }) {
   const summary = payload?.results_summary;
-  const preview = summary?.top_matches?.slice(0, 2) ?? [];
 
   return (
     <div className="grid gap-4 xl:sticky xl:top-28">
@@ -24,28 +23,21 @@ export function OnboardingRail({
         <CardContent className="grid gap-3 text-sm leading-7 text-slate-600">
           <p>
             {summary?.ready
-              ? `Hai gia ${summary.total_matches} misure leggibili. Quelle ancora aperte si chiudono con pochi passaggi mirati.`
-              : 'Completa il passaggio attuale e il riepilogo si aggiorna con le prime misure da guardare.'}
+              ? `Hai gia ${summary.total_matches} schede leggibili. Il passaggio corrente serve solo a rendere il feed piu preciso.`
+              : 'Completa il passaggio attuale e poi vedrai subito il primo riepilogo utile.'}
           </p>
           {summary?.next_focus_labels?.length ? (
             <div className="grid gap-2 rounded-[1.25rem] border border-border/70 bg-slate-50/85 p-4">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Dopo questo passaggio</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Prossimi temi</span>
               <span className="text-sm font-medium text-slate-900">{summary.next_focus_labels.join(' · ')}</span>
             </div>
           ) : null}
+          <Link href="/search" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 transition-colors hover:text-primary">
+            Vedi il catalogo completo
+            <ArrowRight className="size-4" />
+          </Link>
         </CardContent>
       </Card>
-
-      {preview.length ? (
-        <div className="grid gap-4">
-          {preview.map((opportunity) => (
-            <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-          ))}
-          <Link href="/search" className="button-secondary text-center">
-            Apri il catalogo completo
-          </Link>
-        </div>
-      ) : null}
     </div>
   );
 }

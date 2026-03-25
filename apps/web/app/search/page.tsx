@@ -18,7 +18,7 @@ const CATEGORY_ITEMS = [
 
 const STATUS_ITEMS = [
   { label: 'Confermate', value: 'confirmed' },
-  { label: 'Probabili', value: 'likely' },
+  { label: 'Compatibili', value: 'likely' },
   { label: 'Da chiarire', value: 'unclear' },
 ];
 
@@ -50,6 +50,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     opportunities = opportunities.filter((item) => scope === 'personal'
       ? item.opportunity_scope === 'personal' || item.opportunity_scope === 'hybrid'
       : item.opportunity_scope === 'business' || item.opportunity_scope === 'hybrid');
+  }
+  if (!matchedStatus) {
+    opportunities = opportunities.filter((item) => item.match_status !== 'not_eligible');
   }
   if (sort === 'deadline') {
     opportunities = [...opportunities]
@@ -106,7 +109,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             Intelligenza delle opportunita. <span className="text-gradient">Matching deterministico.</span>
           </h1>
           <p className="max-w-2xl text-lg leading-8 text-slate-500">
-            Cerca misure italiane con query naturali, filtra per categoria o stato, e leggi subito perche una scheda emerge adesso.
+            Scrivi cosa stai cercando, filtra il catalogo e apri subito le schede con spiegazioni chiare e fonti ufficiali.
           </p>
         </div>
 
