@@ -16,12 +16,12 @@ type TopbarProps = {
 function Brand({ href }: { href: ComponentProps<typeof Link>['href'] }) {
   return (
     <Link href={href} className="flex items-center gap-3">
-      <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-sm font-bold tracking-tight text-primary-foreground shadow-sm shadow-primary/20">
+      <span className="flex size-10 items-center justify-center rounded-xl border border-[#14110f]/8 bg-[#14110f] text-sm font-bold tracking-tight text-[#fafaf9] shadow-sm shadow-black/10">
         T
       </span>
       <span className="flex min-w-0 flex-col">
-        <span className="truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Italy-first opportunity intelligence</span>
-        <span className="font-heading text-2xl font-semibold tracking-tight text-foreground">Tispetta</span>
+        <span className="truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f6253]">Italy-first opportunity intelligence</span>
+        <span className="font-heading text-2xl font-semibold tracking-tight text-[#14110f]">Tispetta</span>
       </span>
     </Link>
   );
@@ -46,10 +46,10 @@ function NavLink({
       prefetch={prefetch}
       className={cn(
         'inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-medium transition-all duration-200',
-        active && !emphasized && 'border-primary/30 bg-blue-50 text-primary',
+        active && !emphasized && 'border-[#14110f]/12 bg-[#14110f] text-[#fafaf9]',
         emphasized
-          ? 'border border-transparent bg-primary text-primary-foreground shadow-sm hover:-translate-y-0.5 hover:bg-primary/92'
-          : 'border border-border bg-card text-muted-foreground hover:-translate-y-0.5 hover:border-border/90 hover:bg-accent/50 hover:text-foreground'
+          ? 'border border-[#14110f] bg-[#14110f] text-[#fafaf9] shadow-sm hover:-translate-y-0.5 hover:bg-[#22201d]'
+          : 'border border-[#14110f]/10 bg-[#faf6ef] text-[#5f564d] hover:-translate-y-0.5 hover:border-[#14110f]/18 hover:bg-[#f1e7da] hover:text-[#14110f]'
       )}
     >
       {children}
@@ -91,7 +91,7 @@ export function Topbar({ user, variant = 'app' }: TopbarProps) {
         {user ? (
           <>
             <form action="/api/auth/sign-out" method="post">
-              <button type="submit" className="inline-flex min-h-10 items-center justify-center rounded-full border border-border bg-card px-4 text-sm font-medium text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-border/90 hover:bg-accent/50 hover:text-foreground">
+              <button type="submit" className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#14110f]/10 bg-[#faf6ef] px-4 text-sm font-medium text-[#5f564d] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#14110f]/18 hover:bg-[#f1e7da] hover:text-[#14110f]">
                 Esci
               </button>
             </form>

@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: rgba(255, 255, 255, 0.94);
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #2563eb;
-  --primary-foreground: #eff6ff;
-  --secondary: #e2e8f0;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #dbeafe;
-  --accent-foreground: #1d4ed8;
+  --background: #f4ede3;
+  --foreground: #14110f;
+  --card: rgba(250, 248, 243, 0.94);
+  --card-foreground: #14110f;
+  --popover: #faf8f3;
+  --popover-foreground: #14110f;
+  --primary: #14110f;
+  --primary-foreground: #fafaf9;
+  --secondary: #ece3d7;
+  --secondary-foreground: #14110f;
+  --muted: #f0e7dc;
+  --muted-foreground: #6b6258;
+  --accent: #efe4d5;
+  --accent-foreground: #14110f;
   --destructive: #dc2626;
   --destructive-foreground: #fef2f2;
-  --border: rgba(148, 163, 184, 0.28);
-  --input: rgba(148, 163, 184, 0.22);
-  --ring: rgba(37, 99, 235, 0.5);
+  --border: rgba(20, 17, 15, 0.12);
+  --input: rgba(20, 17, 15, 0.1);
+  --ring: rgba(20, 17, 15, 0.25);
   --radius: 1.75rem;
 
   --surface-emerald: rgba(236, 253, 245, 0.92);
@@ -75,9 +75,9 @@ html {
 body {
   @apply min-h-screen bg-background font-sans text-foreground antialiased;
   background-image:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 28%),
-    radial-gradient(circle at 85% 18%, rgba(139, 92, 246, 0.1), transparent 24%),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.54), transparent 24%),
+    radial-gradient(circle at 82% 18%, rgba(214, 196, 171, 0.22), transparent 22%),
+    linear-gradient(180deg, #f6efe6 0%, #efe5d8 100%);
 }
 
 ::selection {
@@ -161,7 +161,7 @@ textarea:focus-visible {
 }
 
 .eyebrow {
-  @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-primary;
+  @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f6253];
 }
 
 .section-title {
@@ -285,11 +285,11 @@ textarea:focus-visible {
 }
 
 .button {
-  @apply bg-primary text-primary-foreground shadow-sm hover:-translate-y-0.5 hover:bg-primary/92 hover:shadow-lg hover:shadow-primary/15;
+  @apply border border-[#14110f] bg-[#14110f] text-[#fafaf9] shadow-sm hover:-translate-y-0.5 hover:bg-[#22201d] hover:text-[#fafaf9] hover:shadow-lg hover:shadow-black/10;
 }
 
 .button-secondary {
-  @apply border border-border bg-card text-foreground hover:-translate-y-0.5 hover:bg-accent/50;
+  @apply border border-[#14110f]/12 bg-[#faf6ef] text-[#14110f] hover:-translate-y-0.5 hover:border-[#14110f]/24 hover:bg-[#f1e7da] hover:text-[#14110f];
 }
 
 .metrics {
@@ -305,7 +305,7 @@ textarea:focus-visible {
 }
 
 .topbar {
-  @apply sticky top-0 z-40 mb-6 flex items-center justify-between gap-4 rounded-[2rem] border border-white/60 bg-background/80 px-5 py-4 backdrop-blur-xl;
+  @apply sticky top-0 z-40 mb-6 flex items-center justify-between gap-4 rounded-[1.5rem] border border-[#14110f]/10 bg-[#f7f0e6]/88 px-5 py-4 backdrop-blur-xl;
 }
 
 .brand {
@@ -338,7 +338,7 @@ textarea:focus-visible {
 }
 
 .build-footer__inner {
-  @apply flex flex-col gap-4 rounded-[2rem] border border-border/80 bg-white/70 px-5 py-4 shadow-sm backdrop-blur sm:flex-row sm:items-end sm:justify-between;
+  @apply flex flex-col gap-4 rounded-[1.5rem] border border-[#14110f]/10 bg-[#faf6ef]/82 px-5 py-4 shadow-sm backdrop-blur sm:flex-row sm:items-end sm:justify-between;
 }
 
 .build-footer__lead {
@@ -367,7 +367,7 @@ textarea:focus-visible {
 }
 
 .text-gradient {
-  background: linear-gradient(90deg, #2563eb 0%, #7c3aed 100%);
+  background: linear-gradient(90deg, #14110f 0%, #8c7358 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
