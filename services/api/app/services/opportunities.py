@@ -7,9 +7,9 @@ from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.matching.rules import PROFILE_FIELD_LABELS
-from app.models import Match, MatchEvaluation, Opportunity, RecordStatus, SavedOpportunity, User
+from app.models import Match, MatchEvaluation, MatchStatus, Opportunity, RecordStatus, SavedOpportunity, User
 from app.services.opportunity_scope import derive_opportunity_scope, matches_scope_filter
-from app.services.profile import get_profile_questions
+from app.services.profile import build_profile_edit_target, get_profile_questions
 
 
 def _search_clause(query: str):
@@ -31,6 +31,7 @@ def list_opportunities(
     saved_only: bool = False,
     scope: str | None = None,
     limit: int | None = None,
+    personalized_only: bool = False,
     question_payload: dict | None = None,
 ) -> list[dict]:
     stmt: Select[tuple[Opportunity]] = (
@@ -70,13 +71,19 @@ def list_opportunities(
         question_lookup = flatten_question_lookup(question_payload or get_profile_questions(db, user))
 
     payloads: list[dict] = []
+    business_context_enabled = bool(user is not None and user.profile is not None and user.profile.user_type and user.profile.user_type != 'persona_fisica')
     for opportunity in opportunities:
         opportunity_scope = derive_opportunity_scope(opportunity.current_version.target_entities if opportunity.current_version else None)
         if not matches_scope_filter(opportunity_scope, scope):
             continue
         match = matches_by_opp.get(opportunity.id)
         evaluation = latest_evaluations_by_match_id.get(match.id) if match else None
-        match_meta = build_match_metadata(match, evaluation, question_lookup)
+        match_meta = build_match_metadata(match, evaluation, question_lookup, business_context_enabled=business_context_enabled)
+        if personalized_only:
+            if user is None or match is None or match.match_status not in {MatchStatus.CONFIRMED.value, MatchStatus.LIKELY.value, MatchStatus.UNCLEAR.value}:
+                continue
+            if not business_context_enabled and opportunity_scope == 'business':
+                continue
         if matched_status and (match is None or match.match_status != matched_status):
             continue
         if saved_only and opportunity.id not in saved_ids:
@@ -103,6 +110,7 @@ def list_opportunities(
                 'blocking_question_keys': match_meta['blocking_keys'],
                 'match_reasons': match_meta['matched_reasons'],
                 'blocking_missing_labels': match_meta['blocking_labels'],
+                'profile_edit_target': match_meta['profile_edit_target'],
             }
         )
     payloads.sort(
@@ -152,7 +160,12 @@ def get_opportunity_detail(db: Session, opportunity_key: str, user: User | None)
                 .order_by(MatchEvaluation.created_at.desc())
             ).scalars().first()
 
-    match_meta = build_match_metadata(match, evaluation, question_lookup)
+    match_meta = build_match_metadata(
+        match,
+        evaluation,
+        question_lookup,
+        business_context_enabled=bool(user is not None and user.profile is not None and user.profile.user_type and user.profile.user_type != 'persona_fisica'),
+    )
     why = match_meta['matched_reasons'] or ([match.explanation_summary] if match is not None else [])
     missing = match_meta['blocking_labels'] or ([PROFILE_FIELD_LABELS.get(item, item) for item in match.missing_fields] if match is not None else [])
     opportunity_scope = derive_opportunity_scope(version.target_entities)
@@ -188,6 +201,7 @@ def get_opportunity_detail(db: Session, opportunity_key: str, user: User | None)
         'blocking_question_keys': match_meta['blocking_keys'],
         'match_reasons': match_meta['matched_reasons'],
         'blocking_missing_labels': match_meta['blocking_labels'],
+        'profile_edit_target': match_meta['profile_edit_target'],
         'match_breakdown': {
             'status': match.match_status if match else None,
             'matched_reasons': match_meta['matched_reasons'],
@@ -257,6 +271,8 @@ def build_match_metadata(
     match: Match | None,
     evaluation: MatchEvaluation | None,
     question_lookup: dict[str, dict],
+    *,
+    business_context_enabled: bool,
 ) -> dict[str, list | dict]:
     trace = evaluation.rule_evaluation_trace if evaluation is not None else {}
     matched_reasons = unique_preserving_order(
@@ -277,6 +293,11 @@ def build_match_metadata(
         'blocking_facts': blocking_facts,
         'refinement_facts': refinement_facts,
         'next_best_questions': next_best_questions,
+        'profile_edit_target': build_profile_edit_target(
+            blocking_keys or refinement_keys,
+            {},
+            business_context_enabled_override=business_context_enabled,
+        ),
     }
 
 

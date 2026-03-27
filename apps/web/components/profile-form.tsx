@@ -14,19 +14,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
+import { buildOnboardingHref, type OnboardingStepKey, formatOptionLabel } from '@/lib/profile-ui';
 import type { Profile, ProfileQuestion, ProfileQuestionResponse } from '@/lib/types';
 
 import { QuestionStepper } from './question-stepper';
 
 const API_URL = '/api/proxy';
-
-type OnboardingStepKey =
-  | 'personal_core'
-  | 'business_context'
-  | 'business_core'
-  | 'results_checkpoint'
-  | 'strategic_modules'
-  | 'final_next_actions';
 
 type FormValues = Record<string, string | boolean | null>;
 
@@ -47,57 +40,6 @@ const BUSINESS_TYPE_OPTIONS = [
     body: 'Hai gia una struttura operativa o una societa avviata.',
   },
 ];
-
-const OPTION_LABELS_IT: Record<string, string> = {
-  not_started: 'Idea o attivita non ancora aperta',
-  partita_iva_only: 'Partita IVA o attivita individuale',
-  incorporated_business: 'Societa gia costituita',
-  individual_professional: 'Libero professionista',
-  sole_proprietorship: 'Ditta individuale',
-  srl: 'SRL',
-  innovative_startup: 'Startup innovativa',
-  startup_innovativa: 'Startup innovativa',
-  pmi_innovativa: 'PMI innovativa',
-  cooperative: 'Cooperativa',
-  other: 'Altra forma',
-  not_sure: 'Non lo so ancora',
-  idea: 'Solo idea o progetto',
-  '0-12m': 'Meno di 12 mesi',
-  '1-3y': 'Da 1 a 3 anni',
-  '3-5y': 'Da 3 a 5 anni',
-  '5y+': 'Oltre 5 anni',
-  solo: 'Solo founder',
-  micro: 'Micro',
-  small: 'Piccola',
-  medium: 'Media',
-  none: 'Nessuno',
-  retail: 'Commercio',
-  creative: 'Creativo',
-  dipendente: 'Dipendente',
-  autonomo: 'Autonomo o freelance',
-  disoccupato: 'Disoccupato',
-  pensionato: 'Pensionato',
-  under_35: 'Under 35',
-  '35_55': 'Tra 35 e 55 anni',
-  over_55: 'Over 55',
-  single: 'Single',
-  coppia_senza_figli: 'Coppia senza figli',
-  coppia_con_figli: 'Coppia con figli',
-  genitore_solo_con_figli: 'Genitore solo con figli',
-  under_15k: 'Sotto 15.000 EUR',
-  '15_25k': 'Tra 15.000 e 25.000 EUR',
-  '25_40k': 'Tra 25.000 e 40.000 EUR',
-  over_40k: 'Oltre 40.000 EUR',
-  non_determinato: 'Non determinato',
-  '3_plus': '3 o piu',
-  persona_fisica: 'Profilo personale',
-  digitale: 'Digitale',
-  manifattura: 'Manifattura',
-  servizi: 'Servizi',
-  turismo: 'Turismo',
-  energia: 'Energia',
-  agritech: 'Agritech',
-};
 
 const BUSINESS_FACT_KEYS_TO_CLEAR = [
   'activity_stage',
@@ -127,10 +69,12 @@ export function ProfileForm({
   profile,
   questionPayload,
   entry,
+  returnTo,
 }: {
   profile: Profile | null;
   questionPayload: ProfileQuestionResponse | null;
   entry?: string;
+  returnTo?: string;
 }) {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -180,9 +124,9 @@ export function ProfileForm({
         : [];
 
   const primaryHref = questionPayload
-    ? computePrimaryHref(currentStep, questionPayload, entry, businessMode)
-    : buildOnboardingHref('personal_core', undefined, entry);
-  const backHref = questionPayload ? computeBackHref(currentStep, questionPayload, entry) : undefined;
+    ? computePrimaryHref(currentStep, questionPayload, entry, businessMode, returnTo)
+    : buildOnboardingHref('personal_core', undefined, entry, returnTo);
+  const backHref = questionPayload ? computeBackHref(currentStep, questionPayload, entry, returnTo) : undefined;
 
   if (!questionPayload) {
     return (
@@ -247,18 +191,24 @@ export function ProfileForm({
             <div className="flex flex-wrap gap-3">
               {questionPayload.strategic_modules.length ? (
                 <button type="button" className="button" onClick={() => window.location.assign(primaryHref)}>
-                  Continua con le domande utili
+                  Continua a rifinire il profilo
                   <ArrowRight className="size-4" />
                 </button>
               ) : (
-                <Link className="button" href={buildSearchHref(entry) as Route}>
-                  Vai al catalogo
+                <Link className="button" href={'/' as Route}>
+                  Vai ai tuoi match
                   <ArrowRight className="size-4" />
                 </Link>
               )}
-              <Link className="button-secondary" href={buildSearchHref(entry) as Route}>
-                Apri il catalogo completo
+              {questionPayload.strategic_modules.length ? (
+                <Link className="button-secondary" href={'/' as Route}>
+                  Vai ai tuoi match
+                </Link>
+              ) : null}
+              <Link className="button-secondary" href={buildSearchHref() as Route}>
+                Apri il catalogo generale
               </Link>
+              {returnTo ? <Link className="button-secondary" href={returnTo as Route}>Torna al profilo</Link> : null}
             </div>
           </CardContent>
         </Card>
@@ -289,16 +239,14 @@ export function ProfileForm({
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link className="button" href={buildSearchHref(entry) as Route}>
-                Vai al catalogo
+              <Link className="button" href={'/' as Route}>
+                Vai ai tuoi match
                 <ArrowRight className="size-4" />
               </Link>
-              <Link className="button-secondary" href={'/saved' as Route}>
-                Apri le salvate
+              <Link className="button-secondary" href={buildSearchHref() as Route}>
+                Apri il catalogo generale
               </Link>
-              <Link className="button-secondary" href={buildOnboardingHref('personal_core', undefined, entry)}>
-                Rivedi il profilo
-              </Link>
+              <Link className="button-secondary" href={'/profile' as Route}>Apri il profilo</Link>
             </div>
           </CardContent>
         </Card>
@@ -370,9 +318,9 @@ export function ProfileForm({
             body="La aggiungi solo se ti serve. Il feed tiene insieme opportunita personali e, se serve, anche d impresa."
           />
           <NarrativeStat
-            label="Prime misure"
+            label="Feed personalizzato"
             value={String(questionPayload.results_summary.total_matches)}
-            body="Dopo i passaggi iniziali vedi un primo riepilogo. Gli approfondimenti dopo sono opzionali."
+            body="Dopo i passaggi iniziali vai nei tuoi match. Gli approfondimenti dopo servono solo a chiarire meglio."
           />
         </CardContent>
       </Card>
@@ -700,80 +648,91 @@ function computePrimaryHref(
   step: OnboardingStepKey,
   payload: ProfileQuestionResponse,
   entry?: string,
-  businessMode: 'none' | 'enabled' = payload.business_context.enabled ? 'enabled' : 'none'
+  businessMode: 'none' | 'enabled' = payload.business_context.enabled ? 'enabled' : 'none',
+  returnTo?: string,
 ): string {
   if (step === 'personal_core') {
-    return buildOnboardingHref('business_context', undefined, entry);
+    if (returnTo) {
+      return returnTo;
+    }
+    return buildOnboardingHref('business_context', undefined, entry, returnTo);
   }
   if (step === 'business_context') {
     return businessMode === 'enabled'
-      ? buildOnboardingHref('business_core', undefined, entry)
-      : buildOnboardingHref('results_checkpoint', undefined, entry);
+      ? buildOnboardingHref('business_core', undefined, entry, returnTo)
+      : (returnTo ?? buildOnboardingHref('results_checkpoint', undefined, entry, returnTo));
   }
   if (step === 'business_core') {
-    return buildOnboardingHref('results_checkpoint', undefined, entry);
+    if (returnTo) {
+      return returnTo;
+    }
+    return buildOnboardingHref('results_checkpoint', undefined, entry, returnTo);
   }
   if (step === 'results_checkpoint') {
     if (payload.strategic_modules.length) {
-      return buildOnboardingHref('strategic_modules', payload.strategic_modules[0]?.key, entry);
+      return buildOnboardingHref('strategic_modules', payload.strategic_modules[0]?.key, entry, returnTo);
     }
-    return buildOnboardingHref('final_next_actions', undefined, entry);
+    return '/' as Route;
   }
   if (step === 'strategic_modules') {
+    if (returnTo) {
+      return returnTo;
+    }
     const currentIndex = payload.strategic_modules.findIndex((module) => module.key === payload.journey.active_module_key);
     const nextModule = payload.strategic_modules[currentIndex + 1];
     if (nextModule) {
-      return buildOnboardingHref('strategic_modules', nextModule.key, entry);
+      return buildOnboardingHref('strategic_modules', nextModule.key, entry, returnTo);
     }
-    return buildOnboardingHref('final_next_actions', undefined, entry);
+    return buildOnboardingHref('final_next_actions', undefined, entry, returnTo);
   }
-  return buildSearchHref(entry);
+  return '/' as Route;
 }
 
-function computeBackHref(step: OnboardingStepKey, payload: ProfileQuestionResponse, entry?: string): Route | undefined {
+function computeBackHref(step: OnboardingStepKey, payload: ProfileQuestionResponse, entry?: string, returnTo?: string): Route | undefined {
   if (step === 'business_context') {
-    return buildOnboardingHref('personal_core', undefined, entry);
+    if (returnTo) {
+      return returnTo as Route;
+    }
+    return buildOnboardingHref('personal_core', undefined, entry, returnTo);
   }
   if (step === 'business_core') {
-    return buildOnboardingHref('business_context', undefined, entry);
+    return buildOnboardingHref('business_context', undefined, entry, returnTo);
   }
   if (step === 'results_checkpoint') {
-    return buildOnboardingHref(payload.journey.has_business_context ? 'business_core' : 'business_context', undefined, entry);
+    if (returnTo) {
+      return returnTo as Route;
+    }
+    return buildOnboardingHref(payload.journey.has_business_context ? 'business_core' : 'business_context', undefined, entry, returnTo);
   }
   if (step === 'strategic_modules') {
+    if (returnTo) {
+      return returnTo as Route;
+    }
     const currentIndex = payload.strategic_modules.findIndex((module) => module.key === payload.journey.active_module_key);
     if (currentIndex > 0) {
-      return buildOnboardingHref('strategic_modules', payload.strategic_modules[currentIndex - 1]?.key, entry);
+      return buildOnboardingHref('strategic_modules', payload.strategic_modules[currentIndex - 1]?.key, entry, returnTo);
     }
-    return buildOnboardingHref('results_checkpoint', undefined, entry);
+    return buildOnboardingHref('results_checkpoint', undefined, entry, returnTo);
   }
   if (step === 'final_next_actions') {
+    if (returnTo) {
+      return returnTo as Route;
+    }
     if (payload.strategic_modules.length) {
       return buildOnboardingHref(
         'strategic_modules',
         payload.strategic_modules[payload.strategic_modules.length - 1]?.key,
-        entry
+        entry,
+        returnTo,
       );
     }
-    return buildOnboardingHref('results_checkpoint', undefined, entry);
+    return buildOnboardingHref('results_checkpoint', undefined, entry, returnTo);
   }
   return undefined;
 }
 
-function buildOnboardingHref(step: OnboardingStepKey, module: string | undefined, entry?: string): Route {
-  const search = new URLSearchParams();
-  search.set('step', step);
-  if (module) {
-    search.set('module', module);
-  }
-  if (entry) {
-    search.set('entry', entry);
-  }
-  return (`/onboarding?${search.toString()}`) as Route;
-}
-
-function buildSearchHref(entry?: string): Route {
-  return (`/search${entry ? `?entry=${encodeURIComponent(entry)}` : ''}`) as Route;
+function buildSearchHref(): Route {
+  return '/search' as Route;
 }
 
 function submitLabel(step: OnboardingStepKey, hasStrategicModule: boolean, businessMode: 'none' | 'enabled') {
@@ -818,10 +777,6 @@ function stepCopy(step: OnboardingStepKey, currentModuleTitle?: string) {
     title: 'Percorso guidato',
     body: 'Continua dal punto giusto per te.',
   };
-}
-
-function formatOptionLabel(option: string): string {
-  return OPTION_LABELS_IT[option] ?? option.replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function businessTypeLabel(value: string | null | undefined): string {

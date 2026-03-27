@@ -124,6 +124,44 @@ export type ProfileQuestionResponse = {
   };
 };
 
+export type ProfileEditTarget = {
+  step: string;
+  module: string | null;
+  label: string;
+};
+
+export type ProfileOverviewField = {
+  key: string;
+  label: string;
+  value: string | boolean | number | null;
+  formatted_value: string;
+};
+
+export type ProfileOverviewSection = {
+  key: string;
+  title: string;
+  status_label: string;
+  description: string;
+  answered_count: number;
+  answered_fields: ProfileOverviewField[];
+  missing_labels: string[];
+  edit_target: ProfileEditTarget;
+};
+
+export type ProfileOverview = {
+  summary: {
+    readiness_label: string;
+    completed_labels: string[];
+    missing_labels: string[];
+    clarifiable_match_count: number;
+    total_match_count: number;
+    profile_completeness_score: number;
+    next_focus_labels: string[];
+  };
+  personal: ProfileOverviewSection;
+  business: ProfileOverviewSection;
+};
+
 export type MatchQuestionHint = {
   key: string;
   label: string;
@@ -154,6 +192,7 @@ export type OpportunityCard = {
   blocking_question_keys: string[];
   match_reasons: string[];
   blocking_missing_labels: string[];
+  profile_edit_target: ProfileEditTarget | null;
 };
 
 export type OpportunityDetail = OpportunityCard & {

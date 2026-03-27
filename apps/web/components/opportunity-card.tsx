@@ -4,6 +4,7 @@ import { ArrowRight, CalendarDays, Euro, MapPin } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { buildProfileEditHref } from '@/lib/profile-ui';
 import type { OpportunityCard as OpportunityCardType } from '@/lib/types';
 import { categoryLabel, cn, formatCurrency, formatDate } from '@/lib/utils';
 
@@ -25,10 +26,12 @@ const categoryTheme: Record<string, string> = {
 export function OpportunityCard({
   opportunity,
   detailHref,
+  profileReturnTo,
   showSaveToggle = true,
 }: {
   opportunity: OpportunityCardType;
   detailHref?: string;
+  profileReturnTo?: string;
   showSaveToggle?: boolean;
 }) {
   const theme = categoryTheme[opportunity.category] ?? 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-slate-500/10';
@@ -90,6 +93,15 @@ export function OpportunityCard({
           <div className="grid gap-2 rounded-[1.4rem] border border-amber-200/70 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">Da completare</span>
             <p className="m-0 wrap-anywhere">Ti manca ancora: {opportunity.blocking_missing_labels.slice(0, 2).join(', ')}.</p>
+            {opportunity.profile_edit_target ? (
+              <Link
+                href={buildProfileEditHref(opportunity.profile_edit_target, profileReturnTo ? { returnTo: profileReturnTo } : undefined)}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-amber-900 underline decoration-amber-300 underline-offset-4 hover:decoration-amber-600"
+              >
+                {opportunity.profile_edit_target.label}
+                <ArrowRight className="size-4" />
+              </Link>
+            ) : null}
           </div>
         ) : null}
       </CardContent>

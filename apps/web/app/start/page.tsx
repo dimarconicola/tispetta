@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default async function StartPage() {
   const user = await getSessionUser().catch(() => null);
   if (user) {
-    redirect('/onboarding?entry=apex');
+    redirect('/');
   }
 
   return (

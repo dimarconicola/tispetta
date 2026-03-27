@@ -71,6 +71,12 @@ class OnboardingJourney(ApiModel):
     active_module_key: str | None = None
 
 
+class ProfileEditTarget(ApiModel):
+    step: str
+    module: str | None = None
+    label: str
+
+
 class ProfileBusinessContext(ApiModel):
     answered: bool = False
     enabled: bool = False
@@ -107,6 +113,40 @@ class ProfileQuestionResponse(ApiModel):
     business_core_questions: list[ProfileQuestion]
     strategic_modules: list[StrategicModule]
     results_summary: ProfileResultsSummary
+
+
+class ProfileOverviewField(ApiModel):
+    key: str
+    label: str
+    value: str | bool | int | float | None = None
+    formatted_value: str
+
+
+class ProfileOverviewSection(ApiModel):
+    key: str
+    title: str
+    status_label: str
+    description: str
+    answered_count: int = 0
+    answered_fields: list[ProfileOverviewField] = []
+    missing_labels: list[str] = []
+    edit_target: ProfileEditTarget
+
+
+class ProfileOverviewSummary(ApiModel):
+    readiness_label: str
+    completed_labels: list[str] = []
+    missing_labels: list[str] = []
+    clarifiable_match_count: int = 0
+    total_match_count: int = 0
+    profile_completeness_score: float = 0
+    next_focus_labels: list[str] = []
+
+
+class ProfileOverviewResponse(ApiModel):
+    summary: ProfileOverviewSummary
+    personal: ProfileOverviewSection
+    business: ProfileOverviewSection
 
 
 class ProfilePayload(BaseModel):

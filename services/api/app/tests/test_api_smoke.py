@@ -148,6 +148,18 @@ def test_authenticated_catalog_surfaces_match_explanations() -> None:
     assert any(item['opportunity_scope'] == 'personal' for item in payload)
     assert any(item['opportunity_scope'] == 'business' for item in payload)
 
+    personalized = client.get('/v1/opportunities?personalized_only=true', headers=headers)
+    assert personalized.status_code == 200
+    personalized_payload = personalized.json()
+    assert personalized_payload
+    assert len(personalized_payload) <= len(payload)
+    assert all(item['match_status'] in {'confirmed', 'likely', 'unclear'} for item in personalized_payload)
+    assert all(item['match_status'] != 'not_eligible' for item in personalized_payload)
+    assert all(
+        item['profile_edit_target'] is None or item['profile_edit_target']['step'] in {'personal_core', 'business_context', 'business_core', 'strategic_modules'}
+        for item in personalized_payload
+    )
+
     personal_only = client.get('/v1/opportunities?scope=personal', headers=headers)
     assert personal_only.status_code == 200
     assert all(item['opportunity_scope'] in {'personal', 'hybrid'} for item in personal_only.json())
@@ -162,6 +174,19 @@ def test_authenticated_catalog_surfaces_match_explanations() -> None:
     assert detail_payload['match_breakdown']['status'] == first['match_status']
     assert isinstance(detail_payload['match_breakdown']['next_best_questions'], list)
     assert detail_payload['opportunity_scope'] in {'personal', 'business', 'hybrid'}
+
+    overview = client.get('/v1/profile/overview', headers=headers)
+    assert overview.status_code == 200
+    overview_payload = overview.json()
+    assert {'summary', 'personal', 'business'} <= set(overview_payload)
+    assert overview_payload['personal']['title'] == 'Profilo personale'
+    assert overview_payload['business']['title'] == 'Attivita'
+    assert overview_payload['personal']['answered_fields']
+    assert overview_payload['personal']['edit_target']['step'] == 'personal_core'
+    assert overview_payload['business']['edit_target']['step'] in {'business_context', 'business_core'}
+    assert overview_payload['summary']['total_match_count'] == len(personalized_payload)
+    if overview_payload['summary']['clarifiable_match_count'] > 0:
+        assert 'chiar' in overview_payload['summary']['readiness_label'].lower()
 
 
 def test_onboarding_questions_clamp_requested_step_and_unlock_business_path() -> None:

@@ -24,7 +24,7 @@ export default async function SignInPage({
   const params = searchParams ? await searchParams : {};
   const user = await getSessionUser().catch(() => null);
   if (user) {
-    redirect('/onboarding');
+    redirect('/');
   }
 
   const isLocalEnvironment = process.env.NODE_ENV !== 'production';

@@ -28,6 +28,12 @@ class MatchBreakdown(ApiModel):
     what_blocks_confirmation: list[str] = []
 
 
+class ProfileEditTarget(ApiModel):
+    step: str
+    module: str | None = None
+    label: str
+
+
 class OpportunityCard(ApiModel):
     id: str
     slug: str
@@ -49,6 +55,7 @@ class OpportunityCard(ApiModel):
     blocking_question_keys: list[str] = []
     match_reasons: list[str] = []
     blocking_missing_labels: list[str] = []
+    profile_edit_target: ProfileEditTarget | None = None
 
 
 class OpportunityDetail(OpportunityCard):

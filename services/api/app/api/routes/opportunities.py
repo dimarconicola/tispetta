@@ -22,6 +22,7 @@ def get_opportunities(
     category: str | None = Query(default=None),
     matched_status: str | None = Query(default=None),
     saved_only: bool = Query(default=False),
+    personalized_only: bool = Query(default=False),
     scope: str | None = Query(default=None),
     limit: int | None = Query(default=None, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -34,6 +35,7 @@ def get_opportunities(
         category=category,
         matched_status=matched_status,
         saved_only=saved_only,
+        personalized_only=personalized_only,
         scope=scope,
         limit=limit,
     )

@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentProps, ReactNode } from 'react';
@@ -81,9 +82,10 @@ export function Topbar({ user, variant = 'app' }: TopbarProps) {
     <header className="topbar">
       <Brand href="/" />
       <nav className="nav">
+        <NavLink href="/" active={pathname === '/'}>I tuoi match</NavLink>
         <NavLink href="/search" active={pathname?.startsWith('/search')}>Cerca</NavLink>
         <NavLink href="/saved" prefetch={false} active={pathname?.startsWith('/saved')}>Salvate</NavLink>
-        <NavLink href="/onboarding" prefetch={false} active={pathname?.startsWith('/onboarding')}>Profilo</NavLink>
+        <NavLink href={'/profile' as Route} prefetch={false} active={pathname?.startsWith('/profile') || pathname?.startsWith('/onboarding')}>Profilo</NavLink>
         <NavLink href="/settings" prefetch={false} active={pathname?.startsWith('/settings')}>Notifiche</NavLink>
         {user?.role === 'admin' ? <NavLink href="/admin/measure-families" prefetch={false} active={pathname?.startsWith('/admin')}>Admin</NavLink> : null}
         {user ? (

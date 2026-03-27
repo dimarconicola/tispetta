@@ -1,15 +1,15 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import type { Metadata } from 'next';
+import type { Route } from 'next';
 
 import { ApexLanding } from '@/components/apex-landing';
 import { FilterChips } from '@/components/filter-chips';
 import { OpportunityCard } from '@/components/opportunity-card';
-import { SearchBar } from '@/components/search-bar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { APP_HOST, isApexLikeHost } from '@/lib/hosts';
-import { getOpportunities, getProfile, getSessionUser } from '@/lib/server-api';
+import { getOpportunities, getProfileOverview, getSessionUser } from '@/lib/server-api';
 
 async function isMarketingRequest() {
   const headerStore = await headers();
@@ -39,20 +39,12 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: 'Tispetta',
+    title: 'I tuoi match | Tispetta',
     alternates: { canonical: 'https://app.tispetta.eu/' },
   };
 }
 
 type HomeOpportunity = Awaited<ReturnType<typeof getOpportunities>>[number];
-
-const CATEGORY_ITEMS = [
-  { label: 'Assunzioni', value: 'hiring_incentive' },
-  { label: 'Digitale', value: 'digitization_incentive' },
-  { label: 'Export', value: 'export_incentive' },
-  { label: 'Sostenibilita', value: 'sustainability_incentive' },
-  { label: 'Formazione', value: 'training_incentive' },
-];
 
 const SCOPE_ITEMS = [
   { label: 'Personale', value: 'personal' },
@@ -60,98 +52,93 @@ const SCOPE_ITEMS = [
 ];
 
 function ProductHomePage({
-  profile,
+  overview,
   opportunities,
   scope,
 }: {
-  profile: Awaited<ReturnType<typeof getProfile>>;
+  overview: Awaited<ReturnType<typeof getProfileOverview>>;
   opportunities: HomeOpportunity[];
   scope: string;
 }) {
-  const visibleMatches = opportunities.filter((item) => item.match_status !== 'not_eligible');
-  const confirmed = visibleMatches.filter((item) => item.match_status === 'confirmed').slice(0, 3);
-  const likely = visibleMatches.filter((item) => item.match_status === 'likely').slice(0, 3);
+  const confirmed = opportunities.filter((item) => item.match_status === 'confirmed');
+  const likely = opportunities.filter((item) => item.match_status === 'likely');
+  const unclear = opportunities.filter((item) => item.match_status === 'unclear');
 
   return (
     <div className="grid gap-8 pb-10">
       <section className="grid gap-6">
         <div className="max-w-3xl space-y-4">
-          <Badge variant="soft" className="w-fit">Dashboard personale</Badge>
+          <Badge variant="soft" className="w-fit">I tuoi match</Badge>
           <h1 className="font-heading text-5xl font-semibold tracking-tight text-slate-950 sm:text-7xl">
-            Cosa potrebbe essere rilevante per te <span className="text-gradient">adesso.</span>
+            Le opportunita che emergono davvero dal tuo profilo <span className="text-gradient">adesso.</span>
           </h1>
           <p className="max-w-2xl text-lg leading-8 text-slate-500">
-            {profile?.user_type && profile.user_type !== 'persona_fisica'
-              ? `Profilo personale attivo con area principale ${profile.region ?? 'Italia'} e contesto ${profile.user_type}. `
-              : `Profilo personale attivo${profile?.region ? ` in ${profile.region}` : ''}. `}
-            Completezza attuale {Math.round(profile?.profile_completeness_score ?? 0)}%. Cerca, salva e chiarisci prima i match che possono salire di stato.
+            Qui vedi solo il feed personalizzato. Il catalogo generale resta in Cerca. Il profilo serve a rendere piu solidi i match che oggi sono ancora aperti.
           </p>
         </div>
-        <SearchBar defaultValue="" />
         <div className="grid gap-3">
           <FilterChips items={SCOPE_ITEMS} active={scope || null} buildHref={(value) => `/${value ? `?scope=${encodeURIComponent(value)}` : ''}`} />
-          <FilterChips
-            items={CATEGORY_ITEMS}
-            active={null}
-            buildHref={(value) => {
-              const search = new URLSearchParams();
-              if (value) search.set('category', value);
-              if (scope) search.set('scope', scope);
-              return `/search${search.toString() ? `?${search.toString()}` : ''}`;
-            }}
-          />
         </div>
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.85fr)]">
         <Card>
           <CardHeader className="gap-3">
-            <Badge variant="outline" className="w-fit">Snapshot</Badge>
-            <CardTitle className="text-4xl leading-[0.95]">Hai gia una base spendibile. Ora scegli dove chiudere i blocchi.</CardTitle>
+            <Badge variant="outline" className="w-fit">Stato profilo</Badge>
+            <CardTitle className="text-4xl leading-[0.95]">{overview?.summary.readiness_label ?? 'Profilo in aggiornamento'}</CardTitle>
             <CardDescription className="max-w-2xl text-base leading-7">
-              I match sono gia ordinati per stato, urgenza e potenziale. Il profilo serve a rendere espliciti i campi che cambiano davvero il risultato.
+              {overview
+                ? `Hai ${overview.summary.total_match_count} match personalizzati e ${overview.summary.clarifiable_match_count} schede ancora da chiarire.`
+                : 'Stiamo riallineando il riepilogo del profilo.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3">
-            <Metric value={String(confirmed.length)} label="confermate ora" />
-            <Metric value={String(likely.length)} label="probabili da chiudere" />
-            <Metric value={`${Math.round(profile?.profile_completeness_score ?? 0)}%`} label="completezza attuale" />
+            <Metric value={String(confirmed.length)} label="confermate" />
+            <Metric value={String(likely.length)} label="compatibili" />
+            <Metric value={String(unclear.length)} label="da chiarire" />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="gap-3">
-            <Badge variant="soft" className="w-fit">Azione</Badge>
-            <CardTitle className="text-3xl">Non serve completare tutto.</CardTitle>
-            <CardDescription className="text-base leading-7">Completa prima le risposte che spostano stato e priorita. Il resto puo arrivare dopo.</CardDescription>
+            <Badge variant="soft" className="w-fit">Orientamento</Badge>
+            <CardTitle className="text-3xl">Profilo e catalogo non sono la stessa cosa.</CardTitle>
+            <CardDescription className="text-base leading-7">
+              Profilo = i tuoi dati. I tuoi match = il feed personalizzato. Cerca = il catalogo generale da esplorare senza mescolare i due livelli.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <Link href="/onboarding" className="button">
-              Aggiorna il profilo
+            <Link href={'/profile' as Route} className="button">
+              Apri il profilo
             </Link>
-            <Link href="/saved" className="button-secondary">
-              Apri salvate
+            <Link href="/search" className="button-secondary">
+              Apri il catalogo generale
             </Link>
           </CardContent>
         </Card>
       </section>
 
-      <section className="grid gap-5">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="eyebrow">Top opportunita</p>
-            <h2 className="section-title">Le prime sei che meritano attenzione</h2>
-          </div>
-          <Link href="/search" className="button-secondary">
-            Vedi tutto
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {visibleMatches.slice(0, 6).map((opportunity) => (
-            <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-          ))}
-        </div>
-      </section>
+      <MatchSection
+        eyebrow="Confermate"
+        title="Le schede gia coerenti con i tuoi dati attuali"
+        body="Sono le opportunita piu solide con il profilo di oggi."
+        items={confirmed}
+        empty="Nessuna scheda confermata al momento."
+      />
+      <MatchSection
+        eyebrow="Compatibili"
+        title="Quelle con buon fit, ma ancora da rifinire"
+        body="Hanno un buon perimetro gia adesso, ma puoi renderle piu affidabili con poche informazioni in piu."
+        items={likely}
+        empty="Nessuna scheda compatibile da seguire adesso."
+      />
+      <MatchSection
+        eyebrow="Da chiarire"
+        title="Dove il profilo puo ancora cambiare il risultato"
+        body="Qui trovi solo le schede che hanno bisogno di un passaggio in piu dal tuo profilo."
+        items={unclear}
+        empty="Nessun match aperto da chiarire in questo momento."
+      />
     </div>
   );
 }
@@ -203,9 +190,9 @@ function PublicProductHome({ opportunities }: { opportunities: HomeOpportunity[]
             Vai alla ricerca
           </Link>
         </div>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {opportunities.filter((opportunity) => opportunity.match_status !== 'not_eligible').slice(0, 6).map((opportunity) => (
-            <OpportunityCard key={opportunity.id} opportunity={opportunity} showSaveToggle={false} />
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {opportunities.filter((opportunity) => opportunity.match_status !== 'not_eligible').slice(0, 6).map((opportunity) => (
+            <OpportunityCard key={opportunity.id} opportunity={opportunity} profileReturnTo="/" showSaveToggle={false} />
           ))}
         </div>
       </section>
@@ -222,6 +209,44 @@ function Metric({ value, label }: { value: string; label: string }) {
   );
 }
 
+function MatchSection({
+  eyebrow,
+  title,
+  body,
+  items,
+  empty,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  items: HomeOpportunity[];
+  empty: string;
+}) {
+  return (
+    <section className="grid gap-5">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2 className="section-title">{title}</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{body}</p>
+        </div>
+        <span className="text-sm text-slate-500">{items.length}</span>
+      </div>
+      {items.length > 0 ? (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {items.map((opportunity) => (
+            <OpportunityCard key={opportunity.id} opportunity={opportunity} profileReturnTo="/" />
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="py-6 text-sm leading-7 text-slate-600">{empty}</CardContent>
+        </Card>
+      )}
+    </section>
+  );
+}
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -235,12 +260,18 @@ export default async function HomePage({
     return <ApexLanding appBaseUrl={`https://${APP_HOST}`} />;
   }
 
-  const opportunities = await getOpportunities({ scope: scope || undefined }).catch(() => []);
-  const [user, profile] = await Promise.all([getSessionUser().catch(() => null), getProfile().catch(() => null)]);
+  const user = await getSessionUser().catch(() => null);
+  const [overview, opportunities] = await Promise.all([
+    user ? getProfileOverview().catch(() => null) : Promise.resolve(null),
+    getOpportunities({
+      scope: scope || undefined,
+      personalized_only: user ? true : undefined,
+    }).catch(() => []),
+  ]);
 
   if (!user) {
     return <PublicProductHome opportunities={opportunities} />;
   }
 
-  return <ProductHomePage profile={profile} opportunities={opportunities} scope={scope} />;
+  return <ProductHomePage overview={overview} opportunities={opportunities} scope={scope} />;
 }

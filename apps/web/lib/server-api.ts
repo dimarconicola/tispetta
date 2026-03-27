@@ -14,6 +14,7 @@ import type {
   OpportunityCard,
   OpportunityDetail,
   Profile,
+  ProfileOverview,
   ProfileQuestionResponse,
   ReviewItem,
   RuleListItem,
@@ -74,6 +75,10 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
 export async function getProfile(): Promise<Profile | null> {
   return apiFetch<Profile>('/v1/profile');
+}
+
+export async function getProfileOverview(): Promise<ProfileOverview | null> {
+  return apiFetch<ProfileOverview>('/v1/profile/overview');
 }
 
 export async function getProfileQuestions(params?: { step?: string; module?: string }): Promise<ProfileQuestionResponse | null> {

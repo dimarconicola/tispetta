@@ -60,6 +60,11 @@ test('impresa_onboarding_wizard_to_results', async ({ page, request }) => {
 
   await expect(page).toHaveURL(/step=results_checkpoint/);
   await expect(page.getByRole('heading', { name: /adesso hai gia un primo set leggibile/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Vai ai tuoi match' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Apri il catalogo generale' })).toBeVisible();
+  await page.getByRole('link', { name: 'Vai ai tuoi match' }).first().click();
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('heading', { name: /le opportunita che emergono davvero dal tuo profilo/i })).toBeVisible();
 });
 
 test('persona_fisica_onboarding_wizard_to_results', async ({ page, request }) => {
@@ -107,7 +112,7 @@ test('strategic_module_does_not_navigate_on_select_change', async ({ page, reque
   await page.locator('#innovation_regime_status').selectOption('startup_innovativa');
   await page.getByRole('button', { name: 'Salva e mostra le prime misure' }).click();
 
-  await page.getByRole('button', { name: /continua con le domande utili/i }).click();
+  await page.getByRole('button', { name: /continua a rifinire il profilo/i }).click();
   await expect(page).toHaveURL(/step=strategic_modules/);
   const currentUrl = page.url();
   const firstSelect = page.locator('select').first();
@@ -119,7 +124,7 @@ test('strategic_module_does_not_navigate_on_select_change', async ({ page, reque
 
 test('anonymous_search_and_detail', async ({ page }) => {
   await page.goto('/search');
-  await expect(page.getByRole('heading', { name: /intelligenza delle opportunita/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /catalogo generale delle opportunita/i })).toBeVisible();
   await page.getByRole('textbox').fill('smart');
   await page.getByRole('button', { name: 'Cerca' }).click();
 
@@ -145,6 +150,26 @@ test('authenticated_save_and_saved_page', async ({ page, request }) => {
   await page.goto('/saved');
   await expect(page.getByText('La tua shortlist da monitorare.')).toBeVisible();
   await expect(page.getByRole('heading', { name: /opportunita salvate/i })).toBeVisible();
+});
+
+test('profile_overview_edits_return_cleanly', async ({ page, request }) => {
+  const email = uniqueEmail('profile-overview');
+  await loginViaApi(page, request, email, '/profile');
+
+  await expect(page).toHaveURL(/\/profile/);
+  await expect(page.getByRole('heading', { name: /le informazioni che definiscono i tuoi match/i })).toBeVisible();
+  await page.getByRole('link', { name: /rivedi profilo personale/i }).click();
+
+  await expect(page).toHaveURL(/\/onboarding\?step=personal_core/);
+  await page.locator('#main_operating_region').selectOption({ label: 'Lombardia' });
+  await page.locator('#employment_type').selectOption('dipendente');
+  await page.locator('#persona_fisica_age_band').selectOption('under_35');
+  await page.locator('#family_composition').selectOption('single');
+  await page.locator('#figli_a_carico_count').selectOption('0');
+  await page.getByRole('button', { name: 'Salva e continua' }).click();
+
+  await expect(page).toHaveURL('/profile');
+  await expect(page.getByText('Lombardia')).toBeVisible();
 });
 
 test('logout_clears_session', async ({ page, request }) => {

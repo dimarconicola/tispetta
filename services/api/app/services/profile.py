@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.matching.rules import PROFILE_FIELD_LABELS
 from app.models import Match, MatchStatus, NotificationPreference, Profile, ProfileFactCatalog, ProfileFactValue, ProfileRevision, User
 from app.schemas.profile import ProfilePayload
 from app.services.corpus import CORE_FACT_KEYS, build_profile_questions, ensure_bootstrap_corpus
@@ -107,6 +108,61 @@ STRATEGIC_MODULE_META = {
         'description': 'Ultime informazioni utili per togliere ambiguita residue.',
         'why': 'Serve a chiudere gli ultimi dubbi sui match che restano aperti.',
     },
+}
+
+PROFILE_VALUE_LABELS = {
+    'not_started': 'Idea o attivita non ancora aperta',
+    'partita_iva_only': 'Partita IVA o attivita individuale',
+    'incorporated_business': 'Societa gia costituita',
+    'individual_professional': 'Libero professionista',
+    'sole_proprietorship': 'Ditta individuale',
+    'srl': 'SRL',
+    'startup_innovativa': 'Startup innovativa',
+    'pmi_innovativa': 'PMI innovativa',
+    'startup': 'Startup o nuova impresa',
+    'freelancer': 'Freelance o partita IVA',
+    'sme': 'PMI o societa attiva',
+    'cooperative': 'Cooperativa',
+    'other': 'Altra forma',
+    'not_sure': 'Non lo so ancora',
+    'idea': 'Solo idea o progetto',
+    '0-12m': 'Meno di 12 mesi',
+    '1-3y': 'Da 1 a 3 anni',
+    '3-5y': 'Da 3 a 5 anni',
+    '5y+': 'Oltre 5 anni',
+    'solo': 'Solo founder',
+    'micro': 'Micro',
+    'small': 'Piccola',
+    'medium': 'Media',
+    'none': 'Nessuno',
+    'retail': 'Commercio',
+    'creative': 'Creativo',
+    'dipendente': 'Dipendente',
+    'autonomo': 'Autonomo o freelance',
+    'disoccupato': 'Disoccupato',
+    'pensionato': 'Pensionato',
+    'under_35': 'Under 35',
+    '35_55': 'Tra 35 e 55 anni',
+    'over_55': 'Over 55',
+    'single': 'Single',
+    'coppia_senza_figli': 'Coppia senza figli',
+    'coppia_con_figli': 'Coppia con figli',
+    'genitore_solo_con_figli': 'Genitore solo con figli',
+    'under_15k': 'Sotto 15.000 EUR',
+    '15_25k': 'Tra 15.000 e 25.000 EUR',
+    '25_40k': 'Tra 25.000 e 40.000 EUR',
+    'over_40k': 'Oltre 40.000 EUR',
+    'non_determinato': 'Non determinato',
+    '3_plus': '3 o piu',
+    'persona_fisica': 'Solo profilo personale',
+    'digitale': 'Digitale',
+    'manifattura': 'Manifattura',
+    'servizi': 'Servizi',
+    'turismo': 'Turismo',
+    'energia': 'Energia',
+    'agritech': 'Agritech',
+    'true': 'Si',
+    'false': 'No',
 }
 
 
@@ -234,6 +290,88 @@ def get_profile_questions(db: Session, user: User | None = None, requested_step:
         'business_core_questions': business_core_questions,
         'strategic_modules': strategic_modules,
         'results_summary': results_summary,
+    }
+
+
+def get_profile_overview(db: Session, user: User) -> dict:
+    profile = get_or_create_profile(db, user)
+    db.flush()
+    profile_response = profile_to_response(profile)
+    fact_values = dict((profile_response['fact_values'] if profile is not None else {}) or {})
+    grouped_modules, question_map = build_grouped_questions(db, profile)
+    personal_questions = build_fixed_question_set(db, profile, question_map, PERSONAL_CORE_KEYS)
+    business_questions = build_fixed_question_set(db, profile, question_map, BUSINESS_CORE_KEYS)
+    strategic_modules = build_strategic_modules(grouped_modules, fact_values)
+    business_context = build_business_context(profile, fact_values)
+    progress_summary = build_progress_summary(
+        grouped_modules,
+        fact_values,
+        profile,
+        personal_core_questions=personal_questions,
+        business_core_questions=business_questions,
+        strategic_modules=strategic_modules,
+        business_context=business_context,
+    )
+    results_summary = build_results_summary(
+        db,
+        user,
+        grouped_modules=grouped_modules,
+        progress_summary=progress_summary,
+        strategic_modules=strategic_modules,
+        business_context=business_context,
+    )
+    answer_meta = build_profile_answer_meta(question_map, fact_values)
+    personal_section = build_profile_overview_section(
+        key='personal',
+        title='Profilo personale',
+        description='Le informazioni di base che definiscono il tuo perimetro personale.',
+        answered_keys=[key for key in answer_meta if profile_section_key(key) == 'personal'],
+        required_questions=personal_questions,
+        answer_meta=answer_meta,
+        fact_values=fact_values,
+        business_context=business_context,
+    )
+    business_section = build_profile_overview_section(
+        key='business',
+        title='Attivita',
+        description='La parte opzionale per partita IVA, startup o impresa nello stesso profilo.',
+        answered_keys=[key for key in answer_meta if profile_section_key(key) == 'business'],
+        required_questions=business_questions,
+        answer_meta=answer_meta,
+        fact_values=fact_values,
+        business_context=business_context,
+    )
+
+    completed_labels = [personal_section['title']]
+    if business_context['enabled'] and business_section['answered_count'] > 0:
+        completed_labels.append(business_section['title'])
+    if results_summary['ready'] and results_summary['total_matches'] > 0:
+        completed_labels.append('Feed personalizzato attivo')
+
+    missing_labels = []
+    if personal_section['missing_labels']:
+        missing_labels.extend(personal_section['missing_labels'])
+    if business_context['enabled'] and business_section['missing_labels']:
+        missing_labels.extend(business_section['missing_labels'])
+    if results_summary['blocked_count'] > 0 and results_summary['next_focus_labels']:
+        missing_labels.extend(results_summary['next_focus_labels'])
+
+    return {
+        'summary': {
+            'readiness_label': build_profile_overview_readiness_label(
+                progress_summary=progress_summary,
+                business_context=business_context,
+                results_summary=results_summary,
+            ),
+            'completed_labels': unique_preserving_order(completed_labels),
+            'missing_labels': unique_preserving_order(missing_labels)[:6],
+            'clarifiable_match_count': results_summary['blocked_count'],
+            'total_match_count': results_summary['total_matches'],
+            'profile_completeness_score': profile.profile_completeness_score,
+            'next_focus_labels': results_summary['next_focus_labels'],
+        },
+        'personal': personal_section,
+        'business': business_section,
     }
 
 
@@ -454,7 +592,7 @@ def build_results_summary(
     from app.services.opportunities import list_opportunities
 
     opportunity_payload = {'modules': grouped_modules}
-    all_matches = list_opportunities(db, user, question_payload=opportunity_payload)
+    all_matches = list_opportunities(db, user, personalized_only=True, question_payload=opportunity_payload)
     top_matches = all_matches[:4]
     blocked_count = sum(1 for item in all_matches if item['blocking_question_keys'])
     why_now = [item['why_now'] for item in top_matches if item.get('why_now')]
@@ -740,6 +878,157 @@ def parse_boolish(value) -> bool | None:
     if isinstance(value, str):
         return value.lower() == 'true'
     return bool(value)
+
+
+def build_profile_answer_meta(question_map: dict[str, dict], fact_values: dict) -> dict[str, dict]:
+    items: dict[str, dict] = {}
+    for key, value in fact_values.items():
+        if value in (None, '', []):
+            continue
+        question = question_map.get(key)
+        label = question['label'] if question is not None else PROFILE_FIELD_LABELS.get(key, humanize_key(key))
+        items[key] = {
+            'key': key,
+            'label': label,
+            'value': value,
+            'formatted_value': format_profile_value(value),
+        }
+    return items
+
+
+def build_profile_overview_section(
+    *,
+    key: str,
+    title: str,
+    description: str,
+    answered_keys: list[str],
+    required_questions: list[dict],
+    answer_meta: dict[str, dict],
+    fact_values: dict,
+    business_context: dict,
+) -> dict:
+    if key == 'business' and not business_context['enabled']:
+        return {
+            'key': key,
+            'title': title,
+            'status_label': 'Non aggiunta',
+            'description': description,
+            'answered_count': 0,
+            'answered_fields': [],
+            'missing_labels': [],
+            'edit_target': build_profile_edit_target(['profile_type'], fact_values),
+        }
+
+    missing_labels = [
+        question['label']
+        for question in required_questions
+        if question.get('required') and fact_values.get(question['key']) in (None, '', [])
+    ]
+    status_label = 'Essenziale completo' if not missing_labels else 'Dati essenziali mancanti'
+    if key == 'business' and business_context['enabled'] and not answered_keys:
+        status_label = 'Da completare'
+
+    answered_fields = [answer_meta[item] for item in sort_profile_answer_keys(answered_keys)]
+    first_target_keys = [
+        question['key']
+        for question in required_questions
+        if question.get('required') and fact_values.get(question['key']) in (None, '', [])
+    ]
+    if not first_target_keys:
+        first_target_keys = sort_profile_answer_keys(answered_keys)
+    return {
+        'key': key,
+        'title': title,
+        'status_label': status_label,
+        'description': description,
+        'answered_count': len(answered_fields),
+        'answered_fields': answered_fields,
+        'missing_labels': missing_labels[:6],
+        'edit_target': build_profile_edit_target(first_target_keys or ['profile_type' if key == 'business' else 'main_operating_region'], fact_values),
+    }
+
+
+def build_profile_overview_readiness_label(*, progress_summary: dict, business_context: dict, results_summary: dict) -> str:
+    personal_ready = progress_summary['personal_answered'] >= progress_summary['personal_total'] and progress_summary['personal_total'] > 0
+    business_ready = (
+        not business_context['enabled']
+        or progress_summary['business_answered'] >= progress_summary['business_total']
+    )
+    if not personal_ready:
+        return 'Profilo personale da completare'
+    if not business_ready:
+        return 'Manca ancora il minimo indispensabile per l attivita'
+    if results_summary['blocked_count'] > 0:
+        return 'Profilo essenziale completo, alcuni match sono ancora da chiarire'
+    if results_summary['total_matches'] > 0:
+        return 'Profilo pronto e feed personalizzato attivo'
+    return 'Profilo pronto, risultati in aggiornamento'
+
+
+def build_profile_edit_target(
+    question_keys: list[str],
+    fact_values: dict | None = None,
+    *,
+    business_context_enabled_override: bool | None = None,
+) -> dict:
+    fact_values = fact_values or {}
+    key = next((item for item in question_keys if item), 'main_operating_region')
+    business_context_enabled = business_context_enabled_override
+    if business_context_enabled is None:
+        business_context_enabled = (fact_values.get('profile_type') or 'persona_fisica') != 'persona_fisica'
+    if key == 'profile_type':
+        return {'step': 'business_context', 'module': None, 'label': 'Gestisci attivita'}
+    if key in PERSONAL_CORE_KEYS:
+        return {'step': 'personal_core', 'module': None, 'label': 'Rivedi profilo personale'}
+    if key in BUSINESS_CORE_KEYS:
+        step = 'business_core' if business_context_enabled else 'business_context'
+        return {'step': step, 'module': None, 'label': 'Rivedi dati attivita'}
+    module_key = question_group_key(key)
+    module_title = STRATEGIC_MODULE_META[module_key]['title']
+    return {
+        'step': 'strategic_modules',
+        'module': module_key,
+        'label': f'Apri {module_title.lower()}',
+    }
+
+
+def sort_profile_answer_keys(keys: list[str]) -> list[str]:
+    order = {key: index for index, key in enumerate(PERSONAL_CORE_KEYS + BUSINESS_CORE_KEYS)}
+    return sorted(keys, key=lambda item: (order.get(item, 999), humanize_key(item)))
+
+
+def profile_section_key(key: str) -> str:
+    if key in PERSONAL_CORE_KEYS:
+        return 'personal'
+    if key in BUSINESS_CORE_KEYS or key == 'profile_type':
+        return 'business'
+    if question_group_key(key) == 'personal_family':
+        return 'personal'
+    return 'business'
+
+
+def format_profile_value(value) -> str:
+    if isinstance(value, bool):
+        return 'Si' if value else 'No'
+    candidate = str(value)
+    if candidate in PROFILE_VALUE_LABELS:
+        return PROFILE_VALUE_LABELS[candidate]
+    return humanize_key(candidate)
+
+
+def humanize_key(value: str) -> str:
+    return value.replace('_', ' ').strip().title()
+
+
+def unique_preserving_order(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in items:
+        if not item or item in seen:
+            continue
+        seen.add(item)
+        ordered.append(item)
+    return ordered
 
 
 def compute_question_impacts(db: Session, profile: Profile | None, question_keys: set[str]) -> dict[str, dict[str, int]]:

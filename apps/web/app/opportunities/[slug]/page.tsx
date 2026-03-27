@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -9,6 +10,7 @@ import { StatusPill } from '@/components/status-pill';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PUBLIC_APP_URL } from '@/lib/env';
+import { buildProfileEditHref } from '@/lib/profile-ui';
 import { getOpportunityDetail } from '@/lib/server-api';
 import { categoryLabel, formatCurrency, formatDate } from '@/lib/utils';
 
@@ -125,9 +127,15 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 <p>Nessun blocco esplicito rilevato con i dati attuali.</p>
               )}
               <div className="flex flex-wrap gap-3">
-                <Link href="/onboarding" className="button-secondary">
-                  Completa il profilo
-                </Link>
+                {opportunity.profile_edit_target ? (
+                  <Link href={buildProfileEditHref(opportunity.profile_edit_target, { returnTo: `/opportunities/${opportunity.slug}` })} className="button-secondary">
+                    {opportunity.profile_edit_target.label}
+                  </Link>
+                ) : (
+                  <Link href={'/profile' as Route} className="button-secondary">
+                    Apri il profilo
+                  </Link>
+                )}
               </div>
             </CardContent>
           </Card>
