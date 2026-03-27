@@ -19,8 +19,8 @@ export function FilterChips({
         className={cn(
           'inline-flex min-h-11 items-center justify-center rounded-full border px-5 text-sm font-medium transition-all duration-200',
           !active
-            ? 'border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/10'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'
+            ? 'border-[#14110f] bg-[#14110f] !text-[#fafaf9] shadow-md shadow-black/10 hover:bg-[#22201d] hover:!text-[#fafaf9]'
+            : 'border-[#14110f]/10 bg-[#faf6ef] text-[#5f564d] hover:border-[#14110f]/18 hover:bg-[#f1e7da] hover:text-[#14110f]'
         )}
       >
         Tutte
@@ -32,8 +32,8 @@ export function FilterChips({
           className={cn(
             'inline-flex min-h-11 items-center justify-center rounded-full border px-5 text-sm font-medium transition-all duration-200',
             active === item.value
-              ? 'border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/10'
-              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'
+              ? 'border-[#14110f] bg-[#14110f] !text-[#fafaf9] shadow-md shadow-black/10 hover:bg-[#22201d] hover:!text-[#fafaf9]'
+              : 'border-[#14110f]/10 bg-[#faf6ef] text-[#5f564d] hover:border-[#14110f]/18 hover:bg-[#f1e7da] hover:text-[#14110f]'
           )}
         >
           {item.label}
